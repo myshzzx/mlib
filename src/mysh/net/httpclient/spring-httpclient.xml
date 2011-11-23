@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="httpClientConf" class="mysh.net.httpclient.HttpClientConfig">
+		<property name="connectionTimeout" value="3">
+			<description>连接超时 ( 秒 )</description>
+		</property>
+		<property name="proxyAuthName" value="" />
+		<property name="proxyAuthPw" value="" />
+		<property name="proxyHost" value="" />
+		<property name="proxyPort" value="" />
+		<property name="proxyType" value="http" />
+		<property name="soTimeout" value="5">
+			<description>成功连接后获取数据超时 ( 秒 )</description>
+		</property>
+		<property name="useProxy" value="false" />
+		<property name="userAgent" value="Myshbot 1.4" />
+	</bean>
+
+	<bean id="httpClientAssistor" class="mysh.net.httpclient.HttpClientAssistor">
+		<constructor-arg ref="httpClientConf"></constructor-arg>
+	</bean>
+
+</beans>
