@@ -268,6 +268,16 @@ public final class DBConnPool {
 		this.sqlExecutor = new SQLExecutor(sqlQueueSize);
 		this.sqlExecutor.start();
 		log.info("sql 执行器已启动");
+
+		// 注册终止钩子
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+
+			@Override
+			public void run() {
+
+				DBConnPool.this.stopSQLExecutorNow();
+			}
+		});
 	}
 
 	/**
@@ -389,7 +399,10 @@ public final class DBConnPool {
 	 */
 	public void stopSQLExecutorNow() {
 
-		this.sqlExecutor.interrupt();
+		if (this.sqlExecutor.isAlive() && (!this.sqlExecutor.isInterrupted())) {
+			log.info("正在关闭 SQL 执行器...");
+			this.sqlExecutor.interrupt();
+		}
 	}
 
 	/**
