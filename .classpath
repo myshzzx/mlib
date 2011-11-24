@@ -20,5 +20,6 @@
 	<classpathentry kind="lib" path="libs/spring/spring-jdbc.jar"/>
 	<classpathentry kind="lib" path="libs/spring/spring-jms.jar"/>
 	<classpathentry kind="lib" path="libs/spring/spring-test.jar"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
