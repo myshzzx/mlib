@@ -28,14 +28,15 @@ import org.apache.commons.pool.impl.GenericObjectPool;
 import org.apache.log4j.Logger;
 
 /**
- * 数据库连接池. <br/>
+ * 数据库连接数控制器. <br/>
+ * 控制同时连接数据库的数量, 关闭连接时执行物理关闭.<br/>
  * 可手动请求数据库连接, 手动执行语句 (阻塞);<br/>
  * 也可将sql 语句加入执行队列 (非阻塞).
  * 
  * @author ZhangZhx
  */
 @ThreadSafe
-public final class DBConnPool {
+public final class DBControler {
 
 	/**
 	 * sql 执行器. <br/>
@@ -74,7 +75,7 @@ public final class DBConnPool {
 						this.prepareConnection();
 
 						if (this.conn == null || this.conn.isClosed()) {
-							DBConnPool.this.failToExecSQL(sql);
+							DBControler.this.failToExecSQL(sql);
 							continue;
 						}
 
@@ -97,7 +98,7 @@ public final class DBConnPool {
 						log.error("未知失败", e);
 					} finally {
 						if (sql != null) {
-							DBConnPool.this.failToExecSQL(sql);
+							DBControler.this.failToExecSQL(sql);
 							sql = null;
 						}
 
@@ -129,7 +130,7 @@ public final class DBConnPool {
 
 			try {
 				if (this.conn == null)
-					this.conn = DBConnPool.this.getConnection();
+					this.conn = DBControler.this.getConnection();
 				else if (this.conn.isClosed()) {
 					try {
 						this.conn.close();
@@ -162,13 +163,13 @@ public final class DBConnPool {
 				try {
 					this.sqlQueue.put(sql);
 				} catch (IllegalArgumentException e) {
-					DBConnPool.this.failToExecSQL(sql);
+					DBControler.this.failToExecSQL(sql);
 				} catch (InterruptedException e2) {
-					DBConnPool.this.failToExecSQL(sql);
+					DBControler.this.failToExecSQL(sql);
 					Thread.currentThread().interrupt();
 				}
 			} else {
-				DBConnPool.this.failToExecSQL(sql);
+				DBControler.this.failToExecSQL(sql);
 			}
 		}
 
@@ -181,19 +182,19 @@ public final class DBConnPool {
 
 			String sql;
 			while ((sql = this.sqlQueue.poll()) != null)
-				DBConnPool.this.failToExecSQL(sql);
+				DBControler.this.failToExecSQL(sql);
 		}
 	};
 
-	private static final Logger log = Logger.getLogger(DBConnPool.class);
+	private static final Logger log = Logger.getLogger(DBControler.class);
 
 	/**
-	 * 连接池信号量，控制并发访问数量.
+	 * 连接控制器信号量，控制并发访问数量.
 	 */
 	private final Semaphore poolGuide;
 
 	/**
-	 * 连接池数据源.
+	 * 连接控制器数据源.
 	 */
 	private final DataSource ds;
 
@@ -208,29 +209,29 @@ public final class DBConnPool {
 	private final PrintWriter sqlSaver;
 
 	/**
-	 * 初始化连接池.
+	 * 初始化连接控制器.
 	 * 
 	 * @param conf
 	 */
-	public DBConnPool(DBConf conf) {
+	public DBControler(DBConf conf) {
 
 		this(conf.getDriverClassName(), conf.getUrl(), conf.getPoolSize(), conf
 				.getSqlQueueSize());
 	}
 
 	/**
-	 * 初始化连接池.
+	 * 初始化.
 	 * 
 	 * @param driverClassName
 	 *               数据库驱动类名.
 	 * @param url
 	 *               数据库连接串.
 	 * @param poolSize
-	 *               连接池允许并发大小，允许的数量为 [2, proc*2].
+	 *               连接控制器允许并发大小，允许的数量为 [2, proc*2].
 	 * @param sqlQueueSize
 	 * @throws ClassNotFoundException
 	 */
-	public DBConnPool(String driverClassName, String url, int poolSize, int sqlQueueSize) {
+	public DBControler(String driverClassName, String url, int poolSize, int sqlQueueSize) {
 
 		try {
 			Class.forName(driverClassName);
@@ -244,7 +245,7 @@ public final class DBConnPool {
 			// + Runtime.getRuntime().availableProcessors() * 2 + "] : "
 			// + poolSize);
 			poolSize = Runtime.getRuntime().availableProcessors() + 1;
-			log.info("给定连接池并发大小超出默认范围：[2, " + Runtime.getRuntime().availableProcessors()
+			log.info("给定连接控制器并发大小超出默认范围：[2, " + Runtime.getRuntime().availableProcessors()
 					* 2 + "]！使用预设值：" + poolSize);
 		}
 
@@ -262,7 +263,7 @@ public final class DBConnPool {
 			this.sqlSaver = writer;
 		}
 
-		log.info("创建连接池：" + driverClassName + ": " + url + " [" + poolSize + "]");
+		log.info("创建连接控制器：" + driverClassName + ": " + url + " [" + poolSize + "]");
 
 		// 创建执行器
 		this.sqlExecutor = new SQLExecutor(sqlQueueSize);
@@ -275,7 +276,7 @@ public final class DBConnPool {
 			@Override
 			public void run() {
 
-				DBConnPool.this.stopSQLExecutorNow();
+				DBControler.this.stopSQLExecutorNow();
 			}
 		});
 	}
@@ -315,8 +316,8 @@ public final class DBConnPool {
 								throw t;
 							} finally {
 								if (method.getName().equals("close")) {
-									if (!isClosed.getAndSet(true)) {
-										DBConnPool.this.poolGuide
+									if (!this.isClosed.getAndSet(true)) {
+										DBControler.this.poolGuide
 												.release();
 									}
 								}
@@ -333,7 +334,7 @@ public final class DBConnPool {
 	}
 
 	/**
-	 * 初始化连接池.
+	 * 初始化连接控制器.
 	 * 
 	 * @param connectURL
 	 *               连接串
@@ -371,7 +372,7 @@ public final class DBConnPool {
 	public final void putSQL2Exec(String sql) {
 
 		if (!this.sqlExecutor.isAlive() || this.sqlExecutor.isInterrupted()) {
-			DBConnPool.this.failToExecSQL(sql);
+			DBControler.this.failToExecSQL(sql);
 		}
 
 		this.sqlExecutor.putSQL(sql);

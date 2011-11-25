@@ -7,8 +7,8 @@
 	</configSuffixes>
 	<enableImports><![CDATA[true]]></enableImports>
 	<configs>
-		<config>src/mysh/db/spring-dbpool.xml</config>
 		<config>src/mysh/net/httpclient/spring-httpclient.xml</config>
+		<config>src/mysh/db/spring-dbcontroler.xml</config>
 	</configs>
 	<configSets>
 	</configSets>
