@@ -41,8 +41,10 @@ public class FileIO {
 	@SuppressWarnings("unchecked")
 	public static <T> T getObjectFromFile(String filepath) {
 
-		if (!new File(filepath).exists())
+		if (!new File(filepath).exists()) {
+			log.error(filepath + " 不存在, 加载文件失败.");
 			return null;
+		}
 
 		ObjectInputStream in = null;
 		try {
