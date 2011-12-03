@@ -86,6 +86,7 @@ public class FileIO {
 
 			out = new ObjectOutputStream(new FileOutputStream(filepath));
 			out.writeObject(obj);
+			log.info("写文件成功: " + filepath);
 			return true;
 		} catch (Exception e) {
 			log.error("写文件失败: " + filepath, e);
