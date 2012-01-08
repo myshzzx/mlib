@@ -1,6 +1,7 @@
 
 package mysh.util;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -63,6 +64,85 @@ public class FileIO {
 				}
 			}
 			System.gc();
+		}
+	}
+
+	/**
+	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度).<br/>
+	 * 失败则返回 null.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @param maxLength
+	 *               文件最大长度, 超过此长度将失败.
+	 * @return
+	 */
+	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) {
+
+		byte[] buf;
+		try {
+			buf = readFileToByteArray(filepath, maxLength);
+			T obj = getObjectFromByteArray(buf);
+			log.info("从文件加载数据成功: " + filepath);
+			return obj;
+		} catch (Exception e) {
+			log.error("从文件加载数据失败: " + filepath, e);
+			return null;
+		} finally {
+			buf = null;
+			System.gc();
+		}
+	}
+
+	/**
+	 * 从缓存反序列化数据. 失败则抛异常.
+	 * 
+	 * @param buf
+	 *               缓存.
+	 * @return
+	 * @throws Exception
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> T getObjectFromByteArray(byte[] buf) throws Exception {
+
+		if (buf == null) {
+			throw new NullPointerException();
+		}
+
+		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(buf))) {
+			return (T) in.readObject();
+		} catch (Exception e) {
+			log.error("从缓存反序列化数据失败: ", e);
+			throw e;
+		}
+	}
+
+	/**
+	 * 将文件数据读到缓存. 失败抛异常.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @return
+	 * @throws Exception
+	 */
+	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws Exception {
+
+		File file = new File(filepath);
+		if (!file.exists() || !file.canRead()) {
+			throw new IllegalArgumentException(filepath + " 不存在或不可读, 加载文件失败.");
+		}
+
+		if (file.length() > maxLengh) {
+			throw new IllegalArgumentException("要读取的文件大小 (" + file.length() + ") 超出指定大小: "
+					+ maxLengh);
+		}
+
+		try (FileInputStream in = new FileInputStream(filepath)) {
+			byte[] buf = new byte[(int) file.length()];
+			in.read(buf);
+			return buf;
+		} catch (Exception e) {
+			throw e;
 		}
 	}
 
