@@ -57,6 +57,19 @@ public class HttpClientConfig {
 	private int soTimeout;
 
 	/**
+	 * 取默认配置.
+	 * 
+	 * @return
+	 */
+	public static HttpClientConfig getDefault() {
+
+		HttpClientConfig conf = new HttpClientConfig();
+		conf.connectionTimeout = 10;
+		conf.soTimeout = 10;
+		return conf;
+	}
+
+	/**
 	 * 根据默认的属性生成此实例.<br/>
 	 * 默认属性示例如下:<br/>
 	 * 
@@ -66,19 +79,19 @@ public class HttpClientConfig {
 	 * httpclient.useProxy=true
 	 * 
 	 * #代理主机地址
-	 * httpclient.proxyHost=192.168.13.19
+	 * httpclient.proxyHost=192.168.1.1
 	 * 
 	 * #代理主机服务端口
-	 * httpclient.proxyPort=7777
+	 * httpclient.proxyPort=1234
 	 * 
 	 * #代理协议
 	 * httpclient.proxyType=http
 	 * 
 	 * #代理验证名
-	 * httpclient.proxyAuthName=zhangzhx
+	 * httpclient.proxyAuthName=zzx
 	 * 
 	 * #代理验证密码
-	 * httpclient.proxyAuthPw=zzx1268
+	 * httpclient.proxyAuthPw=zzx
 	 * 
 	 * #用户代理串
 	 * httpclient.userAgent=Myshbot 1.4

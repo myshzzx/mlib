@@ -56,8 +56,12 @@ public class HttpClientAssistor {
 		Header charSet = new BasicHeader("Accept-Charset", "iso-8859-1, utf-8");
 		this.headers = new Header[] { connection, proxyConnection, userAgent, charSet };
 
-		this.proxy = new HttpHost(this.conf.getProxyHost(), this.conf.getProxyPort(),
-				this.conf.getProxyType());
+		if (this.conf.isUseProxy()) {
+			this.proxy = new HttpHost(this.conf.getProxyHost(), this.conf.getProxyPort(),
+					this.conf.getProxyType());
+		} else {
+			this.proxy = null;
+		}
 	}
 
 	/**
