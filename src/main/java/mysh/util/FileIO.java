@@ -22,7 +22,7 @@ public class FileIO {
 	private static final Logger log = Logger.getLogger(FileIO.class);
 
 	/**
-	 * 取当前目录.
+	 * 取当前目录(结尾不带分隔符).
 	 * 
 	 * @return
 	 */
@@ -164,9 +164,9 @@ public class FileIO {
 			if (!file.exists())
 				file.createNewFile();
 
-			out = new ObjectOutputStream(new FileOutputStream(filepath));
+			out = new ObjectOutputStream(new FileOutputStream(file));
 			out.writeObject(obj);
-			log.info("写文件成功: " + filepath);
+			log.info("写文件成功: " + file.getPath());
 			return true;
 		} catch (Exception e) {
 			log.error("写文件失败: " + filepath, e);
