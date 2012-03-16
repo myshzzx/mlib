@@ -181,4 +181,39 @@ public class FileIO {
 			}
 		}
 	}
+
+	/**
+	 * 将数据写入文件.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @param data
+	 *               要写入数据.
+	 * @return
+	 */
+	public static boolean writeFile(String filepath, byte[] data) {
+
+		FileOutputStream out = null;
+		try {
+			File file = new File(filepath);
+			file.getParentFile().mkdirs();
+			if (!file.exists())
+				file.createNewFile();
+			out = new FileOutputStream(file);
+			out.write(data);
+			log.info("写文件成功: " + file.getPath());
+			return true;
+		} catch (Exception e) {
+			log.error("写文件失败: " + filepath, e);
+			return false;
+		} finally {
+			if (out != null) {
+				try {
+					out.close();
+				} catch (Exception e) {
+				}
+				System.gc();
+			}
+		}
+	}
 }
