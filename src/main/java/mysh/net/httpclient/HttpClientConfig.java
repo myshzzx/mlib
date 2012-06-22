@@ -1,6 +1,8 @@
 
 package mysh.net.httpclient;
 
+import java.io.Serializable;
+
 import mysh.util.PropConf;
 
 /**
@@ -9,7 +11,9 @@ import mysh.util.PropConf;
  * @author ZhangZhx
  * 
  */
-public class HttpClientConfig {
+public class HttpClientConfig implements Serializable {
+
+	private static final long serialVersionUID = 9097930407282337575L;
 
 	/**
 	 * 是否使用代理

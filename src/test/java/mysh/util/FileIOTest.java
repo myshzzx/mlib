@@ -15,17 +15,18 @@ import java.util.List;
 
 import mysh.net.httpclient.HttpClientConfig;
 
+import org.junit.Before;
 import org.junit.Test;
 
 public class FileIOTest {
 
-//	@Test
+	@Before
 	public void prepare() throws FileNotFoundException, IOException {
 
 		File f = new File("test1");
 
 		List<HttpClientConfig> list = new LinkedList<>();
-		for (int i = 0; i < 4000000; i++) {
+		for (int i = 0; i < 400_000; i++) {
 			list.add(new HttpClientConfig());
 		}
 
@@ -33,14 +34,14 @@ public class FileIOTest {
 		out.writeObject(list);
 	}
 
-//	 @Test
-	public void testMemeryMap() throws IOException {
+	@Test
+	public void memeryMapTest() throws IOException {
 
 		File f = new File("test1");
 
 		FileChannel fc = FileChannel.open(f.toPath(), StandardOpenOption.READ);
-		fc.map(MapMode.READ_WRITE, 0, Long.MAX_VALUE);
-		ByteBuffer buf = ByteBuffer.allocate(4000000);
+		fc.map(MapMode.READ_ONLY, 0, f.length());
+		ByteBuffer buf = ByteBuffer.allocate(4_000_000);
 		fc.read(buf, 0);
 	}
 }
