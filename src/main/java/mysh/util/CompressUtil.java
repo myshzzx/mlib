@@ -44,7 +44,7 @@ public class CompressUtil {
 	 * @param out
 	 *               数据输出流.
 	 * @param bufSize
-	 *               缓冲区大小. (有效范围: [100k, 100m], 默认: 5m)
+	 *               缓冲区大小. (有效范围: [100KB, 100MB], 默认: 5MB)
 	 * @return 操作结果.
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,
@@ -159,4 +159,5 @@ public class CompressUtil {
 		}
 		return new byte[bufSize];
 	}
+
 }
