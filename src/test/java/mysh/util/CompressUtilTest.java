@@ -47,7 +47,7 @@ public class CompressUtilTest {
 		}
 
 		// CompressUtil.finishCompress(compressOut);
-		final int compresssedDataLength = compressOut.size();
+//		final int compresssedDataLength = compressOut.size();
 
 		// 压缩数据后的无关数据
 		final int extraDataLength = 100_000;
@@ -85,16 +85,16 @@ public class CompressUtilTest {
 		};
 
 		// save state for reset
-		compressedDataReader.mark(Integer.MAX_VALUE);
+//		compressedDataReader.mark(Integer.MAX_VALUE);
 
 		// 无限制解压范围测试
-		CompressUtil.deCompress(picker, compressedDataReader, Long.MAX_VALUE);
+		CompressUtil.deCompress(picker, compressedDataReader);
 		Assert.assertTrue(extraDataLength != compressedDataReader.available());
 
 		// 限制解压范围测试
-		compressedDataReader.reset();
-		CompressUtil.deCompress(picker, compressedDataReader, compresssedDataLength);
-		Assert.assertTrue(extraDataLength == compressedDataReader.available());
+//		compressedDataReader.reset();
+//		CompressUtil.deCompress(picker, compressedDataReader, compresssedDataLength);
+//		Assert.assertTrue(extraDataLength == compressedDataReader.available());
 
 	}
 
@@ -102,7 +102,7 @@ public class CompressUtilTest {
 	public void fileTest() throws Exception {
 
 		long maxReadLen = Long.MAX_VALUE;
-		OutputStream out = new FileOutputStream("c:/test.zip");
+		OutputStream out = new FileOutputStream("e:/test/test.zip");
 
 		CompressUtil.compress("test/a/0", new ByteArrayInputStream(this.datas[0]),
 				maxReadLen, out, 0);

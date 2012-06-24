@@ -69,7 +69,7 @@ public class CompressUtil {
 			zos.closeEntry();
 			zos.flush();
 
-			log.info("压缩成功: " + entry);
+			// log.info("压缩成功: " + entry);
 			return true;
 		} catch (Exception e) {
 			log.error("压缩失败: " + entry, e);
@@ -99,29 +99,28 @@ public class CompressUtil {
 
 	/**
 	 * 解压缩数据. (完成后不会关闭IO流)<br/>
-	 * 此方法会阻塞直到完成(输入流关闭 或 达到允许输入阀值).
+	 * 此方法会阻塞直到完成(输入流关闭).
 	 * 
 	 * @param picker
 	 *               压缩实体拾取器.
 	 * @param in
 	 *               数据输入流.
-	 * @param maxReadLength
-	 *               允许从输入流读取的最大字节数.
 	 * @return 操作结果.
 	 */
-	public static boolean deCompress(EntryPicker picker, final InputStream in,
-			final long maxReadLength) {
+	public static boolean deCompress(EntryPicker picker, final InputStream in) {
 
-		CheckedInputStream cis = new CheckedInputStream(new InputStream() {
+		// CheckedInputStream cis = new CheckedInputStream(new InputStream() {
+		//
+		// private long availableLength = maxReadLength;
+		//
+		// @Override
+		// public int read() throws IOException {
+		//
+		// return (this.availableLength-- > 0) ? in.read() : -1;
+		// }
+		// }, new CRC32());
 
-			private long availableLength = maxReadLength;
-
-			@Override
-			public int read() throws IOException {
-
-				return (this.availableLength-- > 0) ? in.read() : -1;
-			}
-		}, new CRC32());
+		CheckedInputStream cis = new CheckedInputStream(in, new CRC32());
 
 		ZipInputStream zis = new ZipInputStream(cis) {
 
@@ -139,7 +138,7 @@ public class CompressUtil {
 				zis.closeEntry();
 			}
 
-			log.info("解压缩成功.");
+			// log.info("解压缩成功.");
 			return true;
 		} catch (Exception e) {
 			log.error("解压缩失败.", e);
