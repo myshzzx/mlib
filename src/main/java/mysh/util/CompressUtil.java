@@ -24,16 +24,17 @@ public class CompressUtil {
 	private static final Logger log = Logger.getLogger(CompressUtil.class);
 
 	/**
-	 * 默认缓冲区大小. (5M)
+	 * 默认缓冲区大小. (10M)
 	 */
-	public static final int DEFAULT_BUF_SIZE = 5_000_000;
+	public static final int DEFAULT_BUF_SIZE = 10_000_000;
 
 	private CompressUtil() {
 
 	}
 
 	/**
-	 * 压缩数据. (完成后不会关闭IO流)
+	 * 压缩数据. (完成后不会关闭IO流)<br/>
+	 * 此方法会阻塞直到完成(输入流关闭 或 达到允许输入阀值).
 	 * 
 	 * @param entry
 	 *               压缩实体名.
@@ -44,7 +45,7 @@ public class CompressUtil {
 	 * @param out
 	 *               数据输出流.
 	 * @param bufSize
-	 *               缓冲区大小. (有效范围: [100KB, 100MB], 默认: 5MB)
+	 *               缓冲区大小. (有效范围: [100KB, 100MB], 默认: 10MB)
 	 * @return 操作结果.
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,
@@ -97,7 +98,8 @@ public class CompressUtil {
 	}
 
 	/**
-	 * 解压缩数据. (完成后不会关闭IO流)
+	 * 解压缩数据. (完成后不会关闭IO流)<br/>
+	 * 此方法会阻塞直到完成(输入流关闭 或 达到允许输入阀值).
 	 * 
 	 * @param picker
 	 *               压缩实体拾取器.
@@ -146,7 +148,7 @@ public class CompressUtil {
 	}
 
 	/**
-	 * 取合适的缓冲区. (有效范围: [100KB, 100MB], 默认: 5MB)
+	 * 取合适的缓冲区. (有效范围: [100KB, 100MB], 默认: 10MB)
 	 * 
 	 * @param bufSize
 	 *               缓冲区大小.

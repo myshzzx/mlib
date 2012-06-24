@@ -4,6 +4,7 @@ package mysh.util;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
@@ -17,9 +18,9 @@ import org.apache.log4j.Logger;
  * @author ZhangZhx
  * 
  */
-public class FileIO {
+public class FileUtil {
 
-	private static final Logger log = Logger.getLogger(FileIO.class);
+	private static final Logger log = Logger.getLogger(FileUtil.class);
 
 	/**
 	 * 取当前目录(结尾不带分隔符).
@@ -29,6 +30,49 @@ public class FileIO {
 	public static String getCurrentDirPath() {
 
 		return System.getProperty("user.dir");
+	}
+
+	/**
+	 * 取文件输入流.<br/>
+	 * 失败时返回 null.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @return
+	 */
+	public static FileInputStream getFileInputStream(String filepath) {
+
+		try {
+			return new FileInputStream(filepath);
+		} catch (FileNotFoundException e) {
+			log.error("打开文件失败: " + filepath, e);
+			return null;
+		}
+	}
+
+	/**
+	 * 取文件输出流. (文件不存在时自动创建)<br/>
+	 * 失败时返回 null.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @return
+	 */
+	public static FileOutputStream getFileOutputStream(String filepath) {
+
+		File file = new File(filepath);
+
+		try {
+			if (!file.exists()) {
+				file.getParentFile().mkdirs();
+				file.createNewFile();
+			}
+
+			return new FileOutputStream(file);
+		} catch (Exception e) {
+			log.error("准备写入文件失败: " + filepath, e);
+			return null;
+		}
 	}
 
 	/**
