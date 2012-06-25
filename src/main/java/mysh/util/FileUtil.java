@@ -166,6 +166,8 @@ public class FileUtil {
 	 * 
 	 * @param filepath
 	 *               文件路径.
+	 * @param maxLengh
+	 *               缓冲区限制.
 	 * @return
 	 * @throws Exception
 	 */

@@ -60,6 +60,22 @@ public class TextEncodeUtil {
 		return true;
 	}
 
+	// /**
+	// * 取编码格式. <br/>
+	// * 用 mozilla univeral detector 检测编码类型.
+	// *
+	// * @param data
+	// * 编码串.
+	// * @return
+	// */
+	// public static String getCharsetByMozillaUniversalDetector(byte[] data) {
+	//
+	// UniversalDetector detector = new UniversalDetector(null);
+	// detector.handleData(data, 0, data.length);
+	// detector.dataEnd();
+	// return detector.getDetectedCharset();
+	// }
+
 	/**
 	 * 判断是否 utf8 编码串.<br/>
 	 * 用转换后对比的方式, 较慢.
