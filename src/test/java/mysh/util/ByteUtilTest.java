@@ -35,7 +35,7 @@ public class ByteUtilTest {
 		assertEquals(-1, ByteUtil.findBytesIndex(content4, 0, key));
 	}
 
-	@Test
+//	@Test
 	public void speedTest() throws FileNotFoundException, IOException {
 
 		// length : 2_000_000
