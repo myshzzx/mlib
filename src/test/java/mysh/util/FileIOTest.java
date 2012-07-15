@@ -15,12 +15,11 @@ import java.util.List;
 
 import mysh.net.httpclient.HttpClientConfig;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.Ignore;
 
 public class FileIOTest {
 
-	@Before
+	// @Before
 	public void prepare() throws FileNotFoundException, IOException {
 
 		File f = new File("test1");
@@ -34,7 +33,7 @@ public class FileIOTest {
 		out.writeObject(list);
 	}
 
-	@Test
+	@Ignore
 	public void memeryMapTest() throws IOException {
 
 		File f = new File("test1");

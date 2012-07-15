@@ -20,7 +20,8 @@ public class UIUtil {
 	public static abstract class FileExtentionGetter {
 
 		/**
-		 * 取以某扩展名结尾的文件.
+		 * 取以某扩展名结尾的文件.<br/>
+		 * 若不是此扩展名, 则返回一个加上此扩展名的文件.
 		 * 
 		 * @param file
 		 * @param fileExtensionGetter
@@ -29,11 +30,14 @@ public class UIUtil {
 		 */
 		public static File ensureFileWithExtention(File file, FileExtentionGetter fileExtensionGetter) {
 
-			String ext = fileExtensionGetter == null ? "" : fileExtensionGetter.getFileExtention();
-			if (file.getAbsolutePath().endsWith(ext)) {
+			if (fileExtensionGetter == null || fileExtensionGetter.getFileExtention() == null)
+				return file;
+
+			String ext = fileExtensionGetter.getFileExtention().toLowerCase();
+			if (file.getPath().toLowerCase().endsWith(ext)) {
 				return file;
 			} else {
-				return new File(file.getAbsolutePath().concat(ext));
+				return new File(file.getPath().concat(ext));
 			}
 		}
 
