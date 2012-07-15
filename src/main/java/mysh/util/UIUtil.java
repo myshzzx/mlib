@@ -1,11 +1,49 @@
 
 package mysh.util;
 
+import java.awt.Component;
 import java.awt.Font;
+import java.io.File;
 
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import javax.swing.UIManager;
 
 public class UIUtil {
+
+	/**
+	 * 取文件扩展名. 扩展名以 . 开头.
+	 * 
+	 * @author Allen
+	 * 
+	 */
+	public static abstract class FileExtentionGetter {
+
+		/**
+		 * 取以某扩展名结尾的文件.
+		 * 
+		 * @param file
+		 * @param fileExtensionGetter
+		 *               为 null, 则直接返回 file.
+		 * @return
+		 */
+		public static File ensureFileWithExtention(File file, FileExtentionGetter fileExtensionGetter) {
+
+			String ext = fileExtensionGetter == null ? "" : fileExtensionGetter.getFileExtention();
+			if (file.getAbsolutePath().endsWith(ext)) {
+				return file;
+			} else {
+				return new File(file.getAbsolutePath().concat(ext));
+			}
+		}
+
+		/**
+		 * 取文件扩展名. 扩展名以 . 开头.
+		 * 
+		 * @return
+		 */
+		public abstract String getFileExtention();
+	}
 
 	/**
 	 * 重置UI的显示字体.
@@ -68,4 +106,35 @@ public class UIUtil {
 		UIManager.put("Tree.font", font);
 		UIManager.put("Viewport.font", font);
 	}
+
+	/**
+	 * 从文件选择器选择保存目标文件, 已存在的文件询问是否要覆盖.<br/>
+	 * 确保返回给定扩展名类型的文件.<br/>
+	 * 取消操作返回 null.
+	 * 
+	 * @param fileChooser
+	 * @param parent
+	 *               父容器. 可以为 null.
+	 * @param fileExtensionGetter
+	 *               扩展名获取器. 为 null 表示不限扩展名.
+	 * @return
+	 */
+	public static File getSaveFileWithOverwriteChecking(JFileChooser fileChooser, Component parent,
+			FileExtentionGetter fileExtensionGetter) {
+
+		File file = null;
+
+		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
+				&& (file = FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(),
+						fileExtensionGetter)).exists()) {
+			if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(parent, file.getName()
+					+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
+				break;
+			else
+				file = null;
+		}
+
+		return file;
+	}
+
 }
