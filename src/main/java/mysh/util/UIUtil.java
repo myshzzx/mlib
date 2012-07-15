@@ -127,6 +127,8 @@ public class UIUtil {
 			FileExtentionGetter fileExtensionGetter) {
 
 		File file = null;
+		boolean fileChooserSelectionMode = fileChooser.isMultiSelectionEnabled();
+		fileChooser.setMultiSelectionEnabled(false);
 
 		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
 				&& (file = FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(),
@@ -138,6 +140,7 @@ public class UIUtil {
 				file = null;
 		}
 
+		fileChooser.setMultiSelectionEnabled(fileChooserSelectionMode);
 		return file;
 	}
 
