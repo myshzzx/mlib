@@ -179,8 +179,7 @@ public class FileUtil {
 		}
 
 		if (file.length() > maxLengh) {
-			throw new IllegalArgumentException("要读取的文件大小 (" + file.length() + ") 超出指定大小: "
-					+ maxLengh);
+			throw new IllegalArgumentException("要读取的文件大小 (" + file.length() + ") 超出指定大小: " + maxLengh);
 		}
 
 		try (FileInputStream in = new FileInputStream(filepath)) {
@@ -261,5 +260,28 @@ public class FileUtil {
 				System.gc();
 			}
 		}
+	}
+
+	/**
+	 * 取文件扩展名.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @return 文件扩展名. 不包含点.
+	 */
+	public static String getFileExtention(String filepath) {
+
+		String filename = new File(filepath).getName().trim().toLowerCase();
+		if (filename.length() == 0)
+			return "";
+		if (filename.charAt(filename.length() - 1) == '.')
+			filename = filename.substring(0, filename.length() - 1);
+
+		int lastPointIndex = filename.lastIndexOf('.');
+		if (lastPointIndex < 0)
+			return filename;
+		else
+			return filename.substring(lastPointIndex + 1, filename.length());
+
 	}
 }
