@@ -263,7 +263,7 @@ public class FileUtil {
 	}
 
 	/**
-	 * 取文件扩展名.
+	 * 取文件扩展名(小写).
 	 * 
 	 * @param filepath
 	 *               文件路径.
@@ -283,5 +283,29 @@ public class FileUtil {
 		else
 			return filename.substring(lastPointIndex + 1, filename.length());
 
+	}
+
+	/**
+	 * 取不含扩展名的文件名.
+	 * 
+	 * @param filepath
+	 *               文件路径.
+	 * @return
+	 */
+	public static String getFileNameWithoutExtention(String filepath) {
+
+		String filename = new File(filepath).getName().trim();
+		if (filename.length() == 0)
+			return "";
+		if (filename.charAt(filename.length() - 1) == '.')
+			filename = filename.substring(0, filename.length() - 1);
+
+		int lastPointIndex = filename.lastIndexOf('.');
+		if (lastPointIndex < 0)
+			return filename;
+		else if (lastPointIndex == 0)
+			return "";
+		else
+			return filename.substring(0, lastPointIndex);
 	}
 }

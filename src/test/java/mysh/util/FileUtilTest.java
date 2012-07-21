@@ -22,5 +22,21 @@ public class FileUtilTest {
 		assertEquals("", FileUtil.getFileExtention("."));
 		assertEquals("", FileUtil.getFileExtention(""));
 	}
+	
+	@Test
+	public void getFileNameWithoutExtentionTest() {
+		
+		assertEquals("fea", FileUtil.getFileNameWithoutExtention("fea.txt"));
+		assertEquals("fe a  ", FileUtil.getFileNameWithoutExtention("  fe a  .txt     "));
+		assertEquals("", FileUtil.getFileNameWithoutExtention(".txt"));
+		assertEquals("", FileUtil.getFileNameWithoutExtention(".txt       "));
+		assertEquals("txt", FileUtil.getFileNameWithoutExtention("txt"));
+		assertEquals("txt", FileUtil.getFileNameWithoutExtention("txt.    "));
+		assertEquals("", FileUtil.getFileNameWithoutExtention("     .    txt.    "));
+		assertEquals("abc.def", FileUtil.getFileNameWithoutExtention("   abc.def.txt     "));
+		assertEquals("abc.def", FileUtil.getFileNameWithoutExtention("   abc.def. t xt "));
+		assertEquals("", FileUtil.getFileNameWithoutExtention("."));
+		assertEquals("", FileUtil.getFileNameWithoutExtention(""));
+	}
 
 }
