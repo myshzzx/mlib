@@ -4,12 +4,35 @@ package mysh.util;
 import java.awt.Component;
 import java.awt.Font;
 import java.io.File;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+
+import org.apache.log4j.chainsaw.Main;
 
 public class UIUtil {
+
+	/**
+	 * 使用 Nimbus 皮肤.
+	 */
+	public static void useNimbusLookAndFeel() {
+
+		try {
+			for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+				if ("Nimbus".equals(info.getName())) {
+					UIManager.setLookAndFeel(info.getClassName());
+					break;
+				}
+			}
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| UnsupportedLookAndFeelException ex) {
+			Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+		}
+	}
 
 	/**
 	 * 取文件扩展名. 扩展名以 . 开头.
