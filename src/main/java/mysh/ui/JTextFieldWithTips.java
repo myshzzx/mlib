@@ -125,6 +125,15 @@ public final class JTextFieldWithTips extends JTextField {
 	}
 
 	@Override
+	public String getText() {
+
+		if (this.isShowLabel)
+			return "";
+		else
+			return super.getText();
+	}
+
+	@Override
 	public void setText(String t) {
 
 		super.setText(t == null ? "" : t);

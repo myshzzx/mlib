@@ -167,14 +167,14 @@ public class FileUtil {
 	 * @param filepath
 	 *               文件路径.
 	 * @param maxLengh
-	 *               缓冲区限制.
+	 *               文件大小限制.
 	 * @return
 	 * @throws Exception
 	 */
 	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws Exception {
 
 		File file = new File(filepath);
-		if (!file.exists() || !file.canRead()) {
+		if (!file.isFile() || !file.exists() || !file.canRead()) {
 			throw new IllegalArgumentException(filepath + " 不存在或不可读, 加载文件失败.");
 		}
 
