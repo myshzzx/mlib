@@ -84,7 +84,7 @@ public final class JTextFieldWithTips extends JTextField {
 				super.setForeground(this.defaultForeground);
 			}
 		} else {
-			if (this.getText().length() == 0) {
+			if (super.getText().length() == 0) {
 				this.isShowLabel = true;
 				super.setText(this.label);
 				super.setFont(this.labelFont);
