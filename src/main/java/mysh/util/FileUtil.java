@@ -162,7 +162,8 @@ public class FileUtil {
 	}
 
 	/**
-	 * 将文件数据读到缓存. 失败抛异常.
+	 * 将文件数据读到缓存.<br/>
+	 * 不会返回 null. 失败抛异常.
 	 * 
 	 * @param filepath
 	 *               文件路径.
