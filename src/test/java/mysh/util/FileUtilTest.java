@@ -14,8 +14,8 @@ public class FileUtilTest {
 		assertEquals("txt", FileUtil.getFileExtention("  fe a  .txt     "));
 		assertEquals("txt", FileUtil.getFileExtention(".txt"));
 		assertEquals("txt", FileUtil.getFileExtention(".txt       "));
-		assertEquals("txt", FileUtil.getFileExtention("txt"));
-		assertEquals("txt", FileUtil.getFileExtention("txt.    "));
+		assertEquals("", FileUtil.getFileExtention("txt"));
+		assertEquals("", FileUtil.getFileExtention("txt.    "));
 		assertEquals("    txt", FileUtil.getFileExtention("     .    txt.    "));
 		assertEquals("txt", FileUtil.getFileExtention("   abc.def.txt     "));
 		assertEquals(" t xt", FileUtil.getFileExtention("   abc.def. t xt "));

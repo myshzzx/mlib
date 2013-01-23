@@ -280,7 +280,7 @@ public class FileUtil {
 
 		int lastPointIndex = filename.lastIndexOf('.');
 		if (lastPointIndex < 0)
-			return filename;
+			return "";
 		else
 			return filename.substring(lastPointIndex + 1, filename.length());
 
