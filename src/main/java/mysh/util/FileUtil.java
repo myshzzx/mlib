@@ -267,7 +267,7 @@ public class FileUtil {
 	 * 取文件扩展名(小写).
 	 * 
 	 * @param filepath
-	 *               文件路径.
+	 *               文件路径(可以是相对路径).
 	 * @return 文件扩展名. 不包含点.
 	 */
 	public static String getFileExtention(String filepath) {
@@ -290,7 +290,7 @@ public class FileUtil {
 	 * 取不含扩展名的文件名.
 	 * 
 	 * @param filepath
-	 *               文件路径.
+	 *               文件路径(可以是相对路径).
 	 * @return
 	 */
 	public static String getFileNameWithoutExtention(String filepath) {
@@ -308,5 +308,29 @@ public class FileUtil {
 			return "";
 		else
 			return filename.substring(0, lastPointIndex);
+	}
+
+	/**
+	 * 取给定文件路径可写的File, 若文件已存在, 则在文件名后加 "(数字)", 以保证可写入.<br/>
+	 * 如若给定的路径 c:/a.txt, 目录下 a.txt 和 a (1).txt 已存在, 则返回 c:/a (2).txt 的可写文件.<br/>
+	 * 注意: 可写文件的状态是瞬时的, 此方法不能锁定此文件, 它随时可能被其他程序锁定.
+	 * 
+	 * @param filePath
+	 *               文件路径(可以是相对路径).
+	 * @return 带绝对路径的 File.
+	 */
+	public static File getWritableFile(String filePath) {
+
+		if (new File(filePath).getAbsoluteFile().exists()) {
+			String dir = new File(filePath).getAbsoluteFile().getParent() + File.separatorChar;
+			String fName = FileUtil.getFileNameWithoutExtention(filePath);
+			String fExt = FileUtil.getFileExtention(filePath);
+			int i = 0;
+			while (new File(filePath = (dir + fName + " (" + (++i) + ")" + (fExt.length() > 0 ? ("." + fExt)
+					: ""))).exists())
+				;
+		}
+
+		return new File(filePath).getAbsoluteFile();
 	}
 }

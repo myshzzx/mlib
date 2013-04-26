@@ -3,6 +3,9 @@ package mysh.util;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.File;
+
+import org.junit.Assert;
 import org.junit.Test;
 
 public class FileUtilTest {
@@ -22,10 +25,10 @@ public class FileUtilTest {
 		assertEquals("", FileUtil.getFileExtention("."));
 		assertEquals("", FileUtil.getFileExtention(""));
 	}
-	
+
 	@Test
 	public void getFileNameWithoutExtentionTest() {
-		
+
 		assertEquals("fea", FileUtil.getFileNameWithoutExtention("fea.txt"));
 		assertEquals("fe a  ", FileUtil.getFileNameWithoutExtention("  fe a  .txt     "));
 		assertEquals("", FileUtil.getFileNameWithoutExtention(".txt"));
@@ -39,4 +42,12 @@ public class FileUtilTest {
 		assertEquals("", FileUtil.getFileNameWithoutExtention(""));
 	}
 
+	@Test
+	public void getWritableFileTest1() {
+
+		Assert.assertNotNull(new File("").getAbsoluteFile().getParent());
+		System.out.println(new File("").getAbsoluteFile().getParent());
+		Assert.assertNotNull(new File("abc/def").getAbsoluteFile().getParent());
+		System.out.println((new File("abc/def").getAbsoluteFile().getParent()));
+	}
 }
