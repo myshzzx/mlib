@@ -1,18 +1,13 @@
 
 package mysh.util;
 
-import java.awt.Component;
-import java.awt.Font;
+import org.apache.log4j.chainsaw.Main;
+
+import javax.swing.*;
+import java.awt.*;
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-
-import org.apache.log4j.chainsaw.Main;
 
 public class UIUtil {
 
@@ -73,7 +68,7 @@ public class UIUtil {
 	}
 
 	/**
-	 * 重置UI的显示字体.
+	 * 重置当前 UI L&F 的默认显示字体.
 	 * 
 	 * @param font
 	 *               给定字体. 为 null 则使用 13号雅黑.
@@ -83,55 +78,55 @@ public class UIUtil {
 		if (font == null)
 			font = new Font("Microsoft YaHei", Font.PLAIN, 13);
 
-		UIManager.put("ArrowButton.font", font);
-		UIManager.put("Button.font", font);
-		UIManager.put("CheckBox.font", font);
-		UIManager.put("CheckBoxMenuItem.font", font);
-		UIManager.put("ColorChooser.font", font);
-		UIManager.put("ComboBox.font", font);
-		UIManager.put("DesktopIcon.font", font);
-		UIManager.put("DesktopPane.font", font);
-		UIManager.put("EditorPane.font", font);
-		UIManager.put("FileChooser.font", font);
-		UIManager.put("FormattedTextField.font", font);
-		UIManager.put("InternalFrame.font", font);
-		UIManager.put("InternalFrameTitlePane.font", font);
-		UIManager.put("Label.font", font);
-		UIManager.put("List.font", font);
-		UIManager.put("Menu.font", font);
-		UIManager.put("MenuBar.font", font);
-		UIManager.put("MenuItem.font", font);
-		UIManager.put("OptionPane.font", font);
-		UIManager.put("Panel.font", font);
-		UIManager.put("PasswordField.font", font);
-		UIManager.put("PopupMenu.font", font);
-		UIManager.put("PopupMenuSeparator.font", font);
-		UIManager.put("ProgressBar.font", font);
-		UIManager.put("RadioButton.font", font);
-		UIManager.put("RadioButtonMenuItem.font", font);
-		UIManager.put("RootPane.font", font);
-		UIManager.put("ScrollBar.font", font);
-		UIManager.put("ScrollBarThumb.font", font);
-		UIManager.put("ScrollBarTrack.font", font);
-		UIManager.put("ScrollPane.font", font);
-		UIManager.put("Separator.font", font);
-		UIManager.put("Slider.font", font);
-		UIManager.put("SliderThumb.font", font);
-		UIManager.put("SliderTrack.font", font);
-		UIManager.put("Spinner.font", font);
-		UIManager.put("SplitPane.font", font);
-		UIManager.put("TabbedPane.font", font);
-		UIManager.put("Table.font", font);
-		UIManager.put("TableHeader.font", font);
-		UIManager.put("TextArea.font", font);
-		UIManager.put("TextField.font", font);
-		UIManager.put("TextPane.font", font);
-		UIManager.put("TitledBorder.font", font);
-		UIManager.put("ToggleButton.font", font);
-		UIManager.put("ToolBar.font", font);
-		UIManager.put("ToolTip.font", font);
-		UIManager.put("Tree.font", font);
-		UIManager.put("Viewport.font", font);
+		UIManager.getLookAndFeelDefaults().put("ArrowButton.font", font);
+		UIManager.getLookAndFeelDefaults().put("Button.font", font);
+		UIManager.getLookAndFeelDefaults().put("CheckBox.font", font);
+		UIManager.getLookAndFeelDefaults().put("CheckBoxMenuItem.font", font);
+		UIManager.getLookAndFeelDefaults().put("ColorChooser.font", font);
+		UIManager.getLookAndFeelDefaults().put("ComboBox.font", font);
+		UIManager.getLookAndFeelDefaults().put("DesktopIcon.font", font);
+		UIManager.getLookAndFeelDefaults().put("DesktopPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("EditorPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("FileChooser.font", font);
+		UIManager.getLookAndFeelDefaults().put("FormattedTextField.font", font);
+		UIManager.getLookAndFeelDefaults().put("InternalFrame.font", font);
+		UIManager.getLookAndFeelDefaults().put("InternalFrameTitlePane.font", font);
+		UIManager.getLookAndFeelDefaults().put("Label.font", font);
+		UIManager.getLookAndFeelDefaults().put("List.font", font);
+		UIManager.getLookAndFeelDefaults().put("Menu.font", font);
+		UIManager.getLookAndFeelDefaults().put("MenuBar.font", font);
+		UIManager.getLookAndFeelDefaults().put("MenuItem.font", font);
+		UIManager.getLookAndFeelDefaults().put("OptionPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("Panel.font", font);
+		UIManager.getLookAndFeelDefaults().put("PasswordField.font", font);
+		UIManager.getLookAndFeelDefaults().put("PopupMenu.font", font);
+		UIManager.getLookAndFeelDefaults().put("PopupMenuSeparator.font", font);
+		UIManager.getLookAndFeelDefaults().put("ProgressBar.font", font);
+		UIManager.getLookAndFeelDefaults().put("RadioButton.font", font);
+		UIManager.getLookAndFeelDefaults().put("RadioButtonMenuItem.font", font);
+		UIManager.getLookAndFeelDefaults().put("RootPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("ScrollBar.font", font);
+		UIManager.getLookAndFeelDefaults().put("ScrollBarThumb.font", font);
+		UIManager.getLookAndFeelDefaults().put("ScrollBarTrack.font", font);
+		UIManager.getLookAndFeelDefaults().put("ScrollPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("Separator.font", font);
+		UIManager.getLookAndFeelDefaults().put("Slider.font", font);
+		UIManager.getLookAndFeelDefaults().put("SliderThumb.font", font);
+		UIManager.getLookAndFeelDefaults().put("SliderTrack.font", font);
+		UIManager.getLookAndFeelDefaults().put("Spinner.font", font);
+		UIManager.getLookAndFeelDefaults().put("SplitPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("TabbedPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("Table.font", font);
+		UIManager.getLookAndFeelDefaults().put("TableHeader.font", font);
+		UIManager.getLookAndFeelDefaults().put("TextArea.font", font);
+		UIManager.getLookAndFeelDefaults().put("TextField.font", font);
+		UIManager.getLookAndFeelDefaults().put("TextPane.font", font);
+		UIManager.getLookAndFeelDefaults().put("TitledBorder.font", font);
+		UIManager.getLookAndFeelDefaults().put("ToggleButton.font", font);
+		UIManager.getLookAndFeelDefaults().put("ToolBar.font", font);
+		UIManager.getLookAndFeelDefaults().put("ToolTip.font", font);
+		UIManager.getLookAndFeelDefaults().put("Tree.font", font);
+		UIManager.getLookAndFeelDefaults().put("Viewport.font", font);
 	}
 
 	/**
