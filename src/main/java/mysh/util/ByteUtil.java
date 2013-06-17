@@ -1,20 +1,19 @@
 
 package mysh.util;
 
-import java.io.UnsupportedEncodingException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.log4j.Logger;
+import java.io.UnsupportedEncodingException;
 
 /**
  * 字节工具.
- * 
+ *
  * @author Allen
- * 
  */
 public class ByteUtil {
 
-	private static final Logger log = Logger.getLogger(ByteUtil.class);
-
+	private static final Logger log = LoggerFactory.getLogger(ByteUtil.class);
 	/**
 	 * 默认编码.
 	 */
@@ -25,13 +24,10 @@ public class ByteUtil {
 	 * content == null 或 key == null 或 起始位置越界, 则返回 -1.<br/>
 	 * key 长度为 0 时返回 -1.<br/>
 	 * 此方法源自 String.IndexOf(char[] , int , int , char[] , int , int , int )
-	 * 
-	 * @param content
-	 *               查找源
-	 * @param startIndex
-	 *               查找源的起始索引位置
-	 * @param key
-	 *               查找目标
+	 *
+	 * @param content    查找源
+	 * @param startIndex 查找源的起始索引位置
+	 * @param key        查找目标
 	 * @return
 	 */
 	public static int findBytesIndex(byte[] content, int startIndex, byte[] key) {
@@ -70,20 +66,15 @@ public class ByteUtil {
 
 	/**
 	 * 在 content 中查找 key 的位置(忽略大小写), 找不到返回 -1.<br/>
-	 * 
+	 * <p/>
 	 * content == null 或 key == null 或 起始位置越界, 则返回 -1.<br/>
 	 * key 长度为 0 时返回 0.<br/>
 	 * 此方法源自 String.IndexOf(char[] , int , int , char[] , int , int , int )
-	 * 
-	 * @param content
-	 *               查找源
-	 * @param contentEncode
-	 *               查找源的编码格式. 若为 null, 则使用默认编码 ByteUtil.DefaultEncode.
-	 * @param startIndex
-	 *               查找源的起始索引位置
-	 * @param key
-	 *               查找目标
-	 * 
+	 *
+	 * @param content       查找源
+	 * @param contentEncode 查找源的编码格式. 若为 null, 则使用默认编码 ByteUtil.DefaultEncode.
+	 * @param startIndex    查找源的起始索引位置
+	 * @param key           查找目标
 	 */
 	public static int findStringIndexIgnoreCase(byte[] content, String contentEncode, int startIndex, String key) {
 
@@ -109,24 +100,19 @@ public class ByteUtil {
 
 	/**
 	 * 在 content 中查找关键字的位置(忽略大小写), 找不到返回 -1.<br/>
-	 * 
+	 * <p/>
 	 * content == null 或 查找关键字为 null 或 起始位置越界, 则返回 -1.<br/>
 	 * 查找关键字 长度为 0 时返回 0.<br/>
 	 * 此方法源自 String.IndexOf(char[] , int , int , char[] , int , int , int )
-	 * 
-	 * @param content
-	 *               查找源
-	 * @param startIndex
-	 *               查找源的起始索引位置
-	 * @param keyUpperCase
-	 *               查找关键字的大写 byteArray
-	 * @param keyLowerCase
-	 *               查找关键字的小写 byteArray
-	 * 
+	 *
+	 * @param content      查找源
+	 * @param startIndex   查找源的起始索引位置
+	 * @param keyUpperCase 查找关键字的大写 byteArray
+	 * @param keyLowerCase 查找关键字的小写 byteArray
 	 * @return
 	 */
 	public static int findStringIndexIgnoreCase(byte[] content, int startIndex, byte[] keyUpperCase,
-			byte[] keyLowerCase) {
+	                                            byte[] keyLowerCase) {
 
 		if (startIndex < 0)
 			startIndex = 0;

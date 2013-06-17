@@ -1,6 +1,17 @@
 
 package mysh.db;
 
+import mysh.annotation.ThreadSafe;
+import org.apache.commons.dbcp.ConnectionFactory;
+import org.apache.commons.dbcp.DriverManagerConnectionFactory;
+import org.apache.commons.dbcp.PoolableConnectionFactory;
+import org.apache.commons.dbcp.PoolingDataSource;
+import org.apache.commons.pool.ObjectPool;
+import org.apache.commons.pool.impl.GenericObjectPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.sql.DataSource;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -15,28 +26,17 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.sql.DataSource;
-
-import mysh.annotation.ThreadSafe;
-
-import org.apache.commons.dbcp.ConnectionFactory;
-import org.apache.commons.dbcp.DriverManagerConnectionFactory;
-import org.apache.commons.dbcp.PoolableConnectionFactory;
-import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.impl.GenericObjectPool;
-import org.apache.log4j.Logger;
-
 /**
  * 数据库连接数控制器. <br/>
  * 控制同时连接数据库的数量, 关闭连接时执行物理关闭.<br/>
  * 可手动请求数据库连接, 手动执行语句 (阻塞);<br/>
  * 也可将sql 语句加入执行队列 (非阻塞).
- * 
+ *
  * @author ZhangZhx
  */
 @ThreadSafe
 public final class DBControler {
+	private static final Logger log = LoggerFactory.getLogger(DBControler.class);
 
 	/**
 	 * sql 执行器. <br/>
@@ -84,7 +84,7 @@ public final class DBControler {
 
 						log.info("SQL 执行成功: "
 								+ sql.substring(0, sql.length() > 150 ? 150
-										: sql.length()) + " ...");
+								: sql.length()) + " ...");
 						sql = null;
 					} catch (InterruptedException e) {
 						this.stopSQLQueueAndLog();
@@ -93,7 +93,7 @@ public final class DBControler {
 					} catch (SQLException e) {
 						log.error("SQL 执行失败: "
 								+ (sql.length() > 150 ? sql.substring(0,
-										150) : sql), e);
+								150) : sql), e);
 					} catch (Exception e) {
 						log.error("未知失败", e);
 					} finally {
@@ -118,13 +118,14 @@ public final class DBControler {
 					}
 				}
 			}
-		};
+		}
+
+		;
 
 		/**
 		 * 准备数据库连接. 连接可能无法建立, this.conn 将为 null.
-		 * 
-		 * @throws InterruptedException
-		 *                线程中断.
+		 *
+		 * @throws InterruptedException 线程中断.
 		 */
 		private void prepareConnection() throws InterruptedException {
 
@@ -150,7 +151,7 @@ public final class DBControler {
 
 		/**
 		 * 将 sql 加入队列. 队列阻塞直到有可用空间.
-		 * 
+		 *
 		 * @param sql
 		 */
 		public void putSQL(String sql) {
@@ -184,9 +185,10 @@ public final class DBControler {
 			while ((sql = this.sqlQueue.poll()) != null)
 				DBControler.this.failToExecSQL(sql);
 		}
-	};
+	}
 
-	private static final Logger log = Logger.getLogger(DBControler.class);
+	;
+
 
 	/**
 	 * 连接控制器信号量，控制并发访问数量.
@@ -210,7 +212,7 @@ public final class DBControler {
 
 	/**
 	 * 初始化连接控制器.
-	 * 
+	 *
 	 * @param conf
 	 */
 	public DBControler(DBConf conf) {
@@ -221,13 +223,10 @@ public final class DBControler {
 
 	/**
 	 * 初始化.
-	 * 
-	 * @param driverClassName
-	 *               数据库驱动类名.
-	 * @param url
-	 *               数据库连接串.
-	 * @param poolSize
-	 *               连接控制器允许并发大小，允许的数量为 [2, proc*2].
+	 *
+	 * @param driverClassName 数据库驱动类名.
+	 * @param url             数据库连接串.
+	 * @param poolSize        连接控制器允许并发大小，允许的数量为 [2, proc*2].
 	 * @param sqlQueueSize
 	 * @throws ClassNotFoundException
 	 */
@@ -284,7 +283,7 @@ public final class DBControler {
 	/**
 	 * 取得数据库连接，方法将阻塞直到有可用连接. 方法响应中断请求。<br/>
 	 * 若取数据库连接失败, 返回 null
-	 * 
+	 *
 	 * @return
 	 * @throws InterruptedException
 	 */
@@ -298,34 +297,34 @@ public final class DBControler {
 
 			// 返回代理对象，代理用于控制信号量
 			return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-					new Class<?>[] { Connection.class }, new InvocationHandler() {
+					new Class<?>[]{Connection.class}, new InvocationHandler() {
 
-						private final AtomicBoolean isClosed = new AtomicBoolean(
-								false);
+				private final AtomicBoolean isClosed = new AtomicBoolean(
+						false);
 
-						@Override
-						public Object invoke(Object proxy, Method method,
-								Object[] args) throws Throwable {
+				@Override
+				public Object invoke(Object proxy, Method method,
+				                     Object[] args) throws Throwable {
 
-							// Thread.sleep(1000);
+					// Thread.sleep(1000);
 
-							Object result = null;
-							try {
-								result = method.invoke(conn, args);
-							} catch (Throwable t) {
-								throw t;
-							} finally {
-								if (method.getName().equals("close")) {
-									if (!this.isClosed.getAndSet(true)) {
-										DBControler.this.poolGuide
-												.release();
-									}
-								}
+					Object result = null;
+					try {
+						result = method.invoke(conn, args);
+					} catch (Throwable t) {
+						throw t;
+					} finally {
+						if (method.getName().equals("close")) {
+							if (!this.isClosed.getAndSet(true)) {
+								DBControler.this.poolGuide
+										.release();
 							}
-
-							return result;
 						}
-					});
+					}
+
+					return result;
+				}
+			});
 		} catch (SQLException e) {
 			this.poolGuide.release();
 			return null;
@@ -335,9 +334,8 @@ public final class DBControler {
 
 	/**
 	 * 初始化连接控制器.
-	 * 
-	 * @param connectURL
-	 *               连接串
+	 *
+	 * @param connectURL 连接串
 	 * @return
 	 */
 	private final DataSource initDataSource(String connectURL) {
@@ -354,7 +352,7 @@ public final class DBControler {
 
 	/**
 	 * sql 字符串中单引号和反斜杠转义.
-	 * 
+	 *
 	 * @param str
 	 * @return
 	 */
@@ -366,7 +364,7 @@ public final class DBControler {
 	/**
 	 * 将要执行的语句放入 SQL 执行队列, 此方法立即返回.<br/>
 	 * 不能保证写入成功的 sql 一定会被执行. 在大多数情况下, 不能执行的 sql 至少会被写入日志.
-	 * 
+	 *
 	 * @param sql
 	 */
 	public final void putSQL2Exec(String sql) {
@@ -381,7 +379,7 @@ public final class DBControler {
 	/**
 	 * 执行 SQL 失败后写日志, 并将未执行的 SQL 保存.<br/>
 	 * 线程安全的写入, 无需同步.
-	 * 
+	 *
 	 * @param sql
 	 */
 	private void failToExecSQL(String sql) {
@@ -408,7 +406,7 @@ public final class DBControler {
 
 	/**
 	 * 取当前可申请的连接数 ( 仅用于测试, 因为在并发环境下, 返回的值可能立刻失效 ).
-	 * 
+	 *
 	 * @return
 	 */
 	int getAvailableConnectionNum() {

@@ -1,15 +1,19 @@
 
 package mysh.util;
 
-import org.apache.log4j.chainsaw.Main;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class UIUtil {
+	private static final Logger log = LoggerFactory.getLogger(UIUtil.class);
+	/**
+	 * 默认字体.
+	 */
+	public static final Font DefaultFont = new Font("Microsoft YaHei", Font.PLAIN, 13);
 
 	/**
 	 * 使用 Nimbus 皮肤.
@@ -25,25 +29,23 @@ public class UIUtil {
 			}
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
 				| UnsupportedLookAndFeelException ex) {
-			Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+			log.error("use Nimbus L&F failed.", ex);
 		}
 	}
 
 	/**
 	 * 取文件扩展名. 扩展名以 . 开头.
-	 * 
+	 *
 	 * @author Allen
-	 * 
 	 */
 	public static abstract class FileExtentionGetter {
 
 		/**
 		 * 取以某扩展名结尾的文件.<br/>
 		 * 若不是此扩展名, 则返回一个加上此扩展名的文件.
-		 * 
+		 *
 		 * @param file
-		 * @param fileExtensionGetter
-		 *               为 null, 则直接返回 file.
+		 * @param fileExtensionGetter 为 null, 则直接返回 file.
 		 * @return
 		 */
 		public static File ensureFileWithExtention(File file, FileExtentionGetter fileExtensionGetter) {
@@ -61,7 +63,7 @@ public class UIUtil {
 
 		/**
 		 * 取文件扩展名. 扩展名以 . 开头.
-		 * 
+		 *
 		 * @return
 		 */
 		public abstract String getFileExtention();
@@ -69,14 +71,13 @@ public class UIUtil {
 
 	/**
 	 * 重置当前 UI L&F 的默认显示字体.
-	 * 
-	 * @param font
-	 *               给定字体. 为 null 则使用 13号雅黑.
+	 *
+	 * @param font 给定字体. 为 null 则使用 13号雅黑.
 	 */
 	public static void resetFont(Font font) {
 
 		if (font == null)
-			font = new Font("Microsoft YaHei", Font.PLAIN, 13);
+			font = DefaultFont;
 
 		UIManager.getLookAndFeelDefaults().put("ArrowButton.font", font);
 		UIManager.getLookAndFeelDefaults().put("Button.font", font);
@@ -133,16 +134,14 @@ public class UIUtil {
 	 * 从文件选择器选择保存目标文件, 已存在的文件询问是否要覆盖.<br/>
 	 * 确保返回给定扩展名类型的文件.<br/>
 	 * 取消操作返回 null.
-	 * 
+	 *
 	 * @param fileChooser
-	 * @param parent
-	 *               父容器. 可以为 null.
-	 * @param fileExtensionGetter
-	 *               扩展名获取器. 为 null 表示不限扩展名.
+	 * @param parent              父容器. 可以为 null.
+	 * @param fileExtensionGetter 扩展名获取器. 为 null 表示不限扩展名.
 	 * @return
 	 */
 	public static File getSaveFileWithOverwriteChecking(JFileChooser fileChooser, Component parent,
-			FileExtentionGetter fileExtensionGetter) {
+	                                                    FileExtentionGetter fileExtensionGetter) {
 
 		File file = null;
 		boolean fileChooserSelectionMode = fileChooser.isMultiSelectionEnabled();
@@ -150,7 +149,7 @@ public class UIUtil {
 
 		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
 				&& (file = FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(),
-						fileExtensionGetter)).exists()) {
+				fileExtensionGetter)).exists()) {
 			if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(parent, file.getName()
 					+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
 				break;

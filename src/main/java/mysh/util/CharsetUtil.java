@@ -1,21 +1,21 @@
 
 package mysh.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 
-import org.apache.log4j.Logger;
-
 /**
  * 字符工具类.
- * 
+ *
  * @author Allen
- * 
  */
 public class CharsetUtil {
 
-	private static final Logger log = Logger.getLogger(CharsetUtil.class);
+	private static final Logger log = LoggerFactory.getLogger(CharsetUtil.class);
 
 	private CharsetUtil() {
 

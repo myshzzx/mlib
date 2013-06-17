@@ -1,30 +1,28 @@
 
 package mysh.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
-import org.apache.log4j.Logger;
-
 /**
  * 配置数据提取器.
- * 
+ *
  * @author ZhangZhx
- * 
  */
 public class PropConf {
 
-	private static final Logger log = Logger.getLogger(PropConf.class);
-
+	private static final Logger log = LoggerFactory.getLogger(PropConf.class);
 	private Properties props;
 
 	/**
 	 * 取默认配置进行初始化: myshlib.properties.
-	 * 
-	 * @param filename
-	 *               配置文件名. 为空则使用默认.
+	 *
+	 * @param filename 配置文件名. 为空则使用默认.
 	 * @return
 	 */
 	public PropConf(String filename) {
@@ -53,7 +51,7 @@ public class PropConf {
 
 	/**
 	 * 用给定配置初始化.
-	 * 
+	 *
 	 * @param props
 	 */
 	public PropConf(Properties props) {
@@ -63,9 +61,8 @@ public class PropConf {
 
 	/**
 	 * 取配置属性（不返回 null 值），若属性未定义，写日志.
-	 * 
-	 * @param propName
-	 *               属性名
+	 *
+	 * @param propName 属性名
 	 * @return
 	 */
 	public String getPropString(String propName) {
@@ -75,11 +72,9 @@ public class PropConf {
 
 	/**
 	 * 取配置属性（不返回 null 值），若属性未定义，写日志.
-	 * 
-	 * @param propName
-	 *               属性名
-	 * @param defaultValue
-	 *               默认值，为 null 无效
+	 *
+	 * @param propName     属性名
+	 * @param defaultValue 默认值，为 null 无效
 	 * @return
 	 */
 	public String getPropString(String propName, String defaultValue) {
@@ -94,9 +89,8 @@ public class PropConf {
 
 	/**
 	 * 取配置属性的整型值. 若属性未定义，写日志, 返回默认值 0.
-	 * 
-	 * @param propName
-	 *               属性名
+	 *
+	 * @param propName 属性名
 	 * @return
 	 */
 	public int getPropInt(String propName) {
@@ -111,11 +105,9 @@ public class PropConf {
 
 	/**
 	 * 取配置属性的整型值. 若属性未定义，写日志, 返回默认值.
-	 * 
-	 * @param propName
-	 *               属性名
-	 * @param defaultValue
-	 *               默认值
+	 *
+	 * @param propName     属性名
+	 * @param defaultValue 默认值
 	 * @return
 	 */
 	public int getPropInt(String propName, int defaultValue) {
@@ -130,9 +122,8 @@ public class PropConf {
 
 	/**
 	 * 取配置属性的长整型值，若属性未定义，写日志.
-	 * 
-	 * @param propName
-	 *               属性名
+	 *
+	 * @param propName 属性名
 	 * @return
 	 */
 	public long getPropLong(String propName) {

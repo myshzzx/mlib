@@ -1,30 +1,22 @@
 
 package mysh.util;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.log4j.Logger;
+import java.io.*;
 
 /**
  * 文件工具类.
- * 
+ *
  * @author ZhangZhx
- * 
  */
 public class FileUtil {
-
-	private static final Logger log = Logger.getLogger(FileUtil.class);
+	private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
 	/**
 	 * 取当前目录(结尾不带分隔符).
-	 * 
+	 *
 	 * @return
 	 */
 	public static String getCurrentDirPath() {
@@ -35,9 +27,8 @@ public class FileUtil {
 	/**
 	 * 取文件输入流.<br/>
 	 * 失败时返回 null.
-	 * 
-	 * @param filepath
-	 *               文件路径.
+	 *
+	 * @param filepath 文件路径.
 	 * @return
 	 */
 	public static FileInputStream getFileInputStream(String filepath) {
@@ -53,9 +44,8 @@ public class FileUtil {
 	/**
 	 * 取文件输出流. (文件不存在时自动创建)<br/>
 	 * 失败时返回 null.
-	 * 
-	 * @param filepath
-	 *               文件路径.
+	 *
+	 * @param filepath 文件路径.
 	 * @return
 	 */
 	public static FileOutputStream getFileOutputStream(String filepath) {
@@ -78,9 +68,8 @@ public class FileUtil {
 	/**
 	 * 从文件取得数据.<br/>
 	 * 失败则返回 null.
-	 * 
-	 * @param 文件路径
-	 *               .
+	 *
+	 * @param 文件路径 .
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
@@ -114,11 +103,9 @@ public class FileUtil {
 	/**
 	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度).<br/>
 	 * 失败则返回 null.
-	 * 
-	 * @param filepath
-	 *               文件路径.
-	 * @param maxLength
-	 *               文件最大长度, 超过此长度将失败.
+	 *
+	 * @param filepath  文件路径.
+	 * @param maxLength 文件最大长度, 超过此长度将失败.
 	 * @return
 	 */
 	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) {
@@ -140,9 +127,8 @@ public class FileUtil {
 
 	/**
 	 * 从缓存反序列化数据. 失败则抛异常.
-	 * 
-	 * @param buf
-	 *               缓存.
+	 *
+	 * @param buf 缓存.
 	 * @return
 	 * @throws Exception
 	 */
@@ -164,11 +150,9 @@ public class FileUtil {
 	/**
 	 * 将文件数据读到缓存.<br/>
 	 * 不会返回 null. 失败抛异常.
-	 * 
-	 * @param filepath
-	 *               文件路径.
-	 * @param maxLengh
-	 *               文件大小限制.
+	 *
+	 * @param filepath 文件路径.
+	 * @param maxLengh 文件大小限制.
 	 * @return
 	 * @throws Exception
 	 */
@@ -194,11 +178,9 @@ public class FileUtil {
 
 	/**
 	 * 将数据写入到文件.
-	 * 
-	 * @param filepath
-	 *               文件路径.
-	 * @param obj
-	 *               要写入的对象.
+	 *
+	 * @param filepath 文件路径.
+	 * @param obj      要写入的对象.
 	 * @return 写入成功则返回 true;
 	 */
 	public static boolean writeObjectToFile(String filepath, Object obj) {
@@ -230,11 +212,9 @@ public class FileUtil {
 
 	/**
 	 * 将数据写入文件.
-	 * 
-	 * @param filepath
-	 *               文件路径.
-	 * @param data
-	 *               要写入数据.
+	 *
+	 * @param filepath 文件路径.
+	 * @param data     要写入数据.
 	 * @return
 	 */
 	public static boolean writeFile(String filepath, byte[] data) {
@@ -265,9 +245,8 @@ public class FileUtil {
 
 	/**
 	 * 取文件扩展名(小写).
-	 * 
-	 * @param filepath
-	 *               文件路径(可以是相对路径).
+	 *
+	 * @param filepath 文件路径(可以是相对路径).
 	 * @return 文件扩展名. 不包含点.
 	 */
 	public static String getFileExtention(String filepath) {
@@ -288,9 +267,8 @@ public class FileUtil {
 
 	/**
 	 * 取不含扩展名的文件名.
-	 * 
-	 * @param filepath
-	 *               文件路径(可以是相对路径).
+	 *
+	 * @param filepath 文件路径(可以是相对路径).
 	 * @return
 	 */
 	public static String getFileNameWithoutExtention(String filepath) {
@@ -314,9 +292,8 @@ public class FileUtil {
 	 * 取给定文件路径可写的File, 若文件已存在, 则在文件名后加 "(数字)", 以保证可写入.<br/>
 	 * 如若给定的路径 c:/a.txt, 目录下 a.txt 和 a (1).txt 已存在, 则返回 c:/a (2).txt 的可写文件.<br/>
 	 * 注意: 可写文件的状态是瞬时的, 此方法不能锁定此文件, 它随时可能被其他程序锁定.
-	 * 
-	 * @param filePath
-	 *               文件路径(可以是相对路径).
+	 *
+	 * @param filePath 文件路径(可以是相对路径).
 	 * @return 带绝对路径的 File.
 	 */
 	public static File getWritableFile(String filePath) {
