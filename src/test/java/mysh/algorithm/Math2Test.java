@@ -5,9 +5,22 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class Math2Test {
+
+	@Test
+	public void numSysN2Dec() {
+		assertEquals(254, Math2.numSysN2Dec(16, new int[]{15, 14}));
+		assertEquals(5807, Math2.numSysN2Dec(16, new int[]{1, 6, 10, 15}));
+	}
+
+	@Test
+	public void numSysDec2N() {
+		assertArrayEquals(new int[]{1, 15}, Math2.numSysDec2N(16, 31));
+		assertArrayEquals(new int[]{1, 6, 10, 15}, Math2.numSysDec2N(16, 5807));
+	}
 
 	@Test
 	public void testFactorial() {

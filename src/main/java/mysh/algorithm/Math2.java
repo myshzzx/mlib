@@ -1,7 +1,56 @@
 
 package mysh.algorithm;
 
+import java.util.ArrayList;
+
 public class Math2 {
+
+	/**
+	 * 进制转换 n进制 转 十进制.
+	 *
+	 * @param n  n.
+	 * @param nn n进制数.
+	 * @return 十进制数.
+	 */
+	public static long numSysN2Dec(int n, int... nn) {
+		if (n < 2 || nn == null) throw new IllegalArgumentException();
+		long fac = 1;
+		long dec = 0;
+		long t;
+		for (int i = nn.length - 1; i > -1; i--) {
+			if (nn[i] >= n || nn[i] < 0) throw new IllegalArgumentException();
+			t = nn[i] * fac;
+			if (dec > Long.MAX_VALUE - t) throw new RuntimeException("calculation overflow");
+			dec += t;
+			fac *= n;
+		}
+
+		return dec;
+	}
+
+	/**
+	 * 进制转换 十进制 转 n进制.
+	 *
+	 * @param n   n.
+	 * @param dec 十进制正数.
+	 * @return n进制数.
+	 */
+	public static int[] numSysDec2N(int n, long dec) {
+		if (n < 2 || dec < 1) throw new IllegalArgumentException();
+
+		ArrayList<Integer> r = new ArrayList<>();
+
+		while (dec > 0) {
+			r.add((int) (dec % n));
+			dec /= n;
+		}
+
+		int[] rr = new int[r.size()];
+		for (int i = 0; i < rr.length; i++)
+			rr[i] = r.get(rr.length - 1 - i);
+		return rr;
+	}
+
 
 	/**
 	 * 阶乘.
@@ -14,11 +63,13 @@ public class Math2 {
 		if (n < 1)
 			throw new IllegalArgumentException();
 
-		int factorial = n;
-		while (--n > 1)
+		long factorial = n;
+		while (--n > 1) {
 			factorial *= n;
+			if (factorial > Integer.MAX_VALUE) throw new RuntimeException("calculation overflow");
+		}
 
-		return factorial;
+		return (int) factorial;
 	}
 
 	/**
@@ -36,7 +87,7 @@ public class Math2 {
 		long count = n;
 		while (--i > 0) {
 			count *= --n;
-			if (count > Integer.MAX_VALUE) throw new RuntimeException("count overflow");
+			if (count > Integer.MAX_VALUE) throw new RuntimeException("calculation overflow");
 		}
 
 		return (int) count;
@@ -58,7 +109,7 @@ public class Math2 {
 		int t = 0;
 		while (++t < i) {
 			count *= n - t;
-			if (count > Integer.MAX_VALUE) throw new RuntimeException("count overflow");
+			if (count > Integer.MAX_VALUE) throw new RuntimeException("calculation overflow");
 		}
 		while (--t > 0) count /= t + 1;
 		return (int) count;

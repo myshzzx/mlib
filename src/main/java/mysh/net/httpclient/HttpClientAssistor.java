@@ -1,16 +1,6 @@
 
 package mysh.net.httpclient;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
-
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -24,9 +14,19 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
+
 /**
  * HTTP 客户端组件.
- * 
+ *
  * @author ZhangZhx
  */
 public class HttpClientAssistor {
@@ -54,11 +54,11 @@ public class HttpClientAssistor {
 		Header proxyConnection = new BasicHeader("Proxy-Connection", "close");
 		Header userAgent = new BasicHeader("User-Agent", this.conf.getUserAgent());
 		Header charSet = new BasicHeader("Accept-Charset", "iso-8859-1, utf-8");
-		this.headers = new Header[] { connection, proxyConnection, userAgent, charSet };
+		this.headers = new Header[]{connection, proxyConnection, userAgent, charSet};
 
 		if (this.conf.isUseProxy()) {
 			this.proxy = new HttpHost(this.conf.getProxyHost(), this.conf.getProxyPort(),
-					this.conf.getProxyType());
+							this.conf.getProxyType());
 		} else {
 			this.proxy = null;
 		}
@@ -66,33 +66,30 @@ public class HttpClientAssistor {
 
 	/**
 	 * 取 URL 响应报文.
-	 * 
+	 *
 	 * @param url
 	 * @return
-	 * @throws InterruptedException
-	 *                线程中断.
-	 * @throws ClientProtocolException
-	 *                访问异常
-	 * @throws IOException
-	 *                连接异常
+	 * @throws InterruptedException    线程中断.
+	 * @throws ClientProtocolException 访问异常
+	 * @throws IOException             连接异常
 	 */
 	private RouteableHttpResponse getResp(String url) throws InterruptedException,
-			ClientProtocolException, IOException {
+					ClientProtocolException, IOException {
 
 		RouteableHttpClient client = new RouteableHttpClient();
 		HttpConnectionParams.setConnectionTimeout(client.getParams(),
-				this.conf.getConnectionTimeout() * 1000);
+						this.conf.getConnectionTimeout() * 1000);
 		HttpConnectionParams
-				.setSoTimeout(client.getParams(), this.conf.getSoTimeout() * 1000);
+						.setSoTimeout(client.getParams(), this.conf.getSoTimeout() * 1000);
 
 		if (this.conf.isUseProxy()) {
 			client.getCredentialsProvider()
-					.setCredentials(
-							new AuthScope(this.conf.getProxyHost(),
-									this.conf.getProxyPort()),
-							new UsernamePasswordCredentials(this.conf
-									.getProxyAuthName(), this.conf
-									.getProxyAuthPw()));
+							.setCredentials(
+											new AuthScope(this.conf.getProxyHost(),
+															this.conf.getProxyPort()),
+											new UsernamePasswordCredentials(this.conf
+															.getProxyAuthName(), this.conf
+															.getProxyAuthPw()));
 			client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, this.proxy);
 		}
 
@@ -111,16 +108,12 @@ public class HttpClientAssistor {
 	/**
 	 * 从 url 地址取页面数据. 可响应中断.<br/>
 	 * 线程安全.
-	 * 
-	 * @param url
-	 *               页面地址
+	 *
+	 * @param url 页面地址
 	 * @return 含真实地址的页面内容
-	 * @throws IOException
-	 *                连接异常
-	 * @throws InterruptedException
-	 *                线程中断异常
-	 * @throws GetPageException
-	 *                取页面返回代码不是200, 或取得的页面不是文本
+	 * @throws IOException          连接异常
+	 * @throws InterruptedException 线程中断异常
+	 * @throws GetPageException     取页面返回代码不是200, 或取得的页面不是文本
 	 */
 	public Page getPage(String url) throws IOException, InterruptedException, GetPageException {
 
@@ -128,50 +121,45 @@ public class HttpClientAssistor {
 
 		// 内容异常
 		Header[] type = resp.getHeaders("Content-Type");
-		if (resp.getStatusLine().getStatusCode() != 200 || type == null || type.length == 0
-				|| !type[0].getValue().startsWith("text")) {
+		if (resp.getStatusLine().getStatusCode() != 200
+						|| (type.length != 0 && !type[0].getValue().startsWith("text")
+						&& !type[0].getValue().startsWith("xml") && !type[0].getValue().startsWith("json"))) {
 			throw new GetPageException(url);
 		}
 
 		// 大部分页面的编码信息不会出现在响应报文中, 需要先取得页面, 才能知道页面的编码
-		String content = EntityUtils.toString(resp.getEntity(), HTTP.DEFAULT_CONTENT_CHARSET);
+		String content = EntityUtils.toString(resp.getEntity(), HTTP.UTF_8);
 
 		// 处理编码, 默认 utf-8
 		String charSet = null;
 		int charsetBegin = content.indexOf("charset=");
+
+		Page page = new Page(resp.getCurrentURL());
 		if (charsetBegin != -1) {
 			int charsetEnd = content.indexOf("\"", charsetBegin);
 			charSet = content.substring(charsetBegin + 8, charsetEnd);
+			page.setContent(new String(content.getBytes(HTTP.UTF_8), charSet));
 		} else {
-			charSet = "utf-8";
+			page.setContent(content);
 		}
 
-		return new Page(resp.getCurrentURL()).setContent(new String(content
-				.getBytes(HTTP.DEFAULT_CONTENT_CHARSET), charSet));
-
+		return page;
 	}
 
 	/**
 	 * 将数据下载保存到文件.
-	 * 
-	 * @param url
-	 *               数据文件地址
-	 * @param filePath
-	 *               保存路径
-	 * @param overwrite
-	 *               是否覆盖原有文件
-	 * @param downloadBufLen
-	 *               下载缓存, 有效值为 100K ~ 10M 间
+	 *
+	 * @param url            数据文件地址
+	 * @param filePath       保存路径
+	 * @param overwrite      是否覆盖原有文件
+	 * @param downloadBufLen 下载缓存, 有效值为 100K ~ 10M 间
 	 * @return 文件是否被下载写入
-	 * @throws IOException
-	 *                IO异常
-	 * @throws InterruptedException
-	 *                线程中断异常
-	 * @throws ClientProtocolException
-	 *                访问异常
+	 * @throws IOException             IO异常
+	 * @throws InterruptedException    线程中断异常
+	 * @throws ClientProtocolException 访问异常
 	 */
 	public boolean saveToFile(String url, String filePath, boolean overwrite, int downloadBufLen)
-			throws ClientProtocolException, InterruptedException, IOException {
+					throws ClientProtocolException, InterruptedException, IOException {
 
 		File file = new File(filePath);
 
@@ -230,7 +218,7 @@ public class HttpClientAssistor {
 
 	/**
 	 * 将带有 ./ 和 ../ 的 URI 转换成简短的 URL 形式.
-	 * 
+	 *
 	 * @param uriString
 	 * @return
 	 */
@@ -259,8 +247,8 @@ public class HttpClientAssistor {
 		if (uri.getHost() != null) {
 			url.append(uri.getHost());
 			if (uri.getPort() != -1
-					&& !(uri.getScheme().equals("http") && uri.getPort() == 80)
-					&& !(uri.getScheme().equals("https") && uri.getPort() == 443)) {
+							&& !(uri.getScheme().equals("http") && uri.getPort() == 80)
+							&& !(uri.getScheme().equals("https") && uri.getPort() == 443)) {
 				url.append(":");
 				url.append(uri.getPort());
 			}

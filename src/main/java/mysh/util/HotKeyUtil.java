@@ -64,7 +64,7 @@ public class HotKeyUtil {
 	 * @param action
 	 *               动作
 	 */
-	public static void registHotKey(int keyCode, int modifiers, AbstractAction action) {
+	public static void registerHotKey(int keyCode, int modifiers, AbstractAction action) {
 
 		HotKeyUtil.ActionMap.put(KeyStroke.getKeyStroke(keyCode, modifiers), action);
 	}

@@ -25,6 +25,15 @@ public class FileUtil {
 	}
 
 	/**
+	 * 取相对于当前目录的完整路径.
+	 *
+	 * @param filename 文件名.
+	 */
+	public static String getAbstractPath(String filename) {
+		return System.getProperty("user.dir") + System.getProperty("file.separator") + filename;
+	}
+
+	/**
 	 * 取文件输入流.<br/>
 	 * 失败时返回 null.
 	 *
@@ -68,9 +77,6 @@ public class FileUtil {
 	/**
 	 * 从文件取得数据.<br/>
 	 * 失败则返回 null.
-	 *
-	 * @param 文件路径 .
-	 * @return
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T getObjectFromFile(String filepath) {
@@ -96,7 +102,6 @@ public class FileUtil {
 				} catch (Exception e) {
 				}
 			}
-			System.gc();
 		}
 	}
 
@@ -106,7 +111,6 @@ public class FileUtil {
 	 *
 	 * @param filepath  文件路径.
 	 * @param maxLength 文件最大长度, 超过此长度将失败.
-	 * @return
 	 */
 	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) {
 
@@ -119,9 +123,6 @@ public class FileUtil {
 		} catch (Exception e) {
 			log.error("从文件加载数据失败: " + filepath, e);
 			return null;
-		} finally {
-			buf = null;
-			System.gc();
 		}
 	}
 
@@ -171,8 +172,6 @@ public class FileUtil {
 			byte[] buf = new byte[(int) file.length()];
 			in.read(buf);
 			return buf;
-		} catch (Exception e) {
-			throw e;
 		}
 	}
 
@@ -205,7 +204,6 @@ public class FileUtil {
 					out.close();
 				} catch (Exception e) {
 				}
-				System.gc();
 			}
 		}
 	}
@@ -215,7 +213,6 @@ public class FileUtil {
 	 *
 	 * @param filepath 文件路径.
 	 * @param data     要写入数据.
-	 * @return
 	 */
 	public static boolean writeFile(String filepath, byte[] data) {
 
@@ -304,7 +301,7 @@ public class FileUtil {
 			String fExt = FileUtil.getFileExtention(filePath);
 			int i = 0;
 			while (new File(filePath = (dir + fName + " (" + (++i) + ")" + (fExt.length() > 0 ? ("." + fExt)
-					: ""))).exists())
+							: ""))).exists())
 				;
 		}
 
