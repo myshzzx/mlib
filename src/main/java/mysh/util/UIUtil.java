@@ -70,7 +70,8 @@ public class UIUtil {
 	}
 
 	/**
-	 * 重置当前 UI L&F 的默认显示字体.
+	 * 重置当前 UI L&F 的默认显示字体.<br/>
+	 * 此方法必须放在 UI 组件创建之前, L&F 设置之后, 否则无效.
 	 *
 	 * @param font 给定字体. 为 null 则使用 13号雅黑.
 	 */

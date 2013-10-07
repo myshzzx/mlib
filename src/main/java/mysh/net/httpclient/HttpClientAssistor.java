@@ -5,13 +5,11 @@ import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 
 import java.io.File;
@@ -67,14 +65,11 @@ public class HttpClientAssistor {
 	/**
 	 * 取 URL 响应报文.
 	 *
-	 * @param url
-	 * @return
-	 * @throws InterruptedException    线程中断.
-	 * @throws ClientProtocolException 访问异常
-	 * @throws IOException             连接异常
+	 * @throws InterruptedException 线程中断.
+	 * @throws IOException          连接异常.
 	 */
-	private RouteableHttpResponse getResp(String url) throws InterruptedException,
-					ClientProtocolException, IOException {
+	private RouteableHttpClient.RouteableHttpResponse getResp(String url)
+					throws InterruptedException, IOException {
 
 		RouteableHttpClient client = new RouteableHttpClient();
 		HttpConnectionParams.setConnectionTimeout(client.getParams(),
@@ -102,7 +97,7 @@ public class HttpClientAssistor {
 			throw new InterruptedException();
 		}
 
-		return (RouteableHttpResponse) client.execute(req);
+		return (RouteableHttpClient.RouteableHttpResponse) client.execute(req);
 	}
 
 	/**
@@ -117,7 +112,7 @@ public class HttpClientAssistor {
 	 */
 	public Page getPage(String url) throws IOException, InterruptedException, GetPageException {
 
-		RouteableHttpResponse resp = this.getResp(url);
+		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
 
 		// 内容异常
 		Header[] type = resp.getHeaders("Content-Type");
@@ -128,17 +123,17 @@ public class HttpClientAssistor {
 		}
 
 		// 大部分页面的编码信息不会出现在响应报文中, 需要先取得页面, 才能知道页面的编码
-		String content = EntityUtils.toString(resp.getEntity(), HTTP.UTF_8);
+		String content = EntityUtils.toString(resp.getEntity(), Page.DefaultEncoding);
 
 		// 处理编码, 默认 utf-8
-		String charSet = null;
+		String charSet;
 		int charsetBegin = content.indexOf("charset=");
 
 		Page page = new Page(resp.getCurrentURL());
 		if (charsetBegin != -1) {
 			int charsetEnd = content.indexOf("\"", charsetBegin);
 			charSet = content.substring(charsetBegin + 8, charsetEnd);
-			page.setContent(new String(content.getBytes(HTTP.UTF_8), charSet));
+			page.setContent(new String(content.getBytes(Page.DefaultEncoding), charSet));
 		} else {
 			page.setContent(content);
 		}
@@ -154,12 +149,11 @@ public class HttpClientAssistor {
 	 * @param overwrite      是否覆盖原有文件
 	 * @param downloadBufLen 下载缓存, 有效值为 100K ~ 10M 间
 	 * @return 文件是否被下载写入
-	 * @throws IOException             IO异常
-	 * @throws InterruptedException    线程中断异常
-	 * @throws ClientProtocolException 访问异常
+	 * @throws IOException          IO异常
+	 * @throws InterruptedException 线程中断异常
 	 */
 	public boolean saveToFile(String url, String filePath, boolean overwrite, int downloadBufLen)
-					throws ClientProtocolException, InterruptedException, IOException {
+					throws InterruptedException, IOException {
 
 		File file = new File(filePath);
 
@@ -170,19 +164,16 @@ public class HttpClientAssistor {
 			downloadBufLen = 500000;
 		}
 
-		RouteableHttpResponse resp = this.getResp(url);
+		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
 
 		long fileLength = resp.getEntity().getContentLength();
-		RandomAccessFile fileOut = null;
-		InputStream in = null;
 
-		try {
-			file.getParentFile().mkdirs();
-			file.createNewFile();
-			fileOut = new RandomAccessFile(file, "rw");
+		file.getParentFile().mkdirs();
+		file.createNewFile();
+		try (RandomAccessFile fileOut = new RandomAccessFile(file, "rw");
+		     InputStream in = resp.getEntity().getContent()) {
+
 			fileOut.setLength(fileLength);
-
-			in = resp.getEntity().getContent();
 
 			byte[] buf = new byte[downloadBufLen];
 			int readLen = -1;
@@ -194,35 +185,14 @@ public class HttpClientAssistor {
 				fileOut.write(buf, 0, readLen);
 				fileLength -= readLen;
 			}
-		} catch (Exception e) {
-			throw new IOException(e);
-		} finally {
-			if (fileOut != null) {
-				try {
-					fileOut.close();
-				} catch (Exception e) {
-
-				}
-			}
-
-			if (in != null) {
-				try {
-					in.close();
-				} catch (Exception e) {
-
-				}
-			}
 		}
 		return true;
 	}
 
 	/**
 	 * 将带有 ./ 和 ../ 的 URI 转换成简短的 URL 形式.
-	 *
-	 * @param uriString
-	 * @return
 	 */
-	public static final String getShortURL(String uriString) {
+	public static String getShortURL(String uriString) {
 
 		if (uriString == null) {
 			return "";
@@ -257,27 +227,33 @@ public class HttpClientAssistor {
 		// 处理 URL Path 中的 . 和 ..
 		String[] tPath = uri.getPath().split("/");
 		// int lastUnNullBlankIndex = -1;
-		Deque<Integer> lastUnNullBlankIndex = new LinkedList<Integer>();
+		Deque<Integer> lastUnNullBlankIndex = new LinkedList<>();
 		for (int index = 0; index < tPath.length; index++) {
-			if (tPath[index].equals("") || tPath[index].equals(".")) {
-				tPath[index] = null;
-			} else if (tPath[index].equals("..")) {
-				tPath[index] = null;
-				try {
-					tPath[lastUnNullBlankIndex.pop()] = null;
-				} catch (NoSuchElementException e) {
-					// String msg = "URI 简化失败: " + uriString;
-					// Exception ex = new Exception(msg);
-					return uriString;
-				}
-			} else {
-				lastUnNullBlankIndex.push(index);
+			switch (tPath[index]) {
+				case "":
+				case ".":
+					tPath[index] = null;
+					break;
+				case "..":
+					tPath[index] = null;
+					try {
+						tPath[lastUnNullBlankIndex.pop()] = null;
+					} catch (NoSuchElementException e) {
+						// String msg = "URI 简化失败: " + uriString;
+						// Exception ex = new Exception(msg);
+						return uriString;
+					}
+					break;
+				default:
+					lastUnNullBlankIndex.push(index);
+					break;
 			}
 		}
-		for (int index = 0; index < tPath.length; index++) {
-			if (tPath[index] != null) {
+
+		for (String aTPath : tPath) {
+			if (aTPath != null) {
 				url.append("/");
-				url.append(tPath[index]);
+				url.append(aTPath);
 			}
 		}
 		if (uri.getPath().endsWith("/")) {
