@@ -6,6 +6,22 @@ import java.util.ArrayList;
 public class Math2 {
 
 	/**
+	 * 求两个数最大公约数.
+	 *
+	 * @return 传入小于1的数时返回 -1.
+	 */
+	public static long gcd(long a, long b) {
+		if (a < 1 || b < 1) return -1;
+
+		long t;
+		while ((t = a % b) > 0) {
+			a = b;
+			b = t;
+		}
+		return b;
+	}
+
+	/**
 	 * 进制转换 n进制 转 十进制.
 	 *
 	 * @param n  n.
@@ -38,7 +54,7 @@ public class Math2 {
 	public static int[] numSysDec2N(int n, long dec) {
 		if (n < 2 || dec < 1) throw new IllegalArgumentException();
 
-		ArrayList<Integer> r = new ArrayList<>();
+		ArrayList<Integer> r = new ArrayList<>(10);
 
 		while (dec > 0) {
 			r.add((int) (dec % n));
@@ -54,9 +70,6 @@ public class Math2 {
 
 	/**
 	 * 阶乘.
-	 *
-	 * @param n
-	 * @return
 	 */
 	public static int factorial(int n) {
 

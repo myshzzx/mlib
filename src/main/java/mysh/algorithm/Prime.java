@@ -3,11 +3,14 @@ package mysh.algorithm;
 
 /**
  * 质数.
- * @author ZhangZhx
  *
+ * @author ZhangZhx
  */
 public class Prime {
 
+	/**
+	 * 取 [from, to] 内的质数. 传入参数需大于10.
+	 */
 	public static int[] genPrime(int from, int to) {
 
 		if (to < from || from < 10)
@@ -42,7 +45,11 @@ public class Prime {
 		return primes;
 	}
 
+	/**
+	 * 取 [2, limit] 内的质数.
+	 */
 	public static int[] genPrime(int limit) {
+		if (limit < 2) throw new IllegalArgumentException();
 
 		// 第 i 个值表示 i 是否质数
 		boolean[] get = new boolean[limit + 1];
@@ -61,11 +68,11 @@ public class Prime {
 		}
 
 		int primeCount = 0;
-		for (int i = 0; i < get.length; i++)
+		for (int i = 2; i < get.length; i++)
 			if (get[i])
 				primeCount++;
 		int[] primes = new int[primeCount];
-		for (int i = 0, j = 0; i < get.length; i++)
+		for (int i = 2, j = 0; i < get.length; i++)
 			if (get[i])
 				primes[j++] = i;
 
