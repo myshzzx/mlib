@@ -11,6 +11,30 @@ import static org.junit.Assert.assertEquals;
 public class Math2Test {
 
 	@Test
+	public void testPrime() {
+
+		int from = 100000000, to = 100000100;
+
+		long start = System.nanoTime();
+		int[] primes1 = Math2.genPrime(from, to);
+		System.out.println("primes1: " + (System.nanoTime() - start) / 1000);
+
+		for (int i : primes1) {
+			System.out.print(i + " ");
+		}
+
+		System.out.println();
+
+		start = System.nanoTime();
+		int[] primes2 = Math2.genPrime(to);
+		System.out.println("primes2: " + (System.nanoTime() - start) / 1000);
+
+		for (int i = primes2.length - primes1.length; i < primes2.length; i++) {
+			System.out.print(primes2[i] + " ");
+		}
+	}
+
+	@Test
 	public void testGcd() {
 		assertEquals(3, Math2.gcd(12, 15));
 		assertEquals(3, Math2.gcd(27, 15));
