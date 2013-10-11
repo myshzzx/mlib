@@ -35,6 +35,23 @@ public class Math2Test {
 	}
 
 	@Test
+	public void testPrime2() {
+		final int limit = 10_000_000;
+		int[] a = Math2.genPrime(10, limit);
+		int[] b = Math2.genPrime(limit);
+
+		assertEquals(a.length + 4, b.length);
+		for (int i = 0; i < a.length; i++)
+			if (a[i] != b[i + 4]) throw new RuntimeException();
+
+		assertEquals(Math2.genPrime(500, limit).length + Math2.genPrime(500).length,
+						Math2.genPrime(limit).length);
+
+		assertEquals(Math2.genPrime(5_000_000, limit).length + Math2.genPrime(5_000_000).length,
+						Math2.genPrime(limit).length);
+	}
+
+	@Test
 	public void testGcd() {
 		assertEquals(3, Math2.gcd(12, 15));
 		assertEquals(3, Math2.gcd(27, 15));

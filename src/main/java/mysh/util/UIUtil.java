@@ -28,7 +28,7 @@ public class UIUtil {
 				}
 			}
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| UnsupportedLookAndFeelException ex) {
+						| UnsupportedLookAndFeelException ex) {
 			log.error("use Nimbus L&F failed.", ex);
 		}
 	}
@@ -38,22 +38,22 @@ public class UIUtil {
 	 *
 	 * @author Allen
 	 */
-	public static abstract class FileExtentionGetter {
+	public static interface FileExtentionGetter {
 
 		/**
 		 * 取以某扩展名结尾的文件.<br/>
 		 * 若不是此扩展名, 则返回一个加上此扩展名的文件.
 		 *
 		 * @param file
-		 * @param fileExtensionGetter 为 null, 则直接返回 file.
+		 * @param fExtGetter 为 null, 则直接返回 file.
 		 * @return
 		 */
-		public static File ensureFileWithExtention(File file, FileExtentionGetter fileExtensionGetter) {
+		static File ensureFileWithExtention(File file, FileExtentionGetter fExtGetter) {
 
-			if (fileExtensionGetter == null || fileExtensionGetter.getFileExtention() == null)
+			if (fExtGetter == null || fExtGetter.getFileExtention() == null)
 				return file;
 
-			String ext = fileExtensionGetter.getFileExtention().toLowerCase();
+			String ext = fExtGetter.getFileExtention().toLowerCase();
 			if (file.getPath().toLowerCase().endsWith(ext)) {
 				return file;
 			} else {
@@ -66,7 +66,7 @@ public class UIUtil {
 		 *
 		 * @return
 		 */
-		public abstract String getFileExtention();
+		String getFileExtention();
 	}
 
 	/**
@@ -137,28 +137,30 @@ public class UIUtil {
 	 * 取消操作返回 null.
 	 *
 	 * @param fileChooser
-	 * @param parent              父容器. 可以为 null.
-	 * @param fileExtensionGetter 扩展名获取器. 为 null 表示不限扩展名.
+	 * @param parent      父容器. 可以为 null.
+	 * @param fExt        扩展名获取器. 为 null 表示不限扩展名.
 	 * @return
 	 */
-	public static File getSaveFileWithOverwriteChecking(JFileChooser fileChooser, Component parent,
-	                                                    FileExtentionGetter fileExtensionGetter) {
+	public static File getSaveFileWithOverwriteChecking(
+					JFileChooser fileChooser,
+					Component parent,
+					FileExtentionGetter fExt) {
 
 		File file = null;
-		boolean fileChooserSelectionMode = fileChooser.isMultiSelectionEnabled();
+		boolean fcSelectionMode = fileChooser.isMultiSelectionEnabled();
 		fileChooser.setMultiSelectionEnabled(false);
 
 		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
-				&& (file = FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(),
-				fileExtensionGetter)).exists()) {
+						&& (file =
+						FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(), fExt)).exists()) {
 			if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(parent, file.getName()
-					+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
+							+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
 				break;
 			else
 				file = null;
 		}
 
-		fileChooser.setMultiSelectionEnabled(fileChooserSelectionMode);
+		fileChooser.setMultiSelectionEnabled(fcSelectionMode);
 		return file;
 	}
 

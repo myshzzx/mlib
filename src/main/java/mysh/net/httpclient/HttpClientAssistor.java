@@ -133,6 +133,7 @@ public class HttpClientAssistor {
 		if (charsetBegin != -1) {
 			int charsetEnd = content.indexOf("\"", charsetBegin);
 			charSet = content.substring(charsetBegin + 8, charsetEnd);
+			if (charSet.toLowerCase().contains("gb")) charSet = "GBK";
 			page.setContent(new String(content.getBytes(Page.DefaultEncoding), charSet));
 		} else {
 			page.setContent(content);

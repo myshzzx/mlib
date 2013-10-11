@@ -19,9 +19,10 @@ public class Math2 {
 		for (int i = 0; i < get.length; i++)
 			get[i] = true;
 
-		int factorLimit = (int) Math.pow(to, 0.5) + 1;
+		int factorLimit = (int) Math.sqrt(to) + 1;
 		for (int factor = 2; factor < factorLimit; factor++) {
 			int composite = from / factor;
+			if (composite == 0) composite = 1;
 			composite *= factor;
 			if (composite == from)
 				get[0] = false;
@@ -54,7 +55,7 @@ public class Math2 {
 		for (int i = 0; i < get.length; i++)
 			get[i] = true;
 
-		int factorLimit = (int) Math.pow(limit, 0.5) + 1;
+		int factorLimit = (int) Math.sqrt(limit) + 1;
 		for (int factor = 2; factor < factorLimit; factor++) {
 			if (get[factor]) {
 				// 至此可确定 factor 一定是质数
@@ -75,7 +76,7 @@ public class Math2 {
 
 		return primes;
 	}
-	
+
 	/**
 	 * 求两个数最大公约数.
 	 *
