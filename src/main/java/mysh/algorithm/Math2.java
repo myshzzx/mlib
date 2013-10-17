@@ -13,32 +13,28 @@ public class Math2 {
 		if (to < from || from < 10)
 			throw new IllegalArgumentException();
 
-		// 第 i 个值表示 i+from 是否质数
+		// 第 i 个值表示 i+from 是否合数
 		boolean[] get = new boolean[to - from + 1];
 
-		for (int i = 0; i < get.length; i++)
-			get[i] = true;
-
 		int factorLimit = (int) Math.sqrt(to) + 1;
+		int composite;
 		for (int factor = 2; factor < factorLimit; factor++) {
-			int composite = from / factor;
+			composite = from / factor;
 			if (composite == 0) composite = 1;
 			composite *= factor;
-			if (composite == from)
-				get[0] = false;
+			if (composite == from) get[0] = true;
 
 			while ((composite += factor) <= to)
-				get[composite - from] = false;
+				get[composite - from] = true;
 		}
 
 		int primeCount = 0;
 		for (int i = 0; i < get.length; i++)
-			if (get[i])
-				primeCount++;
+			if (!get[i]) primeCount++;
+
 		int[] primes = new int[primeCount];
 		for (int i = 0, j = 0; i < get.length; i++)
-			if (get[i])
-				primes[j++] = from + i;
+			if (!get[i]) primes[j++] = from + i;
 
 		return primes;
 	}
@@ -49,30 +45,28 @@ public class Math2 {
 	public static int[] genPrime(int limit) {
 		if (limit < 2) throw new IllegalArgumentException();
 
-		// 第 i 个值表示 i 是否质数
+		// 第 i 个值表示 i 是否合数
 		boolean[] get = new boolean[limit + 1];
-		get[0] = get[1] = false;
-		for (int i = 0; i < get.length; i++)
-			get[i] = true;
+		get[0] = get[1] = true;
 
 		int factorLimit = (int) Math.sqrt(limit) + 1;
+		int composite;
 		for (int factor = 2; factor < factorLimit; factor++) {
-			if (get[factor]) {
+			if (!get[factor]) {
 				// 至此可确定 factor 一定是质数
-				int composite = factor;
+				composite = factor;
 				while ((composite += factor) <= limit)
-					get[composite] = false;
+					get[composite] = true;
 			}
 		}
 
 		int primeCount = 0;
 		for (int i = 2; i < get.length; i++)
-			if (get[i])
-				primeCount++;
+			if (!get[i]) primeCount++;
+
 		int[] primes = new int[primeCount];
 		for (int i = 2, j = 0; i < get.length; i++)
-			if (get[i])
-				primes[j++] = i;
+			if (!get[i]) primes[j++] = i;
 
 		return primes;
 	}

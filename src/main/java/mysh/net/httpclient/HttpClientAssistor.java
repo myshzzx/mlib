@@ -12,10 +12,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.util.EntityUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Deque;
@@ -108,9 +105,11 @@ public class HttpClientAssistor {
 	 * @return 含真实地址的页面内容
 	 * @throws IOException          连接异常
 	 * @throws InterruptedException 线程中断异常
-	 * @throws GetPageException     取页面返回代码不是200, 或取得的页面不是文本
+	 * @throws mysh.net.httpclient.HCExceptions.GetPageException
+	 *                              取页面返回代码不是200, 或取得的页面不是文本
 	 */
-	public Page getPage(String url) throws IOException, InterruptedException, GetPageException {
+	public Page getPage(String url)
+					throws IOException, InterruptedException, HCExceptions.GetPageException {
 
 		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
 
@@ -119,7 +118,7 @@ public class HttpClientAssistor {
 		if (resp.getStatusLine().getStatusCode() != 200
 						|| (type.length != 0 && !type[0].getValue().startsWith("text")
 						&& !type[0].getValue().startsWith("xml") && !type[0].getValue().startsWith("json"))) {
-			throw new GetPageException(url);
+			throw new HCExceptions.GetPageException(url);
 		}
 
 		// 大部分页面的编码信息不会出现在响应报文中, 需要先取得页面, 才能知道页面的编码

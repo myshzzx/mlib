@@ -1,8 +1,7 @@
 package mysh.net.httpclient;
 
 import jdk.nashorn.internal.ir.annotations.Ignore;
-
-import java.io.IOException;
+import org.junit.Test;
 
 /**
  * @author Mysh
@@ -10,10 +9,17 @@ import java.io.IOException;
  */
 public class HttpClientAssistorTest {
 	@Ignore
-	public void httpsTest() throws InterruptedException, GetPageException, IOException {
+	public void httpsTest() throws  Exception {
 		String url = "https://raw.github.com/myshzzx/misc/master/lecai.update";
 		HttpClientAssistor hca = new HttpClientAssistor(HttpClientConfig.getDefault());
 		Page page = hca.getPage(url);
 		System.out.println(page.getContent());
 	}
+
+	@Test
+	public void downloadTest(){
+
+	}
+
+
 }
