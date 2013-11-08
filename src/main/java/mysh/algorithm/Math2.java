@@ -6,7 +6,21 @@ import java.util.ArrayList;
 public class Math2 {
 
 	/**
-	 * 取 [from, to] 内的质数. 传入参数需大于10.
+	 * 判断 n 是否质数.
+	 */
+	public static boolean isPrime(int n) {
+		if (n < 2) return false;
+		if (n == 2) return true;
+		if (n % 2 == 0) return false;
+
+		int sqrt = (int) Math.sqrt(n) + 1;
+		for (int i = 3; i < sqrt; i += 2)
+			if (n % i == 0) return false;
+		return true;
+	}
+
+	/**
+	 * 取 [from, to] 内的质数. 传入参数需不小于10.
 	 */
 	public static int[] genPrime(int from, int to) {
 
