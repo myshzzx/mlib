@@ -43,10 +43,44 @@ public class Math2 {
 		}
 
 		int primeCount = 0;
-		for (int i = 0; i < get.length; i++)
-			if (!get[i]) primeCount++;
+		for (boolean g : get) if (!g) primeCount++;
 
 		int[] primes = new int[primeCount];
+		for (int i = 0, j = 0; i < get.length; i++)
+			if (!get[i]) primes[j++] = from + i;
+
+		return primes;
+	}
+
+	/**
+	 * 取 [from, to] 内的质数. 传入参数需不小于10且跨度不超过 {@link Integer#MAX_VALUE}/2.
+	 *
+	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>素数定理</a>
+	 */
+	public static long[] genPrime(long from, long to) {
+
+		if (to < from || from < 10 || to - from > Integer.MAX_VALUE / 2)
+			throw new IllegalArgumentException();
+
+		// 第 i 个值表示 i+from 是否合数
+		boolean[] get = new boolean[(int) (to - from + 1)];
+
+		long factorLimit = (long) Math.sqrt(to) + 1;
+		long composite;
+		for (long factor = 2; factor < factorLimit; factor++) {
+			composite = from / factor;
+			if (composite == 0) composite = 1;
+			composite *= factor;
+			if (composite == from) get[0] = true;
+
+			while ((composite += factor) <= to)
+				get[((int) (composite - from))] = true;
+		}
+
+		int primeCount = 0;
+		for (boolean g : get) if (!g) primeCount++;
+
+		long[] primes = new long[primeCount];
 		for (int i = 0, j = 0; i < get.length; i++)
 			if (!get[i]) primes[j++] = from + i;
 
