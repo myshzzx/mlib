@@ -5,8 +5,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
+import javax.swing.plaf.FontUIResource;
 import java.awt.*;
 import java.io.File;
+import java.util.Map;
 
 public class UIUtil {
 	private static final Logger log = LoggerFactory.getLogger(UIUtil.class);
@@ -38,7 +40,7 @@ public class UIUtil {
 	 *
 	 * @author Allen
 	 */
-	public static interface FileExtentionGetter {
+	public static interface FileExtensionGetter {
 
 		/**
 		 * 取以某扩展名结尾的文件.<br/>
@@ -48,12 +50,12 @@ public class UIUtil {
 		 * @param fExtGetter 为 null, 则直接返回 file.
 		 * @return
 		 */
-		static File ensureFileWithExtention(File file, FileExtentionGetter fExtGetter) {
+		static File ensureFileWithExtension(File file, FileExtensionGetter fExtGetter) {
 
-			if (fExtGetter == null || fExtGetter.getFileExtention() == null)
+			if (fExtGetter == null || fExtGetter.getFileExtension() == null)
 				return file;
 
-			String ext = fExtGetter.getFileExtention().toLowerCase();
+			String ext = fExtGetter.getFileExtension().toLowerCase();
 			if (file.getPath().toLowerCase().endsWith(ext)) {
 				return file;
 			} else {
@@ -66,7 +68,7 @@ public class UIUtil {
 		 *
 		 * @return
 		 */
-		String getFileExtention();
+		String getFileExtension();
 	}
 
 	/**
@@ -79,6 +81,12 @@ public class UIUtil {
 
 		if (font == null)
 			font = DefaultFont;
+
+		for (Map.Entry<Object, Object> e : UIManager.getLookAndFeelDefaults().entrySet()) {
+			if (((e.getValue() instanceof FontUIResource))) {
+				e.setValue(font);
+			}
+		}
 
 		UIManager.getLookAndFeelDefaults().put("ArrowButton.font", font);
 		UIManager.getLookAndFeelDefaults().put("Button.font", font);
@@ -129,6 +137,7 @@ public class UIUtil {
 		UIManager.getLookAndFeelDefaults().put("ToolTip.font", font);
 		UIManager.getLookAndFeelDefaults().put("Tree.font", font);
 		UIManager.getLookAndFeelDefaults().put("Viewport.font", font);
+
 	}
 
 	/**
@@ -144,7 +153,7 @@ public class UIUtil {
 	public static File getSaveFileWithOverwriteChecking(
 					JFileChooser fileChooser,
 					Component parent,
-					FileExtentionGetter fExt) {
+					FileExtensionGetter fExt) {
 
 		File file = null;
 		boolean fcSelectionMode = fileChooser.isMultiSelectionEnabled();
@@ -152,7 +161,7 @@ public class UIUtil {
 
 		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
 						&& (file =
-						FileExtentionGetter.ensureFileWithExtention(fileChooser.getSelectedFile(), fExt)).exists()) {
+						FileExtensionGetter.ensureFileWithExtension(fileChooser.getSelectedFile(), fExt)).exists()) {
 			if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(parent, file.getName()
 							+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
 				break;
