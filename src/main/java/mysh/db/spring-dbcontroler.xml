@@ -16,7 +16,7 @@
 		</property>
 	</bean>
 
-	<bean id="dbControler" class="mysh.db.DBControler">
+	<bean id="dbControler" class="mysh.db.DBController">
 		<description>连接控制器</description>
 		<constructor-arg ref="dbConf" />
 	</bean>

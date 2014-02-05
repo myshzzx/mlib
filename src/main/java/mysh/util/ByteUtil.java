@@ -28,7 +28,6 @@ public class ByteUtil {
 	 * @param content    查找源
 	 * @param startIndex 查找源的起始索引位置
 	 * @param key        查找目标
-	 * @return
 	 */
 	public static int findBytesIndex(byte[] content, int startIndex, byte[] key) {
 
@@ -109,7 +108,6 @@ public class ByteUtil {
 	 * @param startIndex   查找源的起始索引位置
 	 * @param keyUpperCase 查找关键字的大写 byteArray
 	 * @param keyLowerCase 查找关键字的小写 byteArray
-	 * @return
 	 */
 	public static int findStringIndexIgnoreCase(byte[] content, int startIndex, byte[] keyUpperCase,
 	                                            byte[] keyLowerCase) {

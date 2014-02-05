@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
  *
  * @author ZhangZhx
  */
-public class HttpClientAssistor {
+public class HttpClientAssist {
 
 	private final HttpClientConfig conf;
 
@@ -38,7 +38,7 @@ public class HttpClientAssistor {
 	 */
 	private final HttpHost proxy;
 
-	public HttpClientAssistor(HttpClientConfig conf) {
+	public HttpClientAssist(HttpClientConfig conf) {
 
 		if (conf == null) {
 			throw new IllegalArgumentException();
@@ -65,10 +65,10 @@ public class HttpClientAssistor {
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	private RouteableHttpClient.RouteableHttpResponse getResp(String url)
+	private RoutableHttpClient.RoutableHttpResponse getResp(String url)
 					throws InterruptedException, IOException {
 
-		RouteableHttpClient client = new RouteableHttpClient();
+		RoutableHttpClient client = new RoutableHttpClient();
 		HttpConnectionParams.setConnectionTimeout(client.getParams(),
 						this.conf.getConnectionTimeout() * 1000);
 		HttpConnectionParams
@@ -94,7 +94,7 @@ public class HttpClientAssistor {
 			throw new InterruptedException();
 		}
 
-		return (RouteableHttpClient.RouteableHttpResponse) client.execute(req);
+		return (RoutableHttpClient.RoutableHttpResponse) client.execute(req);
 	}
 
 	/**
@@ -103,14 +103,14 @@ public class HttpClientAssistor {
 	 *
 	 * @param url 页面地址
 	 * @return 含真实地址的页面内容
-	 * @throws IOException                                       连接异常
-	 * @throws InterruptedException                              线程中断异常
-	 * @throws mysh.net.httpclient.HCExceptions.GetPageException 取页面返回代码不是200, 或取得的页面不是文本
+	 * @throws IOException                   连接异常
+	 * @throws InterruptedException          线程中断异常
+	 * @throws HCExceptions.GetPageException 取页面返回代码不是200, 或取得的页面不是文本
 	 */
 	public Page getPage(String url)
 					throws IOException, InterruptedException, HCExceptions.GetPageException {
 
-		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
+		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
 
 		// 内容异常
 		Header[] type = resp.getHeaders("Content-Type");
@@ -163,7 +163,7 @@ public class HttpClientAssistor {
 			downloadBufLen = 500000;
 		}
 
-		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
+		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
 
 		long fileLength = resp.getEntity().getContentLength();
 
@@ -175,7 +175,7 @@ public class HttpClientAssistor {
 			fileOut.setLength(fileLength);
 
 			byte[] buf = new byte[downloadBufLen];
-			int readLen = -1;
+			int readLen;
 			while (fileLength > 0) {
 				readLen = in.read(buf);
 				if (readLen == -1) {
@@ -197,7 +197,7 @@ public class HttpClientAssistor {
 	 */
 	public InputStream readContent(String url) throws IOException, InterruptedException {
 
-		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
+		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
 		return resp.getEntity().getContent();
 	}
 

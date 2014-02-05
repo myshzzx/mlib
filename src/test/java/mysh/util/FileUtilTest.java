@@ -1,33 +1,33 @@
 
 package mysh.util;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.io.File;
 
-import org.junit.Assert;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 public class FileUtilTest {
 
 	@Test
-	public void getFileExtentionTest() {
+	public void getFileExtensionTest() {
 
-		assertEquals("txt", FileUtil.getFileExtention("fea.txt"));
-		assertEquals("txt", FileUtil.getFileExtention("  fe a  .txt     "));
-		assertEquals("txt", FileUtil.getFileExtention(".txt"));
-		assertEquals("txt", FileUtil.getFileExtention(".txt       "));
-		assertEquals("", FileUtil.getFileExtention("txt"));
-		assertEquals("", FileUtil.getFileExtention("txt.    "));
-		assertEquals("    txt", FileUtil.getFileExtention("     .    txt.    "));
-		assertEquals("txt", FileUtil.getFileExtention("   abc.def.txt     "));
-		assertEquals(" t xt", FileUtil.getFileExtention("   abc.def. t xt "));
-		assertEquals("", FileUtil.getFileExtention("."));
-		assertEquals("", FileUtil.getFileExtention(""));
+		assertEquals("txt", FileUtil.getFileExtension("fea.txt"));
+		assertEquals("txt", FileUtil.getFileExtension("  fe a  .txt     "));
+		assertEquals("txt", FileUtil.getFileExtension(".txt"));
+		assertEquals("txt", FileUtil.getFileExtension(".txt       "));
+		assertEquals("", FileUtil.getFileExtension("txt"));
+		assertEquals("", FileUtil.getFileExtension("txt.    "));
+		assertEquals("    txt", FileUtil.getFileExtension("     .    txt.    "));
+		assertEquals("txt", FileUtil.getFileExtension("   abc.def.txt     "));
+		assertEquals(" t xt", FileUtil.getFileExtension("   abc.def. t xt "));
+		assertEquals("", FileUtil.getFileExtension("."));
+		assertEquals("", FileUtil.getFileExtension(""));
 	}
 
 	@Test
-	public void getFileNameWithoutExtentionTest() {
+	public void getFileNameWithoutExtensionTest() {
 
 		assertEquals("fea", FileUtil.getFileNameWithoutExtention("fea.txt"));
 		assertEquals("fe a  ", FileUtil.getFileNameWithoutExtention("  fe a  .txt     "));

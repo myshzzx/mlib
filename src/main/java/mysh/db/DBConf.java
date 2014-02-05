@@ -5,9 +5,8 @@ import mysh.util.PropConf;
 
 /**
  * 数据库连接池配置.
- * 
+ *
  * @author ZhangZhx
- * 
  */
 public class DBConf {
 
@@ -22,24 +21,21 @@ public class DBConf {
 	/**
 	 * 根据默认的属性生成此实例.<br/>
 	 * 默认属性示例如下:<br/>
-	 * 
+	 * <p>
 	 * <pre>
-	 * 
+	 *
 	 * #数据库驱动
 	 * dbpool.driverClassName=com.mysql.jdbc.Driver
-	 * 
+	 *
 	 * #数据库连接串
 	 * dbpool.url=jdbc:mysql://localhost/mycrawler?user=root&password=myshzzx
-	 * 
+	 *
 	 * #数据库连接池大小
 	 * dbpool.poolSize=6
-	 * 
+	 *
 	 * #非阻塞 sql 执行器队列
 	 * dbpool.sqlQueueSize=1000
 	 * </pre>
-	 * 
-	 * @param conf
-	 * @return
 	 */
 	public static DBConf getDefaultConfig(PropConf conf) {
 
@@ -63,8 +59,7 @@ public class DBConf {
 	}
 
 	/**
-	 * @param driverClassName
-	 *               the driverClassName to set
+	 * @param driverClassName the driverClassName to set
 	 */
 	public void setDriverClassName(String driverClassName) {
 
@@ -80,8 +75,7 @@ public class DBConf {
 	}
 
 	/**
-	 * @param url
-	 *               the url to set
+	 * @param url the url to set
 	 */
 	public void setUrl(String url) {
 
@@ -97,8 +91,7 @@ public class DBConf {
 	}
 
 	/**
-	 * @param poolSize
-	 *               the poolSize to set
+	 * @param poolSize the poolSize to set
 	 */
 	public void setPoolSize(int poolSize) {
 
@@ -114,8 +107,7 @@ public class DBConf {
 	}
 
 	/**
-	 * @param sqlQueueSize
-	 *               the sqlQueueSize to set
+	 * @param sqlQueueSize the sqlQueueSize to set
 	 */
 	public void setSqlQueueSize(int sqlQueueSize) {
 

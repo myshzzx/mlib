@@ -25,10 +25,10 @@ import java.net.URI;
  * 由于 DefaultHttpClient 可以自动处理页面跳转 ( 302 304 ), 为取得当前页面的真实地址, 实现此类.
  *
  * @author ZhangZhx
- * @see RouteableRequestDirector
- * @see RouteableHttpResponse
+ * @see mysh.net.httpclient.RoutableHttpClient.RoutableRequestDirector
+ * @see RoutableHttpClient.RoutableHttpResponse
  */
-public class RouteableHttpClient extends DefaultHttpClient {
+public class RoutableHttpClient extends DefaultHttpClient {
 
 	private final Log log = LogFactory.getLog(getClass());
 
@@ -46,7 +46,7 @@ public class RouteableHttpClient extends DefaultHttpClient {
 					final UserTokenHandler userTokenHandler,
 					final HttpParams params) {
 
-		return new RouteableRequestDirector(log,
+		return new RoutableRequestDirector(log,
 						requestExec,
 						conman,
 						reustrat,
@@ -63,17 +63,17 @@ public class RouteableHttpClient extends DefaultHttpClient {
 
 
 	/**
-	 * 配合 RouteableHttpClient 以取得当前页面的真实地址.
+	 * 配合 RoutableHttpClient 以取得当前页面的真实地址.
 	 *
 	 * @author ZhangZhx
-	 * @see RouteableHttpClient
-	 * @see RouteableHttpResponse
+	 * @see RoutableHttpClient
+	 * @see RoutableHttpClient.RoutableHttpResponse
 	 */
-	public static class RouteableRequestDirector extends DefaultRequestDirector {
+	public static class RoutableRequestDirector extends DefaultRequestDirector {
 
 		private volatile String currentURL;
 
-		public RouteableRequestDirector(
+		public RoutableRequestDirector(
 						final Log log,
 						final HttpRequestExecutor requestExec,
 						final ClientConnectionManager conman,
@@ -111,7 +111,7 @@ public class RouteableHttpClient extends DefaultHttpClient {
 			if (routedRequest == null) {
 				URI uri = ((HttpGet) roureq.getRequest().getOriginal()).getURI();
 
-				this.currentURL = HttpClientAssistor.getShortURL(uri.toString());
+				this.currentURL = HttpClientAssist.getShortURL(uri.toString());
 
 			}
 
@@ -122,9 +122,9 @@ public class RouteableHttpClient extends DefaultHttpClient {
 						throws HttpException, IOException {
 
 			HttpResponse resp = super.execute(target, request, context);
-			return (RouteableHttpResponse) Proxy.newProxyInstance(
-							RouteableHttpClient.class.getClassLoader(),
-							new Class[]{RouteableHttpResponse.class},
+			return (RoutableHttpResponse) Proxy.newProxyInstance(
+							RoutableHttpClient.class.getClassLoader(),
+							new Class[]{RoutableHttpResponse.class},
 							(proxy, method, args) -> {
 								switch (method.getName()) {
 									case "getCurrentURL":
@@ -138,18 +138,17 @@ public class RouteableHttpClient extends DefaultHttpClient {
 	}
 
 	/**
-	 * 配合 RouteableRequestDirector. 可通过此类的实例取得当前访问的页面的真实地址.
+	 * 配合 RoutableRequestDirector. 可通过此类的实例取得当前访问的页面的真实地址.
 	 *
 	 * @author ZhangZhx
-	 * @see RouteableHttpClient
-	 * @see RouteableHttpClient.RouteableRequestDirector
+	 * @see RoutableHttpClient
+	 * @see mysh.net.httpclient.RoutableHttpClient.RoutableRequestDirector
 	 */
-	public static interface RouteableHttpResponse extends HttpResponse {
+	public static interface RoutableHttpResponse extends HttpResponse {
 
 		/**
 		 * 取当前地址.
 		 *
-		 * @return
 		 */
 		String getCurrentURL();
 	}

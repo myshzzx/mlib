@@ -1,13 +1,11 @@
 
 package mysh.ui;
 
-import java.awt.BorderLayout;
-import java.awt.TextField;
-
-import javax.swing.JFrame;
-
 import org.junit.Ignore;
 import org.junit.Test;
+
+import javax.swing.*;
+import java.awt.*;
 
 @Ignore
 public class JTextFieldWithTipsTest {

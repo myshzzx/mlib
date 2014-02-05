@@ -46,9 +46,7 @@ public class UIUtil {
 		 * 取以某扩展名结尾的文件.<br/>
 		 * 若不是此扩展名, 则返回一个加上此扩展名的文件.
 		 *
-		 * @param file
 		 * @param fExtGetter 为 null, 则直接返回 file.
-		 * @return
 		 */
 		static File ensureFileWithExtension(File file, FileExtensionGetter fExtGetter) {
 
@@ -65,8 +63,6 @@ public class UIUtil {
 
 		/**
 		 * 取文件扩展名. 扩展名以 . 开头.
-		 *
-		 * @return
 		 */
 		String getFileExtension();
 	}
@@ -145,10 +141,8 @@ public class UIUtil {
 	 * 确保返回给定扩展名类型的文件.<br/>
 	 * 取消操作返回 null.
 	 *
-	 * @param fileChooser
-	 * @param parent      父容器. 可以为 null.
-	 * @param fExt        扩展名获取器. 为 null 表示不限扩展名.
-	 * @return
+	 * @param parent 父容器. 可以为 null.
+	 * @param fExt   扩展名获取器. 为 null 表示不限扩展名.
 	 */
 	public static File getSaveFileWithOverwriteChecking(
 					JFileChooser fileChooser,

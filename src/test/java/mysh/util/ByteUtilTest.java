@@ -1,16 +1,11 @@
 
 package mysh.util;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
-
 import org.junit.Test;
+
+import java.io.*;
+
+import static org.junit.Assert.assertEquals;
 
 public class ByteUtilTest {
 
@@ -18,11 +13,11 @@ public class ByteUtilTest {
 	public void findBytesIndexTest() {
 
 		byte[] blankContent = new byte[0], blankKey = new byte[0];
-		byte[] content1 = new byte[] { 1, 2, 4, 1, 3, 1, 2, 3 };
-		byte[] content2 = new byte[] { 1, 2, 3, 4, 3, 1, 2, 3 };
-		byte[] content3 = new byte[] { 1, 2, 3, 4, 1, 2, 3, 1, 2, 3 };
-		byte[] content4 = new byte[] { 1, 2, 5, 3, 4, 1, 3, 1, 4, 3 };
-		byte[] key = new byte[] { 1, 2, 3 };
+		byte[] content1 = new byte[]{1, 2, 4, 1, 3, 1, 2, 3};
+		byte[] content2 = new byte[]{1, 2, 3, 4, 3, 1, 2, 3};
+		byte[] content3 = new byte[]{1, 2, 3, 4, 1, 2, 3, 1, 2, 3};
+		byte[] content4 = new byte[]{1, 2, 5, 3, 4, 1, 3, 1, 4, 3};
+		byte[] key = new byte[]{1, 2, 3};
 
 		assertEquals(-1, ByteUtil.findBytesIndex(blankContent, 2, blankKey));
 		assertEquals(-1, ByteUtil.findBytesIndex(content1, 2, blankKey));
@@ -35,15 +30,15 @@ public class ByteUtilTest {
 		assertEquals(-1, ByteUtil.findBytesIndex(content4, 0, key));
 	}
 
-//	@Test
-	public void speedTest() throws FileNotFoundException, IOException {
+	//	@Test
+	public void speedTest() throws IOException {
 
 		// length : 2_000_000
 		String content = "";
 		String key = "abcdefghijklmnopqrstuvwxyz";
 
 		try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(
-				"C:\\Users\\Allen\\Desktop/a.txt")))) {
+						"C:\\Users\\Allen\\Desktop/a.txt")))) {
 
 			content = r.readLine();
 		}
@@ -61,10 +56,10 @@ public class ByteUtilTest {
 		boolean f = true;
 		long stringTestStart = System.nanoTime();
 		for (int i = 0; i < testTimes; i++) {
-			f = true & content.contains(key);
+			f = content.contains(key);
 		}
 		System.out.println(f + " string.contains: " + (System.nanoTime() - stringTestStart)
-				/ 1_000_000);
+						/ 1_000_000);
 
 		int resultIndex = 0;
 		long byteTestStart = System.nanoTime();
@@ -73,7 +68,7 @@ public class ByteUtilTest {
 			resultIndex = ByteUtil.findBytesIndex(contentB, 0, keyB);
 		}
 		System.out.println(resultIndex + " byte: " + (System.nanoTime() - byteTestStart)
-				/ 1_000_000);
+						/ 1_000_000);
 
 	}
 

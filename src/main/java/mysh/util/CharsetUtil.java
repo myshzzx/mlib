@@ -21,12 +21,11 @@ public class CharsetUtil {
 
 	}
 
-	public static byte[] encodeTrans(byte[] source, String sourceEncode, String desEncode)
-			throws Exception {
+	public static byte[] encodeTrans(byte[] source, String sourceEncode, String desEncode) {
 
 		try {
 			CharBuffer sourceCharBuf = Charset.forName(sourceEncode).decode(
-					ByteBuffer.wrap(source));
+							ByteBuffer.wrap(source));
 			ByteBuffer outputData = Charset.forName(desEncode).encode(sourceCharBuf);
 
 			byte[] result = new byte[outputData.limit()];

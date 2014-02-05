@@ -1,21 +1,16 @@
 
 package mysh.util;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
+import mysh.net.httpclient.HttpClientConfig;
+import org.junit.Ignore;
+
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
 import java.nio.file.StandardOpenOption;
 import java.util.LinkedList;
 import java.util.List;
-
-import mysh.net.httpclient.HttpClientConfig;
-
-import org.junit.Ignore;
 
 public class FileIOTest {
 
@@ -34,7 +29,7 @@ public class FileIOTest {
 	}
 
 	@Ignore
-	public void memeryMapTest() throws IOException {
+	public void memoryMapTest() throws IOException {
 
 		File f = new File("test1");
 

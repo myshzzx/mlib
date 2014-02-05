@@ -14,7 +14,7 @@ import java.util.List;
  * 
  * @author ZhangZhx
  */
-public class Pusher implements PusherStateControler {
+public class Pusher implements PusherStateController {
 
 	/**
 	 * Pusher 类型.<br/>
@@ -46,17 +46,17 @@ public class Pusher implements PusherStateControler {
 
 	/**
 	 * 缓冲区.<br/>
-	 * 这里用 volatile 保证它的可见性, 原因是插件可能把这个 PusherStateControler 实例发布到其他线程中.
+	 * 这里用 volatile 保证它的可见性, 原因是插件可能把这个 PusherStateController 实例发布到其他线程中.
 	 */
 	private volatile byte[] buf;
 
 	/**
 	 * 缓冲区有效数据长度.<br/>
-	 * 这里用 volatile 保证它的可见性, 原因是插件可能把这个 PusherStateControler 实例发布到其他线程中.
+	 * 这里用 volatile 保证它的可见性, 原因是插件可能把这个 PusherStateController 实例发布到其他线程中.
 	 */
 	private volatile int bufDataLength;
 
-	private Thread dataPusher = new Thread() {
+	private final Thread dataPusher = new Thread() {
 
 		public void run() {
 

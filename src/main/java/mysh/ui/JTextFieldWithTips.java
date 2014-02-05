@@ -1,13 +1,11 @@
 
 package mysh.ui;
 
-import java.awt.Color;
-import java.awt.Font;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.FocusEvent;
 import java.awt.event.FocusListener;
 import java.util.Objects;
-
-import javax.swing.JTextField;
 
 /**
  * 在文本区内部带灰色提示标签的文本输入框.
@@ -143,7 +141,6 @@ public final class JTextFieldWithTips extends JTextField {
 	/**
 	 * 取提示标签.
 	 * 
-	 * @return
 	 */
 	public String getLabel() {
 
@@ -153,8 +150,6 @@ public final class JTextFieldWithTips extends JTextField {
 	/**
 	 * 设置提示标签.
 	 * 
-	 * @param label
-	 * @return
 	 */
 	public JTextFieldWithTips setLabel(String label) {
 

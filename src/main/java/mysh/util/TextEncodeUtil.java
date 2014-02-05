@@ -5,9 +5,8 @@ import java.util.Arrays;
 
 /**
  * 编码工具类. <br/>
- * 
+ *
  * @author Allen
- * 
  */
 public class TextEncodeUtil {
 
@@ -16,10 +15,8 @@ public class TextEncodeUtil {
 	 * 用 utf8 编码规则判断, 较快. 更多信息, 见 <a href=
 	 * "http://www.codeguru.com/cpp/misc/misc/multi-lingualsupport/article.php/c10451/The-Basics-of-UTF8.htm"
 	 * >The-Basics-of-UTF8</a>
-	 * 
-	 * @param data
-	 *               字节串
-	 * @return
+	 *
+	 * @param data 字节串
 	 */
 	public static boolean isUTF8Bytes(byte[] data) {
 
@@ -38,10 +35,10 @@ public class TextEncodeUtil {
 			} else if ((data[i] & 0xf8) == 0xf0) { // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 				step = 4;
 			} else if ((data[i] & 0xfc) == 0xf8) { // 111110xx 10xxxxxx 10xxxxxx 10xxxxxx
-									// 10xxxxxx
+				// 10xxxxxx
 				step = 5;
 			} else if ((data[i] & 0xfe) == 0xfc) { // 1111110x 10xxxxxx 10xxxxxx 10xxxxxx
-									// 10xxxxxx 10xxxxxx
+				// 10xxxxxx 10xxxxxx
 				step = 6;
 			} else {
 				return false;
@@ -79,10 +76,8 @@ public class TextEncodeUtil {
 	/**
 	 * 判断是否 utf8 编码串.<br/>
 	 * 用转换后对比的方式, 较慢.
-	 * 
-	 * @param data
-	 *               字节串
-	 * @return
+	 *
+	 * @param data 字节串
 	 */
 	public static boolean isUTF8Bytes2(byte[] data) {
 
@@ -99,10 +94,8 @@ public class TextEncodeUtil {
 	 * 用 utf8 编码规则判断, 较快. 更多信息, 见 <a href=
 	 * "http://www.codeguru.com/cpp/misc/misc/multi-lingualsupport/article.php/c10451/The-Basics-of-UTF8.htm"
 	 * >The-Basics-of-UTF8</a>
-	 * 
-	 * @param data
-	 *               字节串
-	 * @return
+	 *
+	 * @param data 字节串
 	 */
 	@Deprecated
 	public static boolean isUTF8Bytes_ori(byte[] data) {
@@ -111,7 +104,7 @@ public class TextEncodeUtil {
 		int size = data.length;
 
 		while (i < size) {
-			int step = 0;
+			int step;
 			if ((data[i] & 0x80) == 0x0) { // 0xxxxxxx
 				step = 1;
 			} else if ((data[i] & 0xe0) == 0xc0) { // 110xxxxx 10xxxxxx
@@ -137,10 +130,7 @@ public class TextEncodeUtil {
 			i += step;
 		}
 
-		if (i == size)
-			return true;
-
-		return false;
+		return i == size;
 	}
 
 }

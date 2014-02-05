@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author ZhangZhx
  */
 @ThreadSafe
-public final class DBControler {
-	private static final Logger log = LoggerFactory.getLogger(DBControler.class);
+public final class DBController {
+	private static final Logger log = LoggerFactory.getLogger(DBController.class);
 
 	/**
 	 * sql 执行器. <br/>
@@ -59,7 +59,7 @@ public final class DBControler {
 			// this.setDaemon(true);
 
 			// 准备 sql 队列
-			this.sqlQueue = new LinkedBlockingQueue<String>(sqlQueueSize);
+			this.sqlQueue = new LinkedBlockingQueue<>(sqlQueueSize);
 		}
 
 		public void run() {
@@ -75,7 +75,7 @@ public final class DBControler {
 						this.prepareConnection();
 
 						if (this.conn == null || this.conn.isClosed()) {
-							DBControler.this.failToExecSQL(sql);
+							DBController.this.failToExecSQL(sql);
 							continue;
 						}
 
@@ -83,8 +83,8 @@ public final class DBControler {
 						stmt.execute(sql);
 
 						log.info("SQL 执行成功: "
-								+ sql.substring(0, sql.length() > 150 ? 150
-								: sql.length()) + " ...");
+										+ sql.substring(0, sql.length() > 150 ? 150
+										: sql.length()) + " ...");
 						sql = null;
 					} catch (InterruptedException e) {
 						this.stopSQLQueueAndLog();
@@ -92,13 +92,13 @@ public final class DBControler {
 						break;
 					} catch (SQLException e) {
 						log.error("SQL 执行失败: "
-								+ (sql.length() > 150 ? sql.substring(0,
-								150) : sql), e);
+										+ (sql.length() > 150 ? sql.substring(0,
+										150) : sql), e);
 					} catch (Exception e) {
 						log.error("未知失败", e);
 					} finally {
 						if (sql != null) {
-							DBControler.this.failToExecSQL(sql);
+							DBController.this.failToExecSQL(sql);
 							sql = null;
 						}
 
@@ -120,8 +120,6 @@ public final class DBControler {
 			}
 		}
 
-		;
-
 		/**
 		 * 准备数据库连接. 连接可能无法建立, this.conn 将为 null.
 		 *
@@ -131,7 +129,7 @@ public final class DBControler {
 
 			try {
 				if (this.conn == null)
-					this.conn = DBControler.this.getConnection();
+					this.conn = DBController.this.getConnection();
 				else if (this.conn.isClosed()) {
 					try {
 						this.conn.close();
@@ -151,8 +149,6 @@ public final class DBControler {
 
 		/**
 		 * 将 sql 加入队列. 队列阻塞直到有可用空间.
-		 *
-		 * @param sql
 		 */
 		public void putSQL(String sql) {
 
@@ -164,13 +160,13 @@ public final class DBControler {
 				try {
 					this.sqlQueue.put(sql);
 				} catch (IllegalArgumentException e) {
-					DBControler.this.failToExecSQL(sql);
+					DBController.this.failToExecSQL(sql);
 				} catch (InterruptedException e2) {
-					DBControler.this.failToExecSQL(sql);
+					DBController.this.failToExecSQL(sql);
 					Thread.currentThread().interrupt();
 				}
 			} else {
-				DBControler.this.failToExecSQL(sql);
+				DBController.this.failToExecSQL(sql);
 			}
 		}
 
@@ -183,12 +179,9 @@ public final class DBControler {
 
 			String sql;
 			while ((sql = this.sqlQueue.poll()) != null)
-				DBControler.this.failToExecSQL(sql);
+				DBController.this.failToExecSQL(sql);
 		}
 	}
-
-	;
-
 
 	/**
 	 * 连接控制器信号量，控制并发访问数量.
@@ -212,13 +205,11 @@ public final class DBControler {
 
 	/**
 	 * 初始化连接控制器.
-	 *
-	 * @param conf
 	 */
-	public DBControler(DBConf conf) {
+	public DBController(DBConf conf) {
 
 		this(conf.getDriverClassName(), conf.getUrl(), conf.getPoolSize(), conf
-				.getSqlQueueSize());
+						.getSqlQueueSize());
 	}
 
 	/**
@@ -227,10 +218,8 @@ public final class DBControler {
 	 * @param driverClassName 数据库驱动类名.
 	 * @param url             数据库连接串.
 	 * @param poolSize        连接控制器允许并发大小，允许的数量为 [2, proc*2].
-	 * @param sqlQueueSize
-	 * @throws ClassNotFoundException
 	 */
-	public DBControler(String driverClassName, String url, int poolSize, int sqlQueueSize) {
+	public DBController(String driverClassName, String url, int poolSize, int sqlQueueSize) {
 
 		try {
 			Class.forName(driverClassName);
@@ -245,7 +234,7 @@ public final class DBControler {
 			// + poolSize);
 			poolSize = Runtime.getRuntime().availableProcessors() + 1;
 			log.info("给定连接控制器并发大小超出默认范围：[2, " + Runtime.getRuntime().availableProcessors()
-					* 2 + "]！使用预设值：" + poolSize);
+							* 2 + "]！使用预设值：" + poolSize);
 		}
 
 		this.poolGuide = new Semaphore(poolSize);
@@ -275,7 +264,7 @@ public final class DBControler {
 			@Override
 			public void run() {
 
-				DBControler.this.stopSQLExecutorNow();
+				DBController.this.stopSQLExecutorNow();
 			}
 		});
 	}
@@ -283,9 +272,6 @@ public final class DBControler {
 	/**
 	 * 取得数据库连接，方法将阻塞直到有可用连接. 方法响应中断请求。<br/>
 	 * 若取数据库连接失败, 返回 null
-	 *
-	 * @return
-	 * @throws InterruptedException
 	 */
 	public Connection getConnection() throws InterruptedException {
 
@@ -297,10 +283,10 @@ public final class DBControler {
 
 			// 返回代理对象，代理用于控制信号量
 			return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
-					new Class<?>[]{Connection.class}, new InvocationHandler() {
+							new Class<?>[]{Connection.class}, new InvocationHandler() {
 
 				private final AtomicBoolean isClosed = new AtomicBoolean(
-						false);
+								false);
 
 				@Override
 				public Object invoke(Object proxy, Method method,
@@ -311,13 +297,10 @@ public final class DBControler {
 					Object result = null;
 					try {
 						result = method.invoke(conn, args);
-					} catch (Throwable t) {
-						throw t;
 					} finally {
 						if (method.getName().equals("close")) {
 							if (!this.isClosed.getAndSet(true)) {
-								DBControler.this.poolGuide
-										.release();
+								DBController.this.poolGuide.release();
 							}
 						}
 					}
@@ -336,25 +319,20 @@ public final class DBControler {
 	 * 初始化连接控制器.
 	 *
 	 * @param connectURL 连接串
-	 * @return
 	 */
-	private final DataSource initDataSource(String connectURL) {
+	private DataSource initDataSource(String connectURL) {
 
 		ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(connectURL,
-				null);
+						null);
 		ObjectPool connectionPool = new GenericObjectPool(null);
 		new PoolableConnectionFactory(connectionFactory, connectionPool, null, null, false,
-				true);
-		PoolingDataSource dataSource = new PoolingDataSource(connectionPool);
+						true);
 
-		return dataSource;
+		return new PoolingDataSource(connectionPool);
 	}
 
 	/**
 	 * sql 字符串中单引号和反斜杠转义.
-	 *
-	 * @param str
-	 * @return
 	 */
 	public static String sqlStringEscape(String str) {
 
@@ -364,13 +342,11 @@ public final class DBControler {
 	/**
 	 * 将要执行的语句放入 SQL 执行队列, 此方法立即返回.<br/>
 	 * 不能保证写入成功的 sql 一定会被执行. 在大多数情况下, 不能执行的 sql 至少会被写入日志.
-	 *
-	 * @param sql
 	 */
 	public final void putSQL2Exec(String sql) {
 
 		if (!this.sqlExecutor.isAlive() || this.sqlExecutor.isInterrupted()) {
-			DBControler.this.failToExecSQL(sql);
+			DBController.this.failToExecSQL(sql);
 		}
 
 		this.sqlExecutor.putSQL(sql);
@@ -379,8 +355,6 @@ public final class DBControler {
 	/**
 	 * 执行 SQL 失败后写日志, 并将未执行的 SQL 保存.<br/>
 	 * 线程安全的写入, 无需同步.
-	 *
-	 * @param sql
 	 */
 	private void failToExecSQL(String sql) {
 
@@ -406,8 +380,6 @@ public final class DBControler {
 
 	/**
 	 * 取当前可申请的连接数 ( 仅用于测试, 因为在并发环境下, 返回的值可能立刻失效 ).
-	 *
-	 * @return
 	 */
 	int getAvailableConnectionNum() {
 

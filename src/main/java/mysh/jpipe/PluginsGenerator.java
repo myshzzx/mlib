@@ -12,7 +12,7 @@ public class PluginsGenerator {
 	 * Guarded by PluginsGenerator.class instance.<br/>
 	 * 用于生成插件实例的类实体.
 	 */
-	private static final List<PluginFactory> pluginFactories = new ArrayList<PluginFactory>();
+	private static final List<PluginFactory> pluginFactories = new ArrayList<>();
 
 	/**
 	 * 初始化插件工厂实例.
@@ -53,7 +53,7 @@ public class PluginsGenerator {
 	public static synchronized List<Plugin> generatePluginsInstance(Socket localSock,
 			Socket remoteSock) {
 
-		List<Plugin> plugins = new ArrayList<Plugin>(pluginFactories.size());
+		List<Plugin> plugins = new ArrayList<>(pluginFactories.size());
 
 		Plugin newPlugin = null;
 		for (PluginFactory pluginFactory : pluginFactories) {

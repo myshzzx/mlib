@@ -27,8 +27,8 @@ public class MySQLTest {
 	}
 
 	static class TestTask implements Callable<String> {
-		private double task;
-		private CyclicBarrier barrier;
+		private final double task;
+		private final CyclicBarrier barrier;
 
 		public TestTask(double task, CyclicBarrier barrier) {
 			this.task = task;

@@ -19,7 +19,7 @@
 		<property name="userAgent" value="Myshbot 1.4" />
 	</bean>
 
-	<bean id="httpClientAssistor" class="mysh.net.httpclient.HttpClientAssistor">
+	<bean id="httpClientAssistor" class="mysh.net.httpclient.HttpClientAssist">
 		<constructor-arg ref="httpClientConf"></constructor-arg>
 	</bean>
 

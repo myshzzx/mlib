@@ -302,7 +302,6 @@ public class Math2 {
 	 *
 	 * @param start start index(include). &gt;=0.
 	 * @param end   end index.(exclude). &gt;start.
-	 * @return
 	 */
 	public static int[][] arrange(int start, int end) {
 
@@ -315,10 +314,8 @@ public class Math2 {
 	/**
 	 * 对给定数组部分全排列.
 	 *
-	 * @param a
 	 * @param start start index(include). &gt;=0.
 	 * @param end   end index.(exclude). &gt;start.
-	 * @return
 	 */
 	public static int[][] arrange(int[] a, int start, int end) {
 

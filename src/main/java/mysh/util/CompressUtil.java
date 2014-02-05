@@ -97,7 +97,7 @@ public class CompressUtil {
 			ZipEntry ze = new ZipEntry(entry);
 			zos.putNextEntry(ze);
 
-			int len = 0;
+			int len;
 			while (maxReadLen > 0
 							&& (len = in.read(buf, 0, maxReadLen > buf.length ? buf.length
 							: (int) maxReadLen)) > -1) {
@@ -155,7 +155,6 @@ public class CompressUtil {
 	 * 取合适的缓冲区. (有效范围: [100KB, 100MB], 默认: 10MB)
 	 *
 	 * @param bufSize 缓冲区大小.
-	 * @return
 	 */
 	private static byte[] getProperBufSize(int bufSize) {
 

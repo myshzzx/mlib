@@ -16,11 +16,18 @@ package mysh.db.test;
  * limitations under the License.
  */
 
+import org.apache.commons.dbcp.ConnectionFactory;
+import org.apache.commons.dbcp.DriverManagerConnectionFactory;
+import org.apache.commons.dbcp.PoolableConnectionFactory;
+import org.apache.commons.dbcp.PoolingDataSource;
+import org.apache.commons.pool.ObjectPool;
+import org.apache.commons.pool.impl.GenericObjectPool;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 //
 // Here are the dbcp-specific classes.
@@ -28,12 +35,6 @@ import java.sql.SQLException;
 // method. In normal use, your classes interact
 // only with the standard JDBC API
 //
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.impl.GenericObjectPool;
-import org.apache.commons.dbcp.ConnectionFactory;
-import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.dbcp.PoolableConnectionFactory;
-import org.apache.commons.dbcp.DriverManagerConnectionFactory;
 
 //
 // Here's a simple example of how to use the PoolingDataSource.
@@ -178,8 +179,7 @@ public class ManualPoolingDataSourceExample {
 		// Finally, we create the PoolingDriver itself,
 		// passing in the object pool we created.
 		//
-		PoolingDataSource dataSource = new PoolingDataSource(connectionPool);
 
-		return dataSource;
+		return new PoolingDataSource(connectionPool);
 	}
 }

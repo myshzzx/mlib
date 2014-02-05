@@ -18,8 +18,6 @@ public class FileUtil {
 
 	/**
 	 * 取当前目录(结尾不带分隔符).
-	 *
-	 * @return
 	 */
 	public static String getCurrentDirPath() {
 
@@ -40,7 +38,6 @@ public class FileUtil {
 	 * 失败时返回 null.
 	 *
 	 * @param filepath 文件路径.
-	 * @return
 	 */
 	public static FileInputStream getFileInputStream(String filepath) {
 
@@ -57,7 +54,6 @@ public class FileUtil {
 	 * 失败时返回 null.
 	 *
 	 * @param filepath 文件路径.
-	 * @return
 	 */
 	public static FileOutputStream getFileOutputStream(String filepath) {
 
@@ -132,8 +128,6 @@ public class FileUtil {
 	 * 从缓存反序列化数据. 失败则抛异常.
 	 *
 	 * @param buf 缓存.
-	 * @return
-	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T getObjectFromByteArray(byte[] buf) throws Exception {
@@ -156,8 +150,6 @@ public class FileUtil {
 	 *
 	 * @param filepath 文件路径.
 	 * @param maxLengh 文件大小限制.
-	 * @return
-	 * @throws Exception
 	 */
 	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws Exception {
 
@@ -248,7 +240,7 @@ public class FileUtil {
 	 * @param filepath 文件路径(可以是相对路径).
 	 * @return 文件扩展名. 不包含点.
 	 */
-	public static String getFileExtention(String filepath) {
+	public static String getFileExtension(String filepath) {
 
 		String filename = new File(filepath).getName().trim().toLowerCase();
 		if (filename.length() == 0)
@@ -268,7 +260,6 @@ public class FileUtil {
 	 * 取不含扩展名的文件名.
 	 *
 	 * @param filepath 文件路径(可以是相对路径).
-	 * @return
 	 */
 	public static String getFileNameWithoutExtention(String filepath) {
 
@@ -300,7 +291,7 @@ public class FileUtil {
 		if (new File(filePath).getAbsoluteFile().exists()) {
 			String dir = new File(filePath).getAbsoluteFile().getParent() + File.separatorChar;
 			String fName = FileUtil.getFileNameWithoutExtention(filePath);
-			String fExt = FileUtil.getFileExtention(filePath);
+			String fExt = FileUtil.getFileExtension(filePath);
 			int i = 0;
 			while (new File(filePath = (dir + fName + " (" + (++i) + ")" + (fExt.length() > 0 ? ("." + fExt)
 							: ""))).exists())
