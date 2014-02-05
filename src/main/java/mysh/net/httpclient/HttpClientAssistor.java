@@ -103,10 +103,9 @@ public class HttpClientAssistor {
 	 *
 	 * @param url 页面地址
 	 * @return 含真实地址的页面内容
-	 * @throws IOException          连接异常
-	 * @throws InterruptedException 线程中断异常
-	 * @throws mysh.net.httpclient.HCExceptions.GetPageException
-	 *                              取页面返回代码不是200, 或取得的页面不是文本
+	 * @throws IOException                                       连接异常
+	 * @throws InterruptedException                              线程中断异常
+	 * @throws mysh.net.httpclient.HCExceptions.GetPageException 取页面返回代码不是200, 或取得的页面不是文本
 	 */
 	public Page getPage(String url)
 					throws IOException, InterruptedException, HCExceptions.GetPageException {
@@ -187,6 +186,19 @@ public class HttpClientAssistor {
 			}
 		}
 		return true;
+	}
+
+	/**
+	 * 取地址输入流.
+	 *
+	 * @param url 页面地址.
+	 * @throws IOException          IO异常
+	 * @throws InterruptedException 线程中断异常
+	 */
+	public InputStream readContent(String url) throws IOException, InterruptedException {
+
+		RouteableHttpClient.RouteableHttpResponse resp = this.getResp(url);
+		return resp.getEntity().getContent();
 	}
 
 	/**

@@ -325,7 +325,7 @@ public class FileUtil {
 	 * @param filter  文件过滤器. (为 null 表示不过滤文件)
 	 * @param handler 文件处理器.
 	 */
-	public void recurDir(File dirRoot, FileFilter filter, FileTask handler) {
+	public static void recurDir(File dirRoot, FileFilter filter, FileTask handler) {
 		if (dirRoot == null || !dirRoot.isDirectory() || handler == null)
 			throw new IllegalArgumentException();
 

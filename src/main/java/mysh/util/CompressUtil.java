@@ -30,7 +30,7 @@ public class CompressUtil {
 		 * @param entry 压缩实体.
 		 * @param in    输入流.
 		 */
-		public void getEntry(ZipEntry entry, InputStream in);
+		void getEntry(ZipEntry entry, InputStream in);
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(CompressUtil.class);
@@ -119,7 +119,7 @@ public class CompressUtil {
 
 	/**
 	 * 解压缩数据. (完成后不会关闭IO流)<br/>
-	 * 此方法会阻塞直到完成(输入流关闭).
+	 * 此方法会阻塞直到完成(输入流关闭或输入结束).
 	 *
 	 * @param picker 压缩实体拾取器.
 	 * @param in     数据输入流.
@@ -130,16 +130,14 @@ public class CompressUtil {
 		CheckedInputStream cis = new CheckedInputStream(in, new CRC32());
 
 		ZipInputStream zis = new ZipInputStream(cis) {
-
 			@Override
 			public void close() throws IOException {
-
 				throw new IOException("输入流不允许关闭.");
 			}
 		};
 
 		try {
-			ZipEntry entry = null;
+			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				picker.getEntry(entry, zis);
 				zis.closeEntry();
