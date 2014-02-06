@@ -15,6 +15,11 @@ public class HttpClientConfig implements Serializable {
 	private static final long serialVersionUID = 9097930407282337575L;
 
 	/**
+	 * Connection: keep-alive/close
+	 */
+	private boolean isKeepAlive = false;
+
+	/**
 	 * 是否使用代理
 	 */
 	private boolean useProxy;
@@ -73,7 +78,7 @@ public class HttpClientConfig implements Serializable {
 	/**
 	 * 根据默认的属性生成此实例.<br/>
 	 * 默认属性示例如下:<br/>
-	 * <p/>
+	 * <p>
 	 * <pre>
 	 *
 	 * #是否使用代理. true 表示使用, 其他表示不用
@@ -116,6 +121,14 @@ public class HttpClientConfig implements Serializable {
 		httpClientconf.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
 		httpClientconf.setUserAgent(conf.getPropString("httpclient.userAgent", "Myshbot 1.4"));
 		return httpClientconf;
+	}
+
+	public boolean isKeepAlive() {
+		return isKeepAlive;
+	}
+
+	public void setKeepAlive(boolean isKeepAlive) {
+		this.isKeepAlive = isKeepAlive;
 	}
 
 	/**

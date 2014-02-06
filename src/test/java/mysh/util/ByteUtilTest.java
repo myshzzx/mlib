@@ -34,7 +34,7 @@ public class ByteUtilTest {
 	public void speedTest() throws IOException {
 
 		// length : 2_000_000
-		String content = "";
+		String content;
 		String key = "abcdefghijklmnopqrstuvwxyz";
 
 		try (BufferedReader r = new BufferedReader(new InputStreamReader(new FileInputStream(

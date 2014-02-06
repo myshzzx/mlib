@@ -29,13 +29,9 @@ public class HotKeyUtil {
 				final Action action = HotKeyUtil.ActionMap.get(keyStroke);
 				final ActionEvent ae = new ActionEvent(e.getSource(), e.getID(),
 						null);
-				SwingUtilities.invokeLater(new Runnable() {
+				SwingUtilities.invokeLater(() -> {
 
-					@Override
-					public void run() {
-
-						action.actionPerformed(ae);
-					}
+					action.actionPerformed(ae);
 				});
 				return true;
 			}

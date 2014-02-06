@@ -323,13 +323,15 @@ public class FileUtil {
 		List<File> dirs = new LinkedList<>();
 		dirs.add(dirRoot);
 
-		File dir;
 		while (!dirs.isEmpty()) {
-			dir = dirs.remove(0);
-			for (File child : dir.listFiles()) {
-				if (child.isDirectory()) dirs.add(child);
-				else if (filter == null || filter.accept(child)) {
-					handler.handle(child);
+			File[] children = dirs.remove(0).listFiles();
+
+			if (children != null) {
+				for (File child : children) {
+					if (child.isDirectory()) dirs.add(child);
+					else if (filter == null || filter.accept(child)) {
+						handler.handle(child);
+					}
 				}
 			}
 		}

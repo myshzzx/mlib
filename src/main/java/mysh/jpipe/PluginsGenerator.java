@@ -16,8 +16,6 @@ public class PluginsGenerator {
 
 	/**
 	 * 初始化插件工厂实例.
-	 * 
-	 * @param pluginFactoryClassNames
 	 */
 	public static synchronized void initPluginFactories(String[] pluginFactoryClassNames) {
 
@@ -26,13 +24,13 @@ public class PluginsGenerator {
 		if (pluginFactoryClassNames != null && pluginFactoryClassNames.length > 0) {
 			for (String pluginFactoryClassName : pluginFactoryClassNames) {
 				if (pluginFactoryClassName != null
-						&& pluginFactoryClassName.trim().length() > 0) {
+								&& pluginFactoryClassName.trim().length() > 0) {
 					try {
 						pluginFactories.add((PluginFactory) Class.forName(
-								pluginFactoryClassName).newInstance());
+										pluginFactoryClassName).newInstance());
 					} catch (Exception e) {
 						System.err.println("加载插件失败: " + pluginFactoryClassName
-								+ ", " + e);
+										+ ", " + e);
 					}
 				}
 			}
@@ -42,26 +40,22 @@ public class PluginsGenerator {
 	/**
 	 * 用已初始化的插件工厂生成新的插件实例.<br/>
 	 * 这个方法调用发生在每次连接请求建立时, 因而用内部锁同步不会影响效率.
-	 * 
-	 * @param localSock
-	 *               本地连接套接字
-	 * @param remoteSock
-	 *               远程连接套接字
-	 * 
-	 * @return
+	 *
+	 * @param localSock  本地连接套接字
+	 * @param remoteSock 远程连接套接字
 	 */
 	public static synchronized List<Plugin> generatePluginsInstance(Socket localSock,
-			Socket remoteSock) {
+	                                                                Socket remoteSock) {
 
 		List<Plugin> plugins = new ArrayList<>(pluginFactories.size());
 
-		Plugin newPlugin = null;
+		Plugin newPlugin;
 		for (PluginFactory pluginFactory : pluginFactories) {
 			try {
 				newPlugin = pluginFactory.buildNewPluginInstance(localSock
-						.getLocalAddress().getHostAddress(), localSock
-						.getLocalPort(), remoteSock.getInetAddress()
-						.getHostAddress(), remoteSock.getPort());
+								.getLocalAddress().getHostAddress(), localSock
+								.getLocalPort(), remoteSock.getInetAddress()
+								.getHostAddress(), remoteSock.getPort());
 				plugins.add(newPlugin);
 			} catch (Exception e) {
 				System.err.println("实例化插件失败: " + pluginFactory.getClass().getName());

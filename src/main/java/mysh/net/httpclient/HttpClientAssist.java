@@ -45,11 +45,11 @@ public class HttpClientAssist {
 		}
 		this.conf = conf;
 
-		Header connection = new BasicHeader("Connection", "close");
-		Header proxyConnection = new BasicHeader("Proxy-Connection", "close");
+		Header connection = new BasicHeader("Connection", this.conf.isKeepAlive() ? "keep-alive" : "close");
+//		Header proxyConnection = new BasicHeader("Proxy-Connection", "close");
 		Header userAgent = new BasicHeader("User-Agent", this.conf.getUserAgent());
 		Header charSet = new BasicHeader("Accept-Charset", "iso-8859-1, utf-8");
-		this.headers = new Header[]{connection, proxyConnection, userAgent, charSet};
+		this.headers = new Header[]{connection, userAgent, charSet};
 
 		if (this.conf.isUseProxy()) {
 			this.proxy = new HttpHost(this.conf.getProxyHost(), this.conf.getProxyPort(),

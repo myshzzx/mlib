@@ -31,10 +31,10 @@ public class Pusher implements PusherStateController {
 		/**
 		 * 远程Pusher
 		 */
-		REMOTE;
+		REMOTE
 	}
 
-	private static final int BUF_LENGTH = 300000;;
+	private static final int BUF_LENGTH = 300000;
 
 	private final Type type;
 
@@ -96,7 +96,7 @@ public class Pusher implements PusherStateController {
 				}
 			}
 
-		};
+		}
 	};
 
 	public Pusher(Type type, Socket src, Socket dst, List<Plugin> plugins) {

@@ -37,17 +37,14 @@ public class MySQLTest {
 
 		@Override
 		public String call() throws Exception {
-			Connection connection = getConn();
-			long start = 0;
-			try {
+			long start ;
+			try (Connection connection = getConn()) {
 				Statement stmt = connection.createStatement();
 
 				this.barrier.await();
 				start = System.nanoTime();
 				stmt.executeQuery("select count(*) from test.test1 where value>"
-						+ this.task + ";");
-			} finally {
-				connection.close();
+								+ this.task + ";");
 			}
 			return start / 1000000 + ": " + (System.nanoTime() - start) / 1000000;
 
@@ -67,7 +64,7 @@ public class MySQLTest {
 	private static void test(int concurrentNum) throws InterruptedException, ExecutionException {
 		CyclicBarrier barrier = new CyclicBarrier(concurrentNum);
 		ExecutorService exe = Executors.newFixedThreadPool(concurrentNum);
-		CompletionService<String> exec = new ExecutorCompletionService<String>(exe);
+		CompletionService<String> exec = new ExecutorCompletionService<>(exe);
 
 		exec.submit(new TestTask(0.2, barrier));
 		exec.submit(new TestTask(0.4, barrier));

@@ -166,7 +166,7 @@ public class Math2 {
 	 * @return n进制数.
 	 */
 	public static int[] numSysDec2N(int n, long dec) {
-		if (n < 2 || dec < 1) throw new IllegalArgumentException();
+		if (n < 2 || dec < 1) throw new IllegalArgumentException("n=" + n + ", dec=" + dec);
 
 		ArrayList<Integer> r = new ArrayList<>(10);
 

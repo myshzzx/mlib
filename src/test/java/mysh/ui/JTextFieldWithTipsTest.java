@@ -34,7 +34,7 @@ public class JTextFieldWithTipsTest {
 
 		f.setSize(420, 150);
 		f.setVisible(true);
-		f.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		f.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		text2.requestFocus();
 		System.out.println("end");
 	}
