@@ -1,11 +1,14 @@
 package mysh.cluster;
 
+import org.junit.Ignore;
+
 import java.util.Scanner;
 
 /**
  * @author Mysh
  * @since 14-1-27 下午11:05
  */
+@Ignore
 public class ControllerTest {
 
 	public static void main(String[] args) throws Exception {

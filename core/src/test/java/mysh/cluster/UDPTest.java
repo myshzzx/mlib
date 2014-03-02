@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.DatagramPacket;
@@ -11,6 +12,7 @@ import java.net.SocketException;
  * @author Mysh
  * @since 14-2-3 下午3:57
  */
+@Ignore
 public class UDPTest {
 
 	@Test

@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.SocketException;
@@ -14,6 +15,7 @@ import static org.junit.Assert.assertEquals;
  * @author Mysh
  * @since 14-2-27 下午9:43
  */
+@Ignore
 public class ClusterTest2 {
 
 	private static final int cmdPort = 8030;

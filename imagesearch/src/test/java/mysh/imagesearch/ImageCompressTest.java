@@ -28,7 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 @Ignore
-public class ImageCompress extends Frame {
+public class ImageCompressTest extends Frame {
 	private static final long serialVersionUID = 48L;
 
 	public static void main(String[] args) throws IOException {
@@ -37,17 +37,17 @@ public class ImageCompress extends Frame {
 		if (args.length > 0) fileName = args[0];
 		if (args.length > 1) gui = "gui";
 		if (gui.equals("gui")) {
-			new ImageCompress(fileName);
+			new ImageCompressTest(fileName);
 		} else {
 			long c = System.currentTimeMillis();
-			ImageCompress.ImageScale(getFilePath(fileName), getFileFullName(fileName), getFileName(fileName) + "-s." + getFileExt(fileName).toLowerCase());
+			ImageCompressTest.ImageScale(getFilePath(fileName), getFileFullName(fileName), getFileName(fileName) + "-s." + getFileExt(fileName).toLowerCase());
 			System.out.println("elapse time:" + (System.currentTimeMillis() - c) / 1000.0f + "s");
 		}
 	}
 
 	private static final String version = "ImageCompress v1.0";
 
-	public ImageCompress(String fileName) {
+	public ImageCompressTest(String fileName) {
 		super(version);
 		file = fileName;
 		createUI();
@@ -94,7 +94,7 @@ public class ImageCompress extends Frame {
 //   and loads the selected image file.
 		loadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent ae) {
-				FileDialog fd = new FileDialog(ImageCompress.this);
+				FileDialog fd = new FileDialog(ImageCompressTest.this);
 				fd.setVisible(true);
 				if (fd.getFile() == null) return;
 				String path = fd.getDirectory() + fd.getFile();
@@ -171,7 +171,7 @@ public class ImageCompress extends Frame {
 
 		repaint();
 
-//file = ImageCompress.getFilePath(file) + ImageCompress.getFileName(file) + "-s." + ImageCompress.getFileExt(file).toLowerCase();
+//file = ImageCompressTest.getFilePath(file) + ImageCompressTest.getFileName(file) + "-s." + ImageCompressTest.getFileExt(file).toLowerCase();
 
 //FileOutputStream out = new FileOutputStream(file);
 //JPEGEncodeParam param = encoder.getDefaultJPEGEncodeParam(bufferedImage);

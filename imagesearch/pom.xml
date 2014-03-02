@@ -25,6 +25,11 @@
 			<version>2.4.1</version>
 			<scope>provided</scope>
 		</dependency>
-		
+		<dependency>
+			<groupId>com.amd</groupId>
+			<artifactId>aparapi</artifactId>
+			<version>1.0</version>
+		</dependency>
+
 	</dependencies>
 </project>
