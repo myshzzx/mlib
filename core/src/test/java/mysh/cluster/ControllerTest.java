@@ -1,0 +1,18 @@
+package mysh.cluster;
+
+import java.util.Scanner;
+
+/**
+ * @author Mysh
+ * @since 14-1-27 下午11:05
+ */
+public class ControllerTest {
+
+	public static void main(String[] args) throws Exception {
+		new ClusterNode(8030);
+		Scanner s = new Scanner(System.in);
+		s.next();
+		System.exit(0);
+	}
+
+}
