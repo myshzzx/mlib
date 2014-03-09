@@ -10,7 +10,7 @@ import java.rmi.server.UnicastRemoteObject;
  * @author Mysh
  * @since 14-1-28 下午6:07
  */
-public interface IMasterService extends IClusterService {
+interface IMasterService extends IClusterService {
 
 	String SERVICE_NAME = IMasterService.class.getSimpleName();
 

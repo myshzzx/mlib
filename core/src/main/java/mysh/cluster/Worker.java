@@ -20,9 +20,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 class Worker implements IWorkerService {
 	private static final Logger log = LoggerFactory.getLogger(Worker.class);
 
-	private String id;
+	private volatile String id;
 	private final int port;
-	private Listener listener;
+	private volatile Listener listener;
 
 	private final Map<String, IMasterService> mastersCache = new ConcurrentHashMap<>();
 	private volatile long lastMasterAction = System.currentTimeMillis();
@@ -55,7 +55,7 @@ class Worker implements IWorkerService {
 		taskCompleteT.start();
 	}
 
-	private Runnable rChkMaster = () -> {
+	private final Runnable rChkMaster = () -> {
 		int timeout = ClusterNode.NETWORK_TIMEOUT * 2;
 		while (true) {
 			try {
@@ -88,7 +88,8 @@ class Worker implements IWorkerService {
 	};
 
 	private final Runnable rTaskComplete = () -> {
-		SubTask task = new SubTask(null, 0, 0, null, null, 0, 0);
+		SubTask task = new SubTask<>(null, 0, 0, null, null, 0, 0);
+
 		while (true) {
 			try {
 				task = completedSubTasks.take();
@@ -148,12 +149,12 @@ class Worker implements IWorkerService {
 	}
 
 	@Override
-	public WorkerState runSubTask(String masterId, int taskId, int subTaskId,
-	                              IClusterUser cUser, Object subTask, int timeout, int subTaskTimeout)
+	public <T, ST, SR, R> WorkerState runSubTask(String masterId, int taskId, int subTaskId,
+	                                             IClusterUser<T, ST, SR, R> cUser, ST subTask,
+	                                             int timeout, int subTaskTimeout)
 					throws RemoteException {
 		this.lastMasterAction = System.currentTimeMillis();
-		this.subTasks.add(new SubTask(masterId, taskId, subTaskId,
-						cUser, subTask,
+		this.subTasks.add(new SubTask<>(masterId, taskId, subTaskId, cUser, subTask,
 						timeout <= 0 ? Long.MAX_VALUE : this.lastMasterAction + timeout, subTaskTimeout));
 		return this.updateState();
 	}
@@ -170,22 +171,22 @@ class Worker implements IWorkerService {
 		void masterUnavailable(String masterId);
 	}
 
-	private static class SubTask {
+	private static class SubTask<T, ST, SR, R> {
 
 		private static final ClusterExcp.TaskTimeout taskTimeoutExcp = new ClusterExcp.TaskTimeout();
 
 		private final String masterId;
 		private final int taskId;
 		private final int subTaskId;
-		private final IClusterUser cUser;
-		private final Object subTask;
-		private long execBefore;
-		private int timeout;
+		private final IClusterUser<T, ST, SR, R> cUser;
+		private final ST subTask;
+		private final long execBefore;
+		private final int timeout;
 
 		private Object result;
 
 		public SubTask(String masterId, int taskId, int subTaskId,
-		               IClusterUser cUser, Object subTask, long execBefore, int timeout) {
+		               IClusterUser<T, ST, SR, R> cUser, ST subTask, long execBefore, int timeout) {
 			this.masterId = masterId;
 			this.taskId = taskId;
 			this.subTaskId = subTaskId;

@@ -18,16 +18,16 @@ class Cmd implements Serializable {
 
 	transient long receiveTime;
 
-	Action action;
+	final Action action;
 
-	String id;
-	long startTime;
+	final String id;
+	final long startTime;
 
-	String ipAddr;
-	short ipMask;
-	int masterPort;
+	final String ipAddr;
+	final short ipMask;
+	final int masterPort;
 
-	int workerPort;
+	final int workerPort;
 
 	Cmd(Action action, String id, long startTime, String ipAddr, short ipMask, int masterPort, int workerPort) {
 		this.action = action;

@@ -16,7 +16,7 @@ import java.rmi.server.UnicastRemoteObject;
  * @author Mysh
  * @since 14-1-28 下午6:07
  */
-public interface IWorkerService extends Remote {
+interface IWorkerService extends Remote {
 
 	public static interface WorkerState extends Serializable {
 		int getTaskQueueSize();
@@ -42,7 +42,8 @@ public interface IWorkerService extends Remote {
 	/**
 	 * Invoked by master, subTask execution.
 	 */
-	WorkerState runSubTask(String masterId, int taskId, int subTaskId,
-	                       IClusterUser cUser, Object subTask, int timeout, int subTaskTimeout)
+	<T, ST, SR, R> WorkerState runSubTask(String masterId, int taskId, int subTaskId,
+	                                      IClusterUser<T, ST, SR, R> cUser, ST subTask,
+	                                      int timeout, int subTaskTimeout)
 					throws RemoteException;
 }

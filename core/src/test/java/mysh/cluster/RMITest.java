@@ -13,6 +13,9 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * @author Mysh
@@ -37,13 +40,14 @@ public class RMITest implements Serializable {
 	}
 
 	public static class RIImpl implements RI {
+		final Random r = new Random();
 		int v = 1;
 
 		@Override
 		public int getValue(CustomObj obj) {
 			System.out.println("RIImpl getValue");
 			try {
-				Thread.sleep(4000);
+				Thread.sleep(r.nextInt(4000));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -87,12 +91,21 @@ public class RMITest implements Serializable {
 
 
 		try {
-			RI riClient = (RI) registry.lookup("ro");
-			while (true) {
-				Thread.sleep(10_000);
+			final RI riClient = (RI) registry.lookup("ro");
+			ExecutorService exec = Executors.newFixedThreadPool(4);
+			Runnable task = () -> {
 				log.info("invoke remote method...");
-				System.out.println(riClient.getValue(() -> 10000));
-//			Thread.sleep(120_000);
+				try {
+					System.out.println(riClient.getValue(() -> 10000));
+				} catch (RemoteException e) {
+					e.printStackTrace();
+				}
+			};
+			while (true) {
+				exec.execute(task);
+				exec.execute(task);
+				exec.execute(task);
+				Thread.sleep(2000);
 			}
 		} catch (Exception e) {
 			log.error("invoke error.", e);

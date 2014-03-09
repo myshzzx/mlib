@@ -2,22 +2,39 @@ package mysh.cluster;
 
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 /**
+ * Cluster user.
+ * WARNING: the implementation should not contain "heavy state" because
+ * it will be serialized several times during cluster calculation.
+ *
+ * @param <T>  Task Type. should be Serializable.
+ * @param <ST> SubTask Type. should be Serializable.
+ * @param <SR> SubResult Type. should be Serializable.
+ * @param <R>  Result Type. should be Serializable.
  * @author Mysh
  * @since 14-1-28 下午11:23
  */
-public interface IClusterUser<R> extends Serializable {
+public interface IClusterUser<T, ST, SR, R> extends Serializable {
 
 	/**
 	 * generate sub-tasks.
 	 *
 	 * @param task            task description.
 	 * @param workerNodeCount available worker nodes (>0).
-	 * @return sub-task-descriptions.
+	 * @return sub-task-descriptions. can't be NULL.
 	 */
-	List<?> fork(Object task, int workerNodeCount);
+	ST[] fork(T task, int workerNodeCount);
+
+	/**
+	 * get SubResult type. will be invoked only once when creating result array.
+	 */
+	Class<SR> getSubResultType();
 
 	/**
 	 * process sub-task.
@@ -28,12 +45,75 @@ public interface IClusterUser<R> extends Serializable {
 	 *                but if the implementation not obey it, the following tasks may be effected.
 	 * @return sub-task result.
 	 */
-	Object procSubTask(Object subTask, int timeout);
+	SR procSubTask(ST subTask, int timeout) throws InterruptedException;
 
 	/**
 	 * join sub-tasks results.
 	 *
-	 * @param subResult sub-tasks results.
+	 * @param subResults sub-tasks results.
 	 */
-	R join(Object[] subResult);
+	R join(SR[] subResults);
+
+	/**
+	 * split entire array into parts.
+	 *
+	 * @param entire     array.
+	 * @param splitCount parts count.
+	 * @return parts array.
+	 */
+	static <OT> OT[][] split(OT[] entire, int splitCount) {
+		Objects.requireNonNull(entire);
+		if (entire.length < splitCount || entire.length < 1 || splitCount < 1)
+			throw new IllegalArgumentException(
+							"can't split " + entire.length + "-ele-array into " + splitCount + " parts.");
+
+		@SuppressWarnings("unchecked")
+		OT[][] s = (OT[][]) Array.newInstance(entire.getClass(), splitCount);
+
+		int start, end, n = -1,
+						step = entire.length % splitCount == 0 ?
+										entire.length / splitCount :
+										entire.length / splitCount + 1;
+		while (++n < splitCount) {
+			start = step * n;
+			end = start + step > entire.length ? entire.length : start + step;
+			OT[] subR = Arrays.copyOfRange(entire, start, end);
+			s[n] = subR;
+		}
+
+		return s;
+	}
+
+	/**
+	 * split entire array into parts.
+	 *
+	 * @param entire     list.
+	 * @param splitCount parts count.
+	 * @return parts array.
+	 */
+	static <OT> List<OT>[] split(List<OT> entire, int splitCount) {
+		Objects.requireNonNull(entire);
+		if (entire.size() < splitCount || entire.size() < 1 || splitCount < 1)
+			throw new IllegalArgumentException(
+							"can't split " + entire.size() + "-ele-array into " + splitCount + " parts.");
+
+		@SuppressWarnings("unchecked")
+		List<OT>[] s = (List<OT>[]) Array.newInstance(entire.getClass(), splitCount);
+
+		int start, end, n = -1,
+						step = entire.size() % splitCount == 0 ?
+										entire.size() / splitCount :
+										entire.size() / splitCount + 1;
+		while (++n < splitCount) {
+			start = step * n;
+			end = start + step > entire.size() ? entire.size() : start + step;
+			List<OT> subR = new ArrayList<>(end - start);
+			for (int i = start; i < end; i++) {
+				subR.add(entire.get(i));
+			}
+			s[n] = subR;
+		}
+
+		return s;
+	}
 }

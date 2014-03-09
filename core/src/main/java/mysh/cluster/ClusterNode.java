@@ -4,8 +4,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.*;
-import java.rmi.ConnectIOException;
-import java.rmi.ServerError;
 import java.rmi.UnmarshalException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -19,12 +17,21 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * self-organized and decentralized Master-Worker cluster network keeper.<br/>
+ * <p>
  * WARNING: <br/>
  * 1. need ipv4<br/>
  * 2. Can only be used in simple network(inside the same broadcast domain)
  * (do not exist such a node that is in two different network,
  * that one can't access the other). Because two disconnected network will cause
- * Master node confusing, while this cluster use UDP broadcast to discover nodes.
+ * Master node confusing, while this cluster use UDP broadcast to discover nodes.<br/>
+ * 3. <code>
+ * System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(NETWORK_TIMEOUT))
+ * </code>
+ * will be executed when instantiate {@link ClusterNode},
+ * which means RMI timeout for remote-invoking will be set to {@link ClusterNode#NETWORK_TIMEOUT},
+ * if the remote method doesn't return in timeout,
+ * a <code>UnmarshalException[detail=java.net.SocketTimeoutException("Read timed out")]</code> will be thrown,
+ * so if you need RMI and have to reset the response-timeout, run the cluster in a standalone VM.
  *
  * @author Mysh
  * @since 14-1-22 上午10:19
@@ -51,11 +58,6 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		sock.connect(new InetSocketAddress(host, port), ClusterNode.NETWORK_TIMEOUT);
 		return sock;
 	};
-
-	static {
-//		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
-		System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(NETWORK_TIMEOUT));
-	}
 
 	/**
 	 * ClusterNode ID.
@@ -92,6 +94,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	 *                   or fail to bind rmi service.
 	 */
 	public ClusterNode(int cmdPort) throws Exception {
+
 		cmdSock = new DatagramSocket(cmdPort);
 		cmdSock.setReceiveBufferSize(15 * 1024 * 1024);
 		cmdSock.setSendBufferSize(1024 * 1024);
@@ -109,6 +112,9 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		});
 
 		if (bcAdds.size() < 1) throw new RuntimeException("no available network interface that support broadcast.");
+
+//		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
+		System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(NETWORK_TIMEOUT));
 
 		Registry registry = LocateRegistry.createRegistry(cmdPort);
 
@@ -133,7 +139,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		changeState(State.INIT);
 	}
 
-	private Runnable rGetCmd = () -> {
+	private final Runnable rGetCmd = () -> {
 		byte[] buf = new byte[10_000];
 		DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
 		while (true) {
@@ -147,7 +153,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		}
 	};
 
-	private Runnable rProcCmd = () -> {
+	private final Runnable rProcCmd = () -> {
 		while (true) {
 			try {
 				Cmd cmd = cmds.take();
@@ -213,11 +219,12 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	 */
 	static boolean isNodeUnavailable(Exception e) {
 		return e instanceof java.rmi.ConnectException // re-connect to remote ipAddr failed
-						|| e instanceof ConnectIOException // can't connect to remote ipAddr
-						|| e instanceof ServerError
+						|| e instanceof java.rmi.ConnectIOException // can't connect to remote ipAddr
+						|| e instanceof java.rmi.NoSuchObjectException
+						|| e instanceof java.rmi.ServerError
 						|| e instanceof java.rmi.UnknownHostException
 						|| (
-						e instanceof UnmarshalException // remote ipAddr response timeout
+						e instanceof java.rmi.UnmarshalException // remote ipAddr response timeout
 										&& (((UnmarshalException) e).detail instanceof SocketTimeoutException
 										|| ((UnmarshalException) e).detail instanceof SocketException))
 						;

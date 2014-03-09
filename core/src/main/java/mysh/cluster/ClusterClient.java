@@ -65,9 +65,10 @@ public class ClusterClient {
 	 *                       but throwing {@link ClusterExcp.Unready} immediately if cluster is not ready.
 	 * @param subTaskTimeout suggested subTask execution timeout,
 	 *                       obeying it or not depends on the implementation of cUser.
-	 * @throws mysh.imagesearch.cluster.ClusterExcp.Unready IClusterService is not ready until timeout.
+	 * @throws ClusterExcp.Unready IClusterService is not ready until timeout.
 	 */
-	public <R> R runTask(final IClusterUser<R> cUser, final Object task, final int timeout, final int subTaskTimeout)
+	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task, final int timeout,
+	                                final int subTaskTimeout)
 					throws RemoteException, ClusterExcp.Unready, ClusterExcp.TaskTimeout, InterruptedException {
 
 		if (this.service == null && timeout < 0) {
@@ -91,6 +92,7 @@ public class ClusterClient {
 			try {
 				return cs.runTask(cUser, task, leftTime, subTaskTimeout);
 			} catch (Exception e) {
+				log.error("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
 					cs = this.service = null;
 					this.prepareClusterService();
@@ -116,7 +118,7 @@ public class ClusterClient {
 		}
 	}
 
-	private Runnable rPrepareClusterService = new Runnable() {
+	private final Runnable rPrepareClusterService = new Runnable() {
 		@Override
 		public void run() {
 			try {

@@ -3,8 +3,8 @@ package mysh.cluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Array;
 import java.rmi.RemoteException;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
@@ -59,7 +59,7 @@ class Master implements IMasterService {
 		stDistT.start();
 	}
 
-	private Runnable rSubTaskDispatcher = () -> {
+	private final Runnable rSubTaskDispatcher = () -> {
 
 		while (true) {
 			SubTask subTask = null;
@@ -80,6 +80,7 @@ class Master implements IMasterService {
 					continue;
 				}
 
+				@SuppressWarnings("unchecked")
 				IWorkerService.WorkerState state = node.workerService.runSubTask(
 								Master.this.id, subTask.ti.taskId, subTask.subTaskId,
 								subTask.ti.cUser, subTask.getSubTask(),
@@ -107,7 +108,7 @@ class Master implements IMasterService {
 		}
 	};
 
-	private Runnable rWorkersHeartBeat = () -> {
+	private final Runnable rWorkersHeartBeat = () -> {
 		long lastHBTime = 0, tTime;
 		// broadcast factor
 		int bcFact = 0;
@@ -210,6 +211,7 @@ class Master implements IMasterService {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public void subTaskComplete(int taskId, int subTaskId, Object result,
 	                            String workerId, IWorkerService.WorkerState workerState) throws RemoteException {
 		TaskInfo ti = this.taskInfoTable.get(taskId);
@@ -223,11 +225,11 @@ class Master implements IMasterService {
 	}
 
 	@Override
-	public <R> R runTask(IClusterUser<R> cUser, Object task, int timeout, int subTaskTimeout)
+	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
 					throws RemoteException,
 					ClusterExcp.NotMaster, ClusterExcp.NoWorkers, ClusterExcp.TaskTimeout,
 					InterruptedException {
-
+//todo 这方法要改: 客户端等待 任务执行时, 任务执行时间超过设置的 RMI 等待超时, RMI会认为服务无响应而抛异常
 		if (!isMaster)
 			throw notMasterExcp == null ?
 							(notMasterExcp = new ClusterExcp.NotMaster()) : notMasterExcp;
@@ -238,14 +240,15 @@ class Master implements IMasterService {
 							(noWorkersExcp = new ClusterExcp.NoWorkers()) : noWorkersExcp;
 
 		runTaskFlagForBC = true;
-		List<?> sTasks = cUser.fork(task, workerCount);
+		ST[] sTasks = cUser.fork(task, workerCount);
+		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
 
 		Integer taskId = taskIdGen.incrementAndGet();
-		TaskInfo ti = new TaskInfo(taskId, cUser, sTasks,
+		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks,
 						System.currentTimeMillis(), timeout, subTaskTimeout);
 		this.taskInfoTable.put(taskId, ti);
 
-		int subTaskCount = sTasks.size();
+		int subTaskCount = sTasks.length;
 		for (int i = 0; i < subTaskCount; i++)
 			this.subTasks.add(new SubTask(ti, i));
 
@@ -266,20 +269,21 @@ class Master implements IMasterService {
 		void workerUnavailable(String workerId);
 	}
 
-	private static class TaskInfo {
+	private static class TaskInfo<T, ST, SR, R> {
 		private final int taskId;
-		private final IClusterUser cUser;
-		private final List<?> subTasks;
+		private final IClusterUser<T, ST, SR, R> cUser;
+		private final ST[] subTasks;
 		private final long startTime;
 		private final int timeout;
 		private final int subTaskTimeout;
 		private final String[] workersId;
-		private final Object[] results;
+		private final SR[] results;
 
 		private final AtomicInteger unfinishedTask;
 		private final CountDownLatch completeLatch = new CountDownLatch(1);
 
-		public TaskInfo(int taskId, IClusterUser cUser, List<?> subTasks,
+		@SuppressWarnings("unchecked")
+		public TaskInfo(int taskId, IClusterUser<T, ST, SR, R> cUser, ST[] subTasks,
 		                long startTime, int timeout, int subTaskTimeout) {
 			this.taskId = taskId;
 			this.cUser = cUser;
@@ -288,13 +292,13 @@ class Master implements IMasterService {
 			this.timeout = timeout;
 			this.subTaskTimeout = subTaskTimeout;
 
-			int taskCount = subTasks.size();
+			int taskCount = subTasks.length;
 			workersId = new String[taskCount];
-			results = new Object[taskCount];
+			results = (SR[]) Array.newInstance(cUser.getSubResultType(), taskCount);
 			unfinishedTask = new AtomicInteger(taskCount);
 		}
 
-		private void subTaskComplete(int index, Object result) {
+		private void subTaskComplete(int index, SR result) {
 			if (index > -1 && index < results.length) {
 				results[index] = result;
 				if (!(result instanceof Throwable) && unfinishedTask.decrementAndGet() == 0)
@@ -315,7 +319,7 @@ class Master implements IMasterService {
 		}
 
 		private Object getSubTask() {
-			return ti.subTasks.get(subTaskId);
+			return ti.subTasks[subTaskId];
 		}
 
 		private void workerAssigned(String workId) {
@@ -350,7 +354,7 @@ class Master implements IMasterService {
 		}
 
 		@Override
-		public int compareTo(WorkerNode o) {
+		public int compareTo(@SuppressWarnings("NullableProblems") WorkerNode o) {
 			if (workerState == null && o.workerState == null) return 0;
 			else if (workerState == null) return -1;
 			else if (o.workerState == null) return 1;
