@@ -29,6 +29,7 @@ import java.io.Serializable;
  * @author tschinke
  */
 public class ImageFeature implements Comparable<ImageFeature>, Serializable {
+	private static final long serialVersionUID = -7321493189497456384L;
 
 	private float[] descriptor;
 	private float orientation;
@@ -36,7 +37,6 @@ public class ImageFeature implements Comparable<ImageFeature>, Serializable {
 
 
 	public ImageFeature() {
-
 	}
 
 	public ImageFeature(double[] desc) {
@@ -94,7 +94,7 @@ public class ImageFeature implements Comparable<ImageFeature>, Serializable {
 
 	public int compareTo(ImageFeature o) {
 	    /*  float[] descr1=this.descriptor;
-        float[] descr2=o.descriptor;
+	      float[] descr2=o.descriptor;
         int res=0;
         for (int i=0;i<descr1.length;i++)
         {

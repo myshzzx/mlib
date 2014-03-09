@@ -96,4 +96,8 @@ public class ImageAnalyzerResult<USEROBJ> implements Comparable<ImageAnalyzerRes
 	public USEROBJ getUserObj() {
 		return userObj;
 	}
+
+	public int getMatches() {
+		return matches;
+	}
 }

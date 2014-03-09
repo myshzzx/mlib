@@ -27,7 +27,7 @@ public class SiftHelperTest {
 	private static final Logger log = LoggerFactory.getLogger(SiftHelperTest.class);
 
 	private static String[] dirs = new String[]{
-					"C:\\Users\\allen\\Desktop\\纹理\\picsRep\\sample"
+					"E:\\project\\texture\\picsRep\\sample"
 //					"L:\\a"
 	};
 
@@ -191,7 +191,7 @@ public class SiftHelperTest {
 	}
 
 
-	private static String saveName = SiftHelper.class.getSimpleName();
+	private static String saveName ="E:\\project\\texture\\picsRep\\data";// SiftHelper.class.getSimpleName();
 
 	static void saveFeaManager(ImageFeatureManager mgr) {
 		try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(saveName))) {
