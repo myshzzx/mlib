@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:p="http://www.springframework.org/schema/p"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!--client pool-->
+	<bean id="_client1Factory" class="mysh.thrift.ThriftReusableClientFactory"
+	      p:minPoolCap="1" p:maxPoolCap="5"
+	      p:evictIntervalMilli="300000"
+	      p:iface="mysh.thrift.TService1$Iface">
+		<property name="poolObjFactory">
+			<bean class="mysh.thrift.ThriftSSLClientPoolObjFactory"
+			      p:trustKeyStore="classpath:mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456"
+			      p:clientInvokeTimeoutMilli="10000"
+			      p:requireClientAuth="true"
+			      p:serverHost="localhost" p:serverPort="19090"
+			      p:selfKeyStore="classpath:mysh/thrift/client.jks" p:selfKeyStorePw="client"
+			      p:clientClass="mysh.thrift.TService1$Client"/>
+		</property>
+	</bean>
+
+	<bean id="client1" factory-bean="_client1Factory" factory-method="build"/>
+
+
+</beans>

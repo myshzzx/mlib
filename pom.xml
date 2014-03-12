@@ -23,6 +23,11 @@
 			<version>1.9.5</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+			<version>${springVersion}</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -42,6 +47,7 @@
 
 	<properties>
 		<sourceEncoding>UTF-8</sourceEncoding>
+		<springVersion>4.0.2.RELEASE</springVersion>
 	</properties>
 
 	<build>
