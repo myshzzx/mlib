@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Mysh
  * @since 14-2-23 下午2:21
  */
-public class ClusterClient {
+public final class ClusterClient {
 	private static final Logger log = LoggerFactory.getLogger(ClusterClient.class);
 	private static final int CMD_SOCK_BUF = 1024 * 1024;
 
@@ -33,12 +33,12 @@ public class ClusterClient {
 	/**
 	 * it takes expensive cost to create such a client, so reuse it.
 	 *
-	 * @param cmdPort cluster master node cmd port.
+	 * @param pCmdPort cluster master node cmd port.
 	 * @throws java.net.SocketException
 	 */
-	public ClusterClient(int cmdPort) throws SocketException {
+	public ClusterClient(int pCmdPort) throws SocketException {
 
-		this.cmdPort = cmdPort;
+		this.cmdPort = pCmdPort;
 		this.cmdSock = new DatagramSocket();
 		this.cmdSock.setSoTimeout(ClusterNode.NETWORK_TIMEOUT);
 		this.cmdSock.setReceiveBufferSize(CMD_SOCK_BUF);
@@ -67,8 +67,8 @@ public class ClusterClient {
 	 *                       obeying it or not depends on the implementation of cUser.
 	 * @throws ClusterExcp.Unready IClusterService is not ready until timeout.
 	 */
-	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task, final int timeout,
-	                                final int subTaskTimeout)
+	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
+	                                final int timeout, final int subTaskTimeout)
 					throws RemoteException, ClusterExcp.Unready, ClusterExcp.TaskTimeout, InterruptedException {
 
 		if (this.service == null && timeout < 0) {

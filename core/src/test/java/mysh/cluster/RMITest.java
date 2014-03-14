@@ -28,7 +28,7 @@ public class RMITest implements Serializable {
 
 	static {
 //		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
-//		System.setProperty("sun.rmi.transport.tcp.responseTimeout", "10000");
+		System.setProperty("sun.rmi.transport.tcp.responseTimeout", "5000");
 	}
 
 	public static interface RI extends Remote {
@@ -47,7 +47,7 @@ public class RMITest implements Serializable {
 		public int getValue(CustomObj obj) {
 			System.out.println("RIImpl getValue");
 			try {
-				Thread.sleep(r.nextInt(4000));
+				Thread.sleep(r.nextInt(40000));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

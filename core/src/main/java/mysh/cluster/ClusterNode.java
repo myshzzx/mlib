@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.*;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
 import java.rmi.UnmarshalException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -31,7 +33,9 @@ import java.util.concurrent.LinkedBlockingQueue;
  * which means RMI timeout for remote-invoking will be set to {@link ClusterNode#NETWORK_TIMEOUT},
  * if the remote method doesn't return in timeout,
  * a <code>UnmarshalException[detail=java.net.SocketTimeoutException("Read timed out")]</code> will be thrown,
- * so if you need RMI and have to reset the response-timeout, run the cluster in a standalone VM.
+ * so if you need RMI and have to reset the response-timeout, run the cluster in a standalone VM.<br/>
+ * 4. ClusterClient and ClusterNode should be used in different VM(or loaded by different classloader),
+ * because ClusterNode will reset response-timeout.
  *
  * @author Mysh
  * @since 14-1-22 上午10:19
@@ -45,6 +49,23 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(ClusterNode.class);
+
+	/**
+	 * http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
+	 * <br/>
+	 * The value of this property represents the length of time (in milliseconds)
+	 * that the client-side Java RMI runtime will use as a socket read timeout
+	 * on an established JRMP connection when reading response data for a remote method invocation.
+	 * Therefore, this property can be used to impose a timeout on waiting for
+	 * the results of remote invocations; if this timeout expires,
+	 * the associated invocation will fail with a java.rmi.RemoteException.
+	 * Setting this property should be done with due consideration,
+	 * however, because it effectively places an upper bound on the allowed duration of
+	 * any successful outgoing remote invocation. The maximum value is Integer.MAX_VALUE,
+	 * and a value of zero indicates an infinite timeout. The default value is zero (no timeout).
+	 */
+	private static final String RESPONSE_TIMEOUT_PROP = "sun.rmi.transport.tcp.responseTimeout";
+
 	/**
 	 * network timeout(milli-second).
 	 */
@@ -114,7 +135,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		if (bcAdds.size() < 1) throw new RuntimeException("no available network interface that support broadcast.");
 
 //		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
-		System.setProperty("sun.rmi.transport.tcp.responseTimeout", String.valueOf(NETWORK_TIMEOUT));
+		System.setProperty(RESPONSE_TIMEOUT_PROP, String.valueOf(NETWORK_TIMEOUT));
 
 		Registry registry = LocateRegistry.createRegistry(cmdPort);
 
@@ -211,6 +232,13 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 			}
 		}
 	};
+
+	@SuppressWarnings("unchecked")
+	static <T> T getRMIService(String host, int port, String serviceName)
+					throws RemoteException, NotBoundException {
+		Registry registry = LocateRegistry.getRegistry(host, port, ClusterNode.clientSockFact);
+		return (T) registry.lookup(serviceName);
+	}
 
 	/**
 	 * whether the exception throw by remote invoking means node unavailable.

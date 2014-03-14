@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.rmi.AlreadyBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
@@ -29,9 +28,8 @@ interface IWorkerService extends Remote {
 		registry.bind(SERVICE_NAME, UnicastRemoteObject.exportObject(service, port));
 	}
 
-	static IWorkerService getService(String host, int port) throws Exception {
-		Registry registry = LocateRegistry.getRegistry(host, port, ClusterNode.clientSockFact);
-		return (IWorkerService) registry.lookup(SERVICE_NAME);
+	static IWorkerService getService(String host, int port ) throws Exception {
+		return ClusterNode.getRMIService(host, port, SERVICE_NAME);
 	}
 
 	/**

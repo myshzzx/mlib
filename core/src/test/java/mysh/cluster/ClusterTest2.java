@@ -5,7 +5,7 @@ import org.junit.Test;
 
 import java.net.SocketException;
 import java.rmi.RemoteException;
-import java.util.*;
+import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
 
@@ -17,6 +17,12 @@ import static org.junit.Assert.assertEquals;
 public class ClusterTest2 {
 
 	private static final int cmdPort = 8030;
+
+	@Test
+	public void singleTest() throws Exception {
+		new ClusterNode(cmdPort);
+		this.calcTest();
+	}
 
 	@Test
 	public void calcTest() throws SocketException, RemoteException, ClusterExcp.TaskTimeout, InterruptedException, ClusterExcp.Unready {
@@ -58,8 +64,9 @@ public class ClusterTest2 {
 						}
 
 						@Override
-						public Integer procSubTask(float[][] subTask, int timeout) {
+						public Integer procSubTask(float[][] subTask, int timeout) throws InterruptedException {
 							System.out.println("--begin to process sumUser subTask.--");
+							Thread.sleep(20000);
 							System.out.println("--process sumUser subTask end.--");
 							return subTask.length;
 						}

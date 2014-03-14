@@ -229,7 +229,6 @@ class Master implements IMasterService {
 					throws RemoteException,
 					ClusterExcp.NotMaster, ClusterExcp.NoWorkers, ClusterExcp.TaskTimeout,
 					InterruptedException {
-//todo 这方法要改: 客户端等待 任务执行时, 任务执行时间超过设置的 RMI 等待超时, RMI会认为服务无响应而抛异常
 		if (!isMaster)
 			throw notMasterExcp == null ?
 							(notMasterExcp = new ClusterExcp.NotMaster()) : notMasterExcp;

@@ -2,7 +2,6 @@ package mysh.cluster;
 
 import java.rmi.AlreadyBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 
@@ -20,8 +19,7 @@ interface IMasterService extends IClusterService {
 	}
 
 	static IMasterService getService(String host, int port) throws Exception {
-		Registry registry = LocateRegistry.getRegistry(host, port, ClusterNode.clientSockFact);
-		return (IMasterService) registry.lookup(SERVICE_NAME);
+		return ClusterNode.getRMIService(host, port, SERVICE_NAME);
 	}
 
 	/**

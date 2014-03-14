@@ -8,6 +8,7 @@ import java.rmi.RemoteException;
  * @since 14-1-30 下午6:36
  */
 interface IClusterService extends Remote {
+
 	/**
 	 * run task of user within timeout(milli-second).
 	 *
