@@ -1,6 +1,7 @@
 
 package mysh.net.httpclient;
 
+import mysh.util.EncodingUtil;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -12,7 +13,10 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.util.EntityUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Deque;
@@ -81,7 +85,8 @@ public class HttpClientAssist {
 															this.conf.getProxyPort()),
 											new UsernamePasswordCredentials(this.conf
 															.getProxyAuthName(), this.conf
-															.getProxyAuthPw()));
+															.getProxyAuthPw())
+							);
 			client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, this.proxy);
 		}
 
@@ -120,22 +125,12 @@ public class HttpClientAssist {
 			throw new HCExceptions.GetPageException(url);
 		}
 
-		// 大部分页面的编码信息不会出现在响应报文中, 需要先取得页面, 才能知道页面的编码
-		String content = EntityUtils.toString(resp.getEntity(), Page.DefaultEncoding);
-
-		// 处理编码, 默认 utf-8
-		String charSet;
-		int charsetBegin = content.indexOf("charset=");
+		byte[] contentByte = EntityUtils.toByteArray(resp.getEntity());
+		String contentCharset = EncodingUtil.isUTF8Bytes(contentByte) ? "UTF-8" : "GBK";
+		String content = new String(contentByte, contentCharset);
 
 		Page page = new Page(resp.getCurrentURL());
-		if (charsetBegin != -1) {
-			int charsetEnd = content.indexOf("\"", charsetBegin);
-			charSet = content.substring(charsetBegin + 8, charsetEnd);
-			if (charSet.toLowerCase().contains("gb")) charSet = "GBK";
-			page.setContent(new String(content.getBytes(Page.DefaultEncoding), charSet));
-		} else {
-			page.setContent(content);
-		}
+		page.setContent(content);
 
 		return page;
 	}

@@ -10,7 +10,6 @@ import java.sql.Date;
 public class Page implements Serializable {
 
 	private static final long serialVersionUID = -3961094131912887358L;
-	public static final String DefaultEncoding = "UTF-8";
 	/**
 	 * ID初始值, 若页面 ID 不为此初始值, 表示此页面已存在于数据库中.
 	 */

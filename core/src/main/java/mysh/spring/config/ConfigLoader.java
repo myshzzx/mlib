@@ -18,6 +18,7 @@ import java.util.Properties;
  */
 public class ConfigLoader extends PropertyPlaceholderConfigurer {
 
+	private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
 	/**
 	 * 测试环境声明 系统变量名。
 	 */
@@ -26,7 +27,10 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	 * 自动 AES128 解密配置名。
 	 */
 	protected static final String PROJ_AES_AUTO_DECRYPT = "aes.pw.autoDecrypt";
-	private static final Logger log = LoggerFactory.getLogger(ConfigLoader.class);
+	/**
+	 * AES 密钥长度.
+	 */
+	private static final int AES_KEY_SIZE = 128;
 	/**
 	 * AES加密种子.
 	 */
@@ -54,7 +58,7 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	public static String aesEncrypt(String placeholder, String content) throws Exception {
 		return AESUtil.encrypt(
 						content.getBytes(), (AES_ENCRYPT_SEED + placeholder).toCharArray(),
-						AES_ENCRYPT_SEED.getBytes());
+						AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE);
 	}
 
 	/**
@@ -66,7 +70,7 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	public static String aesDecrypt(String placeholder, String secContent) throws Exception {
 		return new String(AESUtil.decrypt(
 						secContent, (AES_ENCRYPT_SEED + placeholder).toCharArray(),
-						AES_ENCRYPT_SEED.getBytes()));
+						AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE));
 	}
 
 	public void setTestLocations(Resource[] locations) {

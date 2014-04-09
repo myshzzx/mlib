@@ -12,7 +12,7 @@ import java.security.AlgorithmParameters;
 import java.security.spec.KeySpec;
 
 /**
- * AES 128 位加解密。
+ * AES 加解密。
  *
  * @author Mysh
  * @since 13-7-2 下午4:10
@@ -20,7 +20,7 @@ import java.security.spec.KeySpec;
 public class AESUtil {
 
 	/**
-	 * 加密。
+	 * AES128 加密。
 	 *
 	 * @param content  明文。
 	 * @param password 密码。
@@ -28,8 +28,21 @@ public class AESUtil {
 	 * @throws Exception
 	 */
 	public static String encrypt(byte[] content, char[] password, byte[] salt) throws Exception {
+		return encrypt(content, password, salt, 128);
+	}
 
-		SecretKey secret = genSecretKey(password, salt);
+	/**
+	 * 加密。
+	 *
+	 * @param content  明文。
+	 * @param password 密码。
+	 * @param salt     盐巴。
+	 * @param keySize  密钥长度. 可选 128,192,256.
+	 * @throws Exception
+	 */
+	public static String encrypt(byte[] content, char[] password, byte[] salt, int keySize) throws Exception {
+
+		SecretKey secret = genSecretKey(password, salt, keySize);
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, secret);
 
@@ -44,7 +57,7 @@ public class AESUtil {
 	}
 
 	/**
-	 * 解密。
+	 * AES-128 解密。
 	 *
 	 * @param encContent 密文。
 	 * @param password   密码。
@@ -52,6 +65,19 @@ public class AESUtil {
 	 * @throws Exception
 	 */
 	public static byte[] decrypt(String encContent, char[] password, byte[] salt) throws Exception {
+		return decrypt(encContent, password, salt, 128);
+	}
+
+	/**
+	 * 解密。
+	 *
+	 * @param encContent 密文。
+	 * @param password   密码。
+	 * @param salt       盐巴。
+	 * @param keySize    密钥长度. 可选 128,192,256.
+	 * @throws Exception
+	 */
+	public static byte[] decrypt(String encContent, char[] password, byte[] salt, int keySize) throws Exception {
 		byte[] enc = Base64.decodeBase64(encContent);
 
 		byte[] encContentByte = new byte[enc.length - 16];
@@ -60,7 +86,7 @@ public class AESUtil {
 		System.arraycopy(enc, 0, encContentByte, 0, encContentByte.length);
 		System.arraycopy(enc, encContentByte.length, encIV, 0, encIV.length);
 
-		SecretKey secret = genSecretKey(password, salt);
+		SecretKey secret = genSecretKey(password, salt, keySize);
 
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 		cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(encIV));
@@ -73,11 +99,12 @@ public class AESUtil {
 	 *
 	 * @param password 密码。
 	 * @param salt     盐巴。
+	 * @param keySize  密钥长度.
 	 * @throws Exception
 	 */
-	private static SecretKey genSecretKey(char[] password, byte[] salt) throws Exception {
+	private static SecretKey genSecretKey(char[] password, byte[] salt, int keySize) throws Exception {
 		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-		KeySpec spec = new PBEKeySpec(password, salt, 65536, 128);
+		KeySpec spec = new PBEKeySpec(password, salt, 65536, keySize);
 		return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
 	}
 
