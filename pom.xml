@@ -8,6 +8,7 @@
 	<modules>
 		<module>core</module>
 		<module>imagesearch</module>
+		<module>dev</module>
 	</modules>
 
 	<dependencies>

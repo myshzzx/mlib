@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
 import java.io.File;
 import java.util.Map;
 
@@ -65,6 +68,17 @@ public class UIUtil {
 		 * 取文件扩展名. 扩展名以 . 开头.
 		 */
 		String getFileExtension();
+	}
+
+	/**
+	 * 将字符串复制到系统剪贴板
+	 *
+	 * @param str 要复制的字符串
+	 */
+	public static void copyToSystemClipboard(String str) {
+		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		Transferable tText = new StringSelection(str);
+		clipboard.setContents(tText, null);
 	}
 
 	/**
