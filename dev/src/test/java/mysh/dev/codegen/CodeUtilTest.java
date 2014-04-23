@@ -13,6 +13,7 @@ public class CodeUtilTest {
 	public void testUnderline2hump() {
 		Assert.assertEquals("MyshZzx", CodeUtil.underline2hump("mysh_zzx"));
 		Assert.assertEquals("MyshZZX", CodeUtil.underline2hump("mysh_z_z_x"));
+		Assert.assertEquals("Mysh", CodeUtil.underline2hump("MYSH"));
 	}
 
 	@Test
