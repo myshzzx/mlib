@@ -73,6 +73,9 @@ public class BeanPropCopy extends javax.swing.JFrame {
 
 			StringBuilder codeResult = new StringBuilder();
 			for (String line : lines) {
+				line = line.trim();
+				if (line.length() == 0) continue;
+
 				String[] cells = line.split("[\\s]+");
 				String propName = cells[0].matches("[A-Z_]+") ? CodeUtil.underline2hump(cells[0]) : cells[0];
 

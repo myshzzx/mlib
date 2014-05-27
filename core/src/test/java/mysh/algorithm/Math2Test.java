@@ -4,8 +4,12 @@ package mysh.algorithm;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.Queue;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
 
 public class Math2Test {
 
@@ -91,60 +95,88 @@ public class Math2Test {
 	@Test
 	public void factorial() {
 
-		assertEquals((Math2.factorial(1)), 1);
-		assertEquals((Math2.factorial(4)), 24);
-		assertEquals((Math2.factorial(12)), 479001600);
+		assertEquals(1, Math2.factorial(1));
+		assertEquals(24, Math2.factorial(4));
+		assertEquals(479001600, Math2.factorial(12));
 	}
 
 	@Test
 	public void countPermutation() {
 
-		assertEquals(Math2.countArrangement(1, 1), 1);
-		assertEquals(Math2.countArrangement(4, 1), 4);
-		assertEquals(Math2.countArrangement(7, 2), 42);
-		assertEquals(Math2.countArrangement(6, 3), 120);
+		assertEquals(1, Math2.countArrangement(1, 1));
+		assertEquals(4, Math2.countArrangement(4, 1));
+		assertEquals(42, Math2.countArrangement(7, 2));
+		assertEquals(120, Math2.countArrangement(6, 3));
 	}
 
 	@Test
 	public void countCombination() {
 
-		assertEquals(Math2.countCombination(1, 1), 1);
-		assertEquals(Math2.countCombination(4, 1), 4);
-		assertEquals(Math2.countCombination(7, 2), 21);
-		assertEquals(Math2.countCombination(6, 3), 20);
+		assertEquals(1, Math2.countCombination(1, 1));
+		assertEquals(4, Math2.countCombination(4, 1));
+		assertEquals(21, Math2.countCombination(7, 2));
+		assertEquals(20, Math2.countCombination(6, 3));
+
+		assertEquals(1144066, Math2.countCombinationLong(23, 10));
 	}
 
 	@Test
 	public void permutation() {
 
-		int[][] r = Math2.arrange(0, 4);
-		System.out.println("testPermutation1.1" + Arrays.deepToString(r));
+		Queue<int[]> r = new LinkedList<>();
 
-		r = Math2.arrange(1, 4);
-		System.out.println("testPermutation1.2" + Arrays.deepToString(r));
+		Collections.addAll(r, Math2.arrange(0, 4));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.arrange(0, 4, a -> assertArrayEquals(r.remove(), a));
+		System.out.println();
 
-		r = Math2.arrange(0, 1);
-		System.out.println("testPermutation1.3" + Arrays.deepToString(r));
+		Collections.addAll(r, Math2.arrange(1, 4));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.arrange(1, 4, a -> assertArrayEquals(r.remove(), a));
+		System.out.println();
+
+		Collections.addAll(r, Math2.arrange(0, 1));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.arrange(0, 1, a -> assertArrayEquals(r.remove(), a));
+		System.out.println();
 	}
 
 	@Test
 	public void permutation2() {
 
-		int[][] r = Math2.arrange(new int[]{10, 11, 12, 13, 14, 15}, 1, 4);
-		System.out.println("testPermutation2.1" + Arrays.deepToString(r));
+		Queue<int[]> r = new LinkedList<>();
+
+		int[] a = {10, 11, 12, 13, 14, 15};
+
+		Collections.addAll(r, Math2.arrange(a, 1, 4));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.arrange(a, 1, 4, aa -> assertArrayEquals(r.remove(), aa));
+		assertEquals(0, r.size());
+		System.out.println();
 	}
 
 	@Test
 	public void combination() {
 
-		int[][] r = Math2.combine(5, 2);
-		System.out.println("testCombination1.1" + Arrays.deepToString(r));
+		Queue<int[]> r = new LinkedList<>();
 
-		r = Math2.combine(4, 3);
-		System.out.println("testCombination1.2" + Arrays.deepToString(r));
+		Collections.addAll(r, Math2.combine(5, 2));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.combine(5, 2, a -> assertArrayEquals(r.remove(), a));
+		assertEquals(0, r.size());
+		System.out.println();
 
-		r = Math2.combine(1, 1);
-		System.out.println("testCombination1.3" + Arrays.deepToString(r));
+		Collections.addAll(r, Math2.combine(4, 3));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.combine(4, 3, a -> assertArrayEquals(r.remove(), a));
+		assertEquals(0, r.size());
+		System.out.println();
+
+		Collections.addAll(r, Math2.combine(1, 1));
+		r.stream().map(Arrays::toString).forEach(System.out::print);
+		Math2.combine(1, 1, a -> assertArrayEquals(r.remove(), a));
+		assertEquals(0, r.size());
+		System.out.println();
 	}
 
 }

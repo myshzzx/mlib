@@ -2,6 +2,7 @@
 package mysh.algorithm;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Math2 {
 
@@ -228,10 +229,84 @@ public class Math2 {
 		int t = 0;
 		while (++t < i) {
 			count *= n - t;
-			if (count > Integer.MAX_VALUE) throw new RuntimeException("calculation overflow");
+			if (count > Integer.MAX_VALUE)
+				throw new RuntimeException("calculation overflow: n=" + n + ", i=" + i);
 		}
 		while (--t > 0) count /= t + 1;
 		return (int) count;
+	}
+
+	/**
+	 * 从 n 个元素中取 i 个元素的数目.
+	 */
+	public static long countCombinationLong(int n, int i) {
+
+		if (n < 1 || i < 1 || i > n)
+			throw new IllegalArgumentException();
+
+		long count = n;
+		int t = 0;
+		while (++t < i) {
+			if (Long.MAX_VALUE / (n - t) <= count)
+				throw new RuntimeException("calculation overflow: n=" + n + ", i=" + i);
+			count *= n - t;
+		}
+		while (--t > 0) count /= t + 1;
+		return count;
+	}
+
+	/**
+	 * 部分全排列.
+	 *
+	 * @param start start index(include). &gt;=0.
+	 * @param end   end index.(exclude). &gt;start.
+	 */
+	public static int[][] arrange(int start, int end) {
+
+		int[] a = new int[end];
+		for (int i = 0; i < a.length; i++)
+			a[i] = i;
+		return new Arrange(a, start, end, null).get();
+	}
+
+	/**
+	 * 对给定数组部分全排列.
+	 *
+	 * @param start start index(include). &gt;=0.
+	 * @param end   end index.(exclude). &gt;start.
+	 */
+	public static int[][] arrange(int[] a, int start, int end) {
+
+		return new Arrange(a, start, end, null).get();
+	}
+
+	/**
+	 * 部分全排列.
+	 *
+	 * @param start start index(include). &gt;=0.
+	 * @param end   end index.(exclude). &gt;start.
+	 */
+	public static void arrange(int start, int end, IntArrayHandler handler) {
+		if (handler == null)
+			throw new IllegalArgumentException("handler should not be null");
+
+		int[] a = new int[end];
+		for (int i = 0; i < a.length; i++)
+			a[i] = i;
+		new Arrange(a, start, end, handler);
+	}
+
+	/**
+	 * 对给定数组部分全排列.
+	 *
+	 * @param start start index(include). &gt;=0.
+	 * @param end   end index.(exclude). &gt;start.
+	 */
+	public static void arrange(int[] a, int start, int end, IntArrayHandler handler) {
+		if (handler == null)
+			throw new IllegalArgumentException("handler should not be null");
+
+		new Arrange(a, start, end, handler);
 	}
 
 	/**
@@ -242,9 +317,9 @@ public class Math2 {
 	private static final class Arrange {
 
 		private final int[][] result;
+		private final IntArrayHandler handler;
 
 		private int resultIndex = 0;
-
 		private final int[] a;
 
 		/**
@@ -257,15 +332,19 @@ public class Math2 {
 		 */
 		private final int end;
 
-		public Arrange(int[] a, int start, int end) {
+		public Arrange(int[] a, int start, int end, IntArrayHandler handler) {
 
-			if (a == null || a.length < end || start < 0 || start >= end)
-				throw new IllegalArgumentException();
+			if (a == null || a.length < end || start < 0 || start >= end) {
+				throw new IllegalArgumentException("a=" + Arrays.toString(a)
+								+ ", start=" + start + ", end=" + end);
+			}
 
 			this.a = a;
 			this.start = start;
 			this.end = end;
-			this.result = new int[Math2.factorial(end - start)][end - start];
+			this.handler = handler;
+			this.result = handler != null ?
+							null : new int[Math2.factorial(end - start)][end - start];
 
 			this.perm(start, end);
 		}
@@ -273,8 +352,14 @@ public class Math2 {
 		private void perm(int m, int n) {
 
 			if (m == n) {
-				System.arraycopy(this.a, this.start, this.result[this.resultIndex++],
-								0, this.end - this.start);
+				if (result != null)
+					System.arraycopy(this.a, this.start, this.result[this.resultIndex++],
+									0, this.end - this.start);
+				else {
+					int[] r = new int[this.end - this.start];
+					System.arraycopy(this.a, this.start, r, 0, this.end - this.start);
+					handler.handle(r);
+				}
 			} else {
 				for (int i = m; i < n; i++) {
 					this.swap(m, i);
@@ -298,84 +383,83 @@ public class Math2 {
 	}
 
 	/**
-	 * 部分全排列.
-	 *
-	 * @param start start index(include). &gt;=0.
-	 * @param end   end index.(exclude). &gt;start.
+	 * 从 n 个数 ( 1~n ) 中任选 i 个数.
 	 */
-	public static int[][] arrange(int start, int end) {
+	public static int[][] combine(int n, int i) {
 
-		int[] a = new int[end];
-		for (int i = 0; i < a.length; i++)
-			a[i] = i;
-		return new Arrange(a, start, end).get();
-	}
-
-	/**
-	 * 对给定数组部分全排列.
-	 *
-	 * @param start start index(include). &gt;=0.
-	 * @param end   end index.(exclude). &gt;start.
-	 */
-	public static int[][] arrange(int[] a, int start, int end) {
-
-		return new Arrange(a, start, end).get();
+		return new Comb(n, i, null).get();
 	}
 
 	/**
 	 * 从 n 个数 ( 1~n ) 中任选 i 个数.
 	 */
-	public static int[][] combine(int n, int i) {
+	public static void combine(int n, int i, IntArrayHandler handler) {
+		if (handler == null)
+			throw new IllegalArgumentException("handler should not be null");
 
-		if (n < 1 || i < 1 || i > n)
-			throw new IllegalArgumentException();
+		new Comb(n, i, handler);
+	}
 
-		final class Comb {
+	private static class Comb {
 
-			private final int[] a;
+		private final int[] a;
 
-			private final int n;
+		private final int n;
 
-			private final int i;
+		private final int i;
+		private final IntArrayHandler handler;
 
-			private final int[][] result;
+		private final int[][] result;
 
-			private int resultCount = 0;
+		private int resultCount = 0;
 
-			private Comb(int n, int i) {
+		private Comb(int n, int i, IntArrayHandler handler) {
 
-				this.n = n;
-				this.i = i;
+			if (n < 1 || i < 1 || i > n)
+				throw new IllegalArgumentException("n=" + n + ", i=" + i);
 
-				this.a = new int[this.n];
-				for (int index = 0; index < this.a.length; index++)
-					this.a[index] = index;
+			this.n = n;
+			this.i = i;
+			this.handler = handler;
 
-				this.result = new int[Math2.countCombination(this.n, this.i)][this.i];
+			this.a = new int[this.n];
+			for (int index = 0; index < this.a.length; index++)
+				this.a[index] = index;
 
-				this.comb(0, new int[this.i], this.i);
-			}
+			this.result = handler != null ?
+							null : new int[Math2.countCombination(this.n, this.i)][this.i];
 
-			private void comb(int startIndex, int[] tmp, int remain) {
-
-				if (remain == 0) {
-					System.arraycopy(tmp, 0, this.result[this.resultCount++], 0,
-									this.i);
-				} else {
-					for (int index = startIndex; index < this.n - remain + 1; index++) {
-						tmp[tmp.length - remain] = this.a[index] + 1;
-						this.comb(index + 1, tmp, remain - 1);
-					}
-				}
-
-			}
-
-			private int[][] get() {
-
-				return this.result;
-			}
+			this.comb(0, new int[this.i], this.i);
 		}
 
-		return new Comb(n, i).get();
+		private void comb(int startIndex, int[] tmp, int remain) {
+
+			if (remain == 0) {
+				if (result != null)
+					System.arraycopy(tmp, 0,
+									this.result[this.resultCount++], 0,
+									this.i);
+				else {
+					int[] r = new int[this.i];
+					System.arraycopy(tmp, 0, r, 0, this.i);
+					handler.handle(r);
+				}
+			} else {
+				for (int index = startIndex; index < this.n - remain + 1; index++) {
+					tmp[tmp.length - remain] = this.a[index] + 1;
+					this.comb(index + 1, tmp, remain - 1);
+				}
+			}
+
+		}
+
+		private int[][] get() {
+
+			return this.result;
+		}
+	}
+
+	public static interface IntArrayHandler {
+		void handle(int[] a);
 	}
 }
