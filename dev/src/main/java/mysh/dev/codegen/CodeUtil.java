@@ -65,4 +65,31 @@ public class CodeUtil {
 		return isLowerCase(c) ? (char) (c - alphaStep) : c;
 	}
 
+	/**
+	 * 方法签名转域签名: Method->method
+	 */
+	public static String method2FieldSign(String mSign) {
+		if (mSign == null) return null;
+		else if (mSign.length() == 0) return "";
+		else if (mSign.charAt(0) > 'Z') return mSign;
+		else {
+			char[] chars = mSign.toCharArray();
+			chars[0] += alphaStep;
+			return new String(chars);
+		}
+	}
+
+	/**
+	 * 域签名转方法签名: field->Field
+	 */
+	public static String field2MethodSign(String fSign) {
+		if (fSign == null) return null;
+		else if (fSign.length() == 0) return "";
+		else if (fSign.charAt(0) < 'a') return fSign;
+		else {
+			char[] chars = fSign.toCharArray();
+			chars[0] -= alphaStep;
+			return new String(chars);
+		}
+	}
 }
