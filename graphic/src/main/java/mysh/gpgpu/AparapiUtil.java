@@ -19,13 +19,14 @@ public class AparapiUtil {
 	 * 找最合适的 OpenCL 设备.
 	 *
 	 * @param selName 查找的平台名. 为 null 则自动选择.
+	 * @param type    设备类型. 选 {@link Device.TYPE#CPU} 或 {@link Device.TYPE#GPU}
 	 * @return 合适的设备, 找不到返回 null.
 	 */
-	public static OpenCLDevice getPropCLDevice(String selName) {
+	public static OpenCLDevice getPropCLDevice(String selName, Device.TYPE type) {
 		List<OpenCLDevice> devs = new ArrayList<>();
 		OpenCLDevice select = OpenCLDevice.select(
 						d -> {
-							if (d.getType() == Device.TYPE.GPU) {
+							if (d.getType() == type) {
 								devs.add(d);
 								if (selName != null
 												&& d.getPlatform().getName().toLowerCase().contains(selName.toLowerCase()))
