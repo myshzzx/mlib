@@ -53,7 +53,7 @@ public interface ImageFeatureManager<UO> {
 	/**
 	 * Note that not all implementations of efficient algorithms can provide this
 	 *
-	 * @return the features removed (may be emtpy)
+	 * @return the features removed (may be empty)
 	 */
 	public List<ImageFeature> removeFeatures(UO userObject);
 
@@ -61,7 +61,7 @@ public interface ImageFeatureManager<UO> {
 	/**
 	 * Note that not all implementations of efficient algorithms can provide this
 	 *
-	 * @return the features found (may be emtpy)
+	 * @return the features found (may be empty)
 	 */
 	public List<ImageFeature> getFeatures(UO userObject);
 

@@ -81,60 +81,57 @@ public class ParallelManager<UO> implements ImageFeatureManager<UO> {
 
 	@Override
 	public List<ImageAnalyzerResult<UO>> findMatches(
-					List<ImageFeature> flist,
+					List<ImageFeature> fList,
 					int minMatchCount) throws InterruptedException {
 
-		final CountDownLatch taskLatch = new CountDownLatch(flist.size() * fs.size());
-		final float[] nearestDist = new float[flist.size()];
+		final CountDownLatch taskLatch = new CountDownLatch(fList.size() * fs.size());
+		final float[] nearestDist = new float[fList.size()];
 		Arrays.fill(nearestDist, Float.MAX_VALUE);
-		final int[] nearestUOIndex = new int[flist.size()];
+		final int[] nearestUOIndex = new int[fList.size()];
 
 		for (int i = 0; i < fs.size(); i++) {
 			final float[] fsLine = fs.get(i);
 			final Range useRange = i == fs.size() - 1 ? lastLineRange : paraRange;
 			final int startIndex = i * LINE_SIZE;
 
-			for (int fIndex = 0; fIndex < flist.size(); fIndex++) {
-				final float[] target = flist.get(fIndex).getDescriptor();
+			for (int fIndex = 0; fIndex < fList.size(); fIndex++) {
+				final float[] target = fList.get(fIndex).getDescriptor();
 				final int targetIndex = fIndex;
 
-				exec.execute(new Runnable() {
-					@Override
-					public void run() {
-						try {
-							ParaEngine eng = engines.get();
-							if (eng == null) {
-								eng = new ParaEngine();
-								eng.dimension = dimension;
-								eng.dist = new float[LINE_SIZE];
-								engines.set(eng);
-								createdEngines.add(eng);
-							}
-
-							eng.sample = fsLine;
-							eng.target = target;
-							eng.execute(useRange);
-
-							synchronized (target) {
-								int lineLen = startIndex + LINE_SIZE > fsCount ? fsCount % LINE_SIZE : LINE_SIZE;
-								for (int i = 0; i < lineLen; i++)
-									if (eng.dist[i] < nearestDist[targetIndex]) {
-										nearestDist[targetIndex] = eng.dist[i];
-										nearestUOIndex[targetIndex] = startIndex + i;
-									}
-							}
-						} finally {
-//							System.out.println(taskLatch.getCount());
-							taskLatch.countDown();
+				exec.execute(() -> {
+					try {
+						ParaEngine eng = engines.get();
+						if (eng == null) {
+							eng = new ParaEngine();
+							eng.dimension = dimension;
+							eng.dist = new float[LINE_SIZE];
+							engines.set(eng);
+							createdEngines.add(eng);
 						}
+
+						eng.sample = fsLine;
+						eng.target = target;
+						eng.execute(useRange);
+
+						synchronized (target) {
+							int lineLen = startIndex + LINE_SIZE > fsCount ? fsCount % LINE_SIZE : LINE_SIZE;
+							for (int i1 = 0; i1 < lineLen; i1++)
+								if (eng.dist[i1] < nearestDist[targetIndex]) {
+									nearestDist[targetIndex] = eng.dist[i1];
+									nearestUOIndex[targetIndex] = startIndex + i1;
+								}
+						}
+					} finally {
+//							System.out.println(taskLatch.getCount());
+						taskLatch.countDown();
 					}
 				});
 			}
 		}
 
-		taskLatch.await(this.eachFeatureTimeout * flist.size(), TimeUnit.MICROSECONDS);
+		taskLatch.await(this.eachFeatureTimeout * fList.size(), TimeUnit.MICROSECONDS);
 
-		Map<UO, ImageAnalyzerResult<UO>> resultMap = new HashMap<>(flist.size());
+		Map<UO, ImageAnalyzerResult<UO>> resultMap = new HashMap<>(fList.size());
 		for (int i = 0; i < nearestDist.length; i++) {
 			UO uo = uos.get(nearestUOIndex[i] / LINE_SIZE)[nearestUOIndex[i] % LINE_SIZE];
 

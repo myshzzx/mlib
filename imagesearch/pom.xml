@@ -9,7 +9,12 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>mlib-imagesearch</artifactId>
+	<artifactId>mlib-graphic</artifactId>
+
+	<properties>
+		<jogampVersion>2.2</jogampVersion>
+		<jogampOS>windows-amd64</jogampOS>
+	</properties>
 
 	<dependencies>
 
@@ -23,10 +28,37 @@
 			<artifactId>imagescience</artifactId>
 			<version>2.4.1</version>
 		</dependency>
+
+		<!--aparapi-->
 		<dependency>
 			<groupId>com.amd</groupId>
 			<artifactId>aparapi</artifactId>
 			<version>1.0</version>
 		</dependency>
+		<!--aparapi-->
+
+		<!--jogamp-->
+		<dependency>
+			<groupId>org.jogamp</groupId>
+			<artifactId>gluegen</artifactId>
+			<version>${jogampVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jogamp</groupId>
+			<artifactId>gluegen-rt-natives-${jogampOS}</artifactId>
+			<version>${jogampVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jogamp</groupId>
+			<artifactId>jocl</artifactId>
+			<version>${jogampVersion}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jogamp</groupId>
+			<artifactId>jocl-natives-${jogampOS}</artifactId>
+			<version>${jogampVersion}</version>
+		</dependency>
+		<!--jogamp-->
+
 	</dependencies>
 </project>
