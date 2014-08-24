@@ -1,7 +1,9 @@
 package de.neotos.imageanalyzer;
 
+import com.jogamp.opencl.CLPlatform;
 import edu.wlu.cs.levy.CG.KDNode;
 import edu.wlu.cs.levy.CG.KDTree;
+import mysh.gpgpu.JogAmpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,7 @@ public class KDTreeParaMgr<UO> implements ImageFeatureManager<UO> {
 	private Map<UO, List<ImageFeature>> reverseKeys;
 
 	private ExecutorService exec;
+	private CLPlatform clPlatform;
 
 	/**
 	 * 从流恢复状态.
@@ -45,6 +48,7 @@ public class KDTreeParaMgr<UO> implements ImageFeatureManager<UO> {
 	public KDTreeParaMgr(int d) {
 		kdtree = new KDTree<>(d);
 		reverseKeys = new HashMap<>(4096);
+		clPlatform = JogAmpUtil.getPropCLPlat(null);
 
 		final AtomicInteger execThreadCount = new AtomicInteger(0);
 		exec = Executors.newFixedThreadPool(
@@ -60,7 +64,6 @@ public class KDTreeParaMgr<UO> implements ImageFeatureManager<UO> {
 						}
 		);
 	}
-
 
 	/**
 	 * ignores existing keys, so if you have same features along different pictures (and so different userobjects)

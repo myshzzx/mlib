@@ -3,6 +3,8 @@ package mysh.gpgpu.info;
 import com.amd.aparapi.Kernel;
 import com.amd.aparapi.OpenCLDevice;
 import com.jogamp.opencl.*;
+import mysh.gpgpu.AparapiUtil;
+import mysh.gpgpu.JogAmpUtil;
 
 import java.nio.FloatBuffer;
 
@@ -50,6 +52,7 @@ public class GPGPUBenchmark {
 		initData();
 		gpuAparapi();
 		gpuJogAmp();
+		System.out.println();
 		gpuAparapi();
 		gpuJogAmp();
 
@@ -69,46 +72,28 @@ public class GPGPUBenchmark {
 	}
 
 	private static void gpuAparapi() {
-
-		OpenCLDevice clDev = OpenCLDevice.select((d1, d2) -> {
-			if (d1.getPlatform().getName().toLowerCase().contains("nv")) return d1;
-			else return d2;
-		});
-		aparapiTest(clDev);
-
-		clDev = OpenCLDevice.select((d1, d2) -> {
-			if (d1.getPlatform().getName().toLowerCase().contains("intel")) return d1;
-			else return d2;
-		});
-		aparapiTest(clDev);
+		aparapiTest(AparapiUtil.getPropCLDevice(null));
+		aparapiTest(AparapiUtil.getPropCLDevice("intel"));
 	}
 
-	private static void aparapiTest(OpenCLDevice clDev) {
+	private static void aparapiTest(OpenCLDevice dev) {
 		Kernel kernel = new AparapiKernel(a, b, sum);
 		long start = System.nanoTime();
-		kernel.execute(clDev.createRange(size));
-		System.out.println("aparapi - " + clDev.getPlatform().getName() + ": "
+		kernel.execute(dev.createRange(size));
+		System.out.println("aparapi - " + dev.getPlatform().getName() + ": "
 						+ (System.nanoTime() - start) / 1000_000
 						+ ", " + sum[0]);
 		kernel.dispose();
 	}
 
 	static void gpuJogAmp() {
-		CLPlatform plat = null;
-		for (CLPlatform clPlatform : CLPlatform.listCLPlatforms()) {
-			if (clPlatform.getName().toLowerCase().contains("nv")) plat = clPlatform;
-		}
-		jogAmpTest(plat);
-
-		for (CLPlatform clPlatform : CLPlatform.listCLPlatforms()) {
-			if (clPlatform.getName().toLowerCase().contains("intel")) plat = clPlatform;
-		}
-		jogAmpTest(plat);
-
+		jogAmpTest(JogAmpUtil.getPropCLPlat(null), CLDevice.Type.GPU);
+		jogAmpTest(JogAmpUtil.getPropCLPlat("intel"), CLDevice.Type.GPU);
+		jogAmpTest(JogAmpUtil.getPropCLPlat("intel"), CLDevice.Type.CPU);
 	}
 
-	private static void jogAmpTest(CLPlatform plat) {
-		CLContext context = CLContext.create(plat, CLDevice.Type.GPU);
+	private static void jogAmpTest(CLPlatform plat, CLDevice.Type type) {
+		CLContext context = CLContext.create(plat, type);
 		CLDevice device = context.getMaxFlopsDevice();
 		CLCommandQueue queue = device.createCommandQueue();
 		CLProgram program = context.createProgram(
