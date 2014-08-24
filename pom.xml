@@ -7,7 +7,7 @@
 	<version>1.0.1-SNAPSHOT</version>
 	<modules>
 		<module>core</module>
-		<module>imagesearch</module>
+		<module>graphic</module>
 		<module>dev</module>
 	</modules>
 
@@ -41,7 +41,7 @@
 
 	<properties>
 		<sourceEncoding>UTF-8</sourceEncoding>
-		<springVersion>4.0.2.RELEASE</springVersion>
+		<springVersion>4.0.6.RELEASE</springVersion>
 	</properties>
 
 	<build>

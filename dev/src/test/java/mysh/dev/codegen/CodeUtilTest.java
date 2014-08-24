@@ -24,6 +24,7 @@ public class CodeUtilTest {
 		Assert.assertEquals("MYSH_ZZX", hump2underline("MyshZZX"));
 		Assert.assertEquals("MYSH_ZZX", hump2underline("MYSHZzx"));
 		Assert.assertEquals("M_YSH_Z_ZX", hump2underline("MYshZZx"));
+		Assert.assertEquals("MYSH_Z_ZX", hump2underline("myshZZx"));
 	}
 
 	@Test

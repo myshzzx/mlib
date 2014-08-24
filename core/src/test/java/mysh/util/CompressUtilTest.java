@@ -92,7 +92,7 @@ public class CompressUtilTest {
 	public void fileTest() throws Exception {
 
 		long maxReadLen = Long.MAX_VALUE;
-		OutputStream out = new FileOutputStream("e:/test/test.zip");
+		OutputStream out = new FileOutputStream(File.createTempFile("compTest",".zip"));
 
 		CompressUtil.compress("test/a/0", new ByteArrayInputStream(this.datas[0]),
 				maxReadLen, out, 0);
