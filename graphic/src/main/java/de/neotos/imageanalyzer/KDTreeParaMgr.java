@@ -53,14 +53,11 @@ public class KDTreeParaMgr<UO> implements ImageFeatureManager<UO> {
 		final AtomicInteger execThreadCount = new AtomicInteger(0);
 		exec = Executors.newFixedThreadPool(
 						Runtime.getRuntime().availableProcessors(),
-						new ThreadFactory() {
-							@Override
-							public Thread newThread(Runnable r) {
-								Thread t = new Thread(r, "No." + execThreadCount.incrementAndGet() + " of KDTree Mgr Exec Thread");
-								t.setDaemon(true);
-								t.setPriority(Thread.MIN_PRIORITY);
-								return t;
-							}
+						r -> {
+							Thread t = new Thread(r, "No." + execThreadCount.incrementAndGet() + " of KDTree Mgr Exec Thread");
+							t.setDaemon(true);
+							t.setPriority(Thread.MIN_PRIORITY);
+							return t;
 						}
 		);
 	}
@@ -128,22 +125,18 @@ public class KDTreeParaMgr<UO> implements ImageFeatureManager<UO> {
 		final CountDownLatch taskLatch = new CountDownLatch(features.size());
 		for (final ImageFeature testFeature : features) {
 
-			final Future<?> nearestTask = exec.submit(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						float[] key = testFeature.getDescriptor();
+			final Future<?> nearestTask = exec.submit(() -> {
+				try {
+					float[] key = testFeature.getDescriptor();
 
-//						long start = System.nanoTime();
-						Object[][] nbrs = kdtree.getnbrs(key, 1);
+					Object[][] nbrs = kdtree.getnbrs(key, 1);
 //						log.debug("search feature cost(micro-second): " + (System.nanoTime() - start) / 1000);
 
 //						if ((double) nbrs[0][1] < (double) nbrs[1][1] * 0.64)
-						if (nbrs[0][0] != null)
-							nearestResult.add(nbrs[0]);
-					} finally {
-						taskLatch.countDown();
-					}
+					if (nbrs[0][0] != null)
+						nearestResult.add(nbrs[0]);
+				} finally {
+					taskLatch.countDown();
 				}
 			});
 

@@ -4,6 +4,7 @@ import de.neotos.imageanalyzer.*;
 import edu.wlu.cs.levy.CG.KDTree;
 import edu.wlu.cs.levy.CG.KDUtil;
 import mysh.imagesearch.preproc.GrayScaleLimit;
+import mysh.util.FileUtil;
 import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

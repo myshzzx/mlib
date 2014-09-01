@@ -1,6 +1,7 @@
 package mysh.imagesearch;
 
 import de.neotos.imageanalyzer.ImageFeatureManager;
+import mysh.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,8 +1,8 @@
 package mysh.gpgpu.info;
 
-import com.amd.aparapi.Device;
+import com.amd.aparapi.device.Device;
 import com.amd.aparapi.Kernel;
-import com.amd.aparapi.OpenCLDevice;
+import com.amd.aparapi.device.OpenCLDevice;
 import com.jogamp.opencl.*;
 import mysh.gpgpu.AparapiUtil;
 import mysh.gpgpu.JogAmpUtil;
@@ -35,6 +35,7 @@ public class GPGPUBenchmark {
 	}
 
 	final static int size = 10_000_000;
+	final static int repeat = 1;
 	final static float[] a = new float[size];
 	final static float[] b = new float[size];
 	final static float[] sum = new float[size];
@@ -51,6 +52,7 @@ public class GPGPUBenchmark {
 		System.out.println("warm up =================");
 		// warm up
 		initData();
+		cpu();
 		gpuAparapi();
 		gpuJogAmp();
 		System.out.println();
@@ -62,13 +64,14 @@ public class GPGPUBenchmark {
 		initData();
 		gpuAparapi();
 		gpuJogAmp();
-		cpu();
 	}
 
 	private static void cpu() {
 		long start = System.nanoTime();
-		for (int i = 0; i < size; i++)
-			sum[i] = calc(a[i], b[i]);
+		for (int j = 0; j < repeat; j++) {
+			for (int i = 0; i < size; i++)
+				sum[i] = calc(a[i], b[i]);
+		}
 		System.out.println("cpu " + (System.nanoTime() - start) / 1000_000 + ", " + sum[0]);
 	}
 
@@ -81,8 +84,10 @@ public class GPGPUBenchmark {
 	private static void aparapiTest(OpenCLDevice dev) {
 		Kernel kernel = new AparapiKernel(a, b, sum);
 		long start = System.nanoTime();
-		kernel.execute(dev.createRange(size));
-		System.out.println("aparapi - " + dev.getPlatform().getName() + ": "
+		for (int i = 0; i < repeat; i++) {
+			kernel.execute(dev.createRange(size));
+		}
+		System.out.println("aparapi - " + dev.getOpenCLPlatform().getName() + ": "
 						+ (System.nanoTime() - start) / 1000_000
 						+ ", " + sum[0]);
 		kernel.dispose();
@@ -132,10 +137,12 @@ public class GPGPUBenchmark {
 		kernel.putArgs(clBufferA, clBufferB, clBufferC).putArg(size);
 
 		long start = System.nanoTime();
-		queue.putWriteBuffer(clBufferA, false)
-						.putWriteBuffer(clBufferB, false)
-						.put1DRangeKernel(kernel, 0, globalWorkSize, workSize)
-						.putReadBuffer(clBufferC, true);
+		for (int i = 0; i < repeat; i++) {
+			queue.putWriteBuffer(clBufferA, false)
+							.putWriteBuffer(clBufferB, false)
+							.put1DRangeKernel(kernel, 0, globalWorkSize, workSize)
+							.putReadBuffer(clBufferC, true);
+		}
 		System.out.println("JogAmp - " + device.getName() + ": "
 						+ (System.nanoTime() - start) / 1000_000
 						+ ", " + clBufferC.getBuffer().get());

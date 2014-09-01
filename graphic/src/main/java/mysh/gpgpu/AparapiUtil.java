@@ -1,7 +1,7 @@
 package mysh.gpgpu;
 
-import com.amd.aparapi.Device;
-import com.amd.aparapi.OpenCLDevice;
+import com.amd.aparapi.device.Device;
+import com.amd.aparapi.device.OpenCLDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +29,7 @@ public class AparapiUtil {
 							if (d.getType() == type) {
 								devs.add(d);
 								if (selName != null
-												&& d.getPlatform().getName().toLowerCase().contains(selName.toLowerCase()))
+												&& d.getOpenCLPlatform().getName().toLowerCase().contains(selName.toLowerCase()))
 									return d;
 							}
 							return null;
@@ -43,8 +43,8 @@ public class AparapiUtil {
 
 		for (String name : new String[]{"nv", "ati", "amd", "intel"}) {
 			for (OpenCLDevice dev : devs) {
-				if (dev.getPlatform().getName().toLowerCase().contains(name)) {
-					log.info("auto select OpenCL platform: " + dev.getPlatform().getName());
+				if (dev.getOpenCLPlatform().getName().toLowerCase().contains(name)) {
+					log.info("auto select OpenCL platform: " + dev.getOpenCLPlatform().getName());
 					return dev;
 				}
 			}
@@ -52,7 +52,7 @@ public class AparapiUtil {
 
 		OpenCLDevice best = (OpenCLDevice) OpenCLDevice.best();
 		if (best != null)
-			log.info("use default OpenCL platform: " + best.getPlatform().getName());
+			log.info("use default OpenCL platform: " + best.getOpenCLPlatform().getName());
 
 		return best;
 	}

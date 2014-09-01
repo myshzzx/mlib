@@ -1,10 +1,11 @@
 package mysh.gpgpu.info;
 
-import com.amd.aparapi.Device;
-import com.amd.aparapi.OpenCLDevice;
-import com.amd.aparapi.OpenCLPlatform;
+import com.amd.aparapi.device.Device;
+import com.amd.aparapi.device.OpenCLDevice;
+import com.amd.aparapi.internal.opencl.OpenCLPlatform;
 
 import java.util.List;
+
 
 /**
  * @author Mysh
@@ -14,7 +15,7 @@ public class AparapiDevInfo {
 
 	public static void main(String[] args) {
 		System.out.println("AparapiDevInfo");
-		List<OpenCLPlatform> platforms = OpenCLPlatform.getPlatforms();
+		List<OpenCLPlatform> platforms =new OpenCLPlatform().getOpenCLPlatforms();
 		System.out.println("Machine contains " + platforms.size() + " OpenCL platforms");
 		int platformc = 0;
 		for (OpenCLPlatform platform : platforms) {
@@ -22,7 +23,7 @@ public class AparapiDevInfo {
 			System.out.println("   Name    : \"" + platform.getName() + "\"");
 			System.out.println("   Vendor  : \"" + platform.getVendor() + "\"");
 			System.out.println("   Version : \"" + platform.getVersion() + "\"");
-			List<OpenCLDevice> devices = platform.getDevices();
+			List<OpenCLDevice> devices = platform.getOpenCLDevices();
 			System.out.println("   Platform contains " + devices.size() + " OpenCL devices");
 			int devicec = 0;
 			for (OpenCLDevice device : devices) {

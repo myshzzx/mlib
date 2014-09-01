@@ -192,6 +192,10 @@ public class KDTree<UO> implements Serializable {
 
 	}
 
+	public Object[][] paraGetNbrs(){
+return null;
+	}
+
 	/**
 	 * timeout for each feature search(micro-second).
 	 */
