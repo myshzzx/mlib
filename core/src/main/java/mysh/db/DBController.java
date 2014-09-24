@@ -2,12 +2,9 @@
 package mysh.db;
 
 import mysh.annotation.ThreadSafe;
-import org.apache.commons.dbcp.ConnectionFactory;
-import org.apache.commons.dbcp.DriverManagerConnectionFactory;
-import org.apache.commons.dbcp.PoolableConnectionFactory;
-import org.apache.commons.dbcp.PoolingDataSource;
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.commons.dbcp2.*;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -285,29 +282,29 @@ public final class DBController {
 			return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
 							new Class<?>[]{Connection.class}, new InvocationHandler() {
 
-				private final AtomicBoolean isClosed = new AtomicBoolean(
-								false);
+								private final AtomicBoolean isClosed = new AtomicBoolean(
+												false);
 
-				@Override
-				public Object invoke(Object proxy, Method method,
-				                     Object[] args) throws Throwable {
+								@Override
+								public Object invoke(Object proxy, Method method,
+								                     Object[] args) throws Throwable {
 
-					// Thread.sleep(1000);
+									// Thread.sleep(1000);
 
-					Object result = null;
-					try {
-						result = method.invoke(conn, args);
-					} finally {
-						if (method.getName().equals("close")) {
-							if (!this.isClosed.getAndSet(true)) {
-								DBController.this.poolGuide.release();
-							}
-						}
-					}
+									Object result = null;
+									try {
+										result = method.invoke(conn, args);
+									} finally {
+										if (method.getName().equals("close")) {
+											if (!this.isClosed.getAndSet(true)) {
+												DBController.this.poolGuide.release();
+											}
+										}
+									}
 
-					return result;
-				}
-			});
+									return result;
+								}
+							});
 		} catch (SQLException e) {
 			this.poolGuide.release();
 			return null;
@@ -322,11 +319,9 @@ public final class DBController {
 	 */
 	private DataSource initDataSource(String connectURL) {
 
-		ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(connectURL,
-						null);
-		ObjectPool connectionPool = new GenericObjectPool(null);
-		new PoolableConnectionFactory(connectionFactory, connectionPool, null, null, false,
-						true);
+		ConnectionFactory connFact = new DriverManagerConnectionFactory(connectURL, null);
+		PoolableConnectionFactory fact = new PoolableConnectionFactory(connFact, null);
+		ObjectPool<PoolableConnection> connectionPool = new GenericObjectPool<>(fact);
 
 		return new PoolingDataSource(connectionPool);
 	}

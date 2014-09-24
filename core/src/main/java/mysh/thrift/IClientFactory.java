@@ -1,6 +1,7 @@
 package mysh.thrift;
 
-import org.apache.commons.pool.PoolableObjectFactory;
+
+import org.apache.commons.pool2.PooledObjectFactory;
 
 /**
  * Thrift 客户端工厂。
@@ -11,5 +12,5 @@ import org.apache.commons.pool.PoolableObjectFactory;
 public interface IClientFactory<T> {
 	T build();
 
-	void setPoolObjFactory(PoolableObjectFactory<T> poolObjFactory);
+	void setPoolObjFactory(PooledObjectFactory<T> poolObjFactory);
 }

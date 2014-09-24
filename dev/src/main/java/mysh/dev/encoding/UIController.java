@@ -167,8 +167,9 @@ public class UIController {
 				}
 
 			}
-			FileUtils.write(desFile, new String(fileByteArray, transType.getSrcEncoding()),
-							transType.getDesEncoding(), false);
+			FileUtils.writeStringToFile(desFile,
+							new String(fileByteArray, transType.getSrcEncoding()),
+							transType.getDesEncoding());
 		} else if (srcDir.isDirectory() && srcDir.canRead()) {
 			for (File childFile : srcDir.listFiles()) {
 				if (!isConsiderSubDirs && childFile.isDirectory())

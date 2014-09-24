@@ -19,15 +19,17 @@
 		</dependency>
 
 		<dependency>
-			<groupId>commons-io</groupId>
+			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-io</artifactId>
-			<version>2.4</version>
+			<version>1.3.2</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.0.13</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!--used by clojure interpreter-->
@@ -35,16 +37,19 @@
 			<groupId>com.fifesoft</groupId>
 			<artifactId>rsyntaxtextarea</artifactId>
 			<version>2.5.2</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure</artifactId>
 			<version>1.6.0</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure-contrib</artifactId>
 			<version>1.2.0</version>
+			<scope>provided</scope>
 		</dependency>
 		<!--used by clojure interpreter-->
 	</dependencies>

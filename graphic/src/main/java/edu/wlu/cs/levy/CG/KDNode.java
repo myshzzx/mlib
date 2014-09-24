@@ -186,7 +186,7 @@ public class KDNode<UO> implements Serializable {
 		}
 
 		// 9. max-dist-sqd := minimum of max-dist-sqd and dist-sqd
-		max_dist_sqd = max_dist_sqd < dist_sqd ? max_dist_sqd : dist_sqd; //Math.min(max_dist_sqd, dist_sqd);
+		max_dist_sqd = Math.min(max_dist_sqd, dist_sqd);
 
 		// 10. A nearer point could only lie in further-node if there were some
 		//     part of further-hr within distance max-dist-sqd of

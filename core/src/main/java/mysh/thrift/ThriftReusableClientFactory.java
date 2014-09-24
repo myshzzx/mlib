@@ -1,8 +1,9 @@
 package mysh.thrift;
 
-import org.apache.commons.pool.ObjectPool;
-import org.apache.commons.pool.PoolableObjectFactory;
-import org.apache.commons.pool.impl.GenericObjectPool;
+import org.apache.commons.pool2.ObjectPool;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,7 @@ public final class ThriftReusableClientFactory<T> implements IClientFactory<T> {
 	/**
 	 * 连接池配置。
 	 */
-	private final GenericObjectPool.Config config = new GenericObjectPool.Config();
+	private final GenericObjectPoolConfig config = new GenericObjectPoolConfig();
 	/**
 	 * 要构建的客户端对象接口。
 	 */
@@ -30,16 +31,16 @@ public final class ThriftReusableClientFactory<T> implements IClientFactory<T> {
 	/**
 	 * 连接池对象工厂。
 	 */
-	private PoolableObjectFactory<T> poolObjFactory;
+	private PooledObjectFactory<T> poolObjFactory;
 
 	{
 		this.setMinPoolCap(1);
 		this.setMaxPoolCap(5);
 		this.setEvictIntervalMilli(10 * 60000);
-		this.config.timeBetweenEvictionRunsMillis = 5000;
-		this.config.testOnBorrow = true;
-		this.config.testOnReturn = true;
-		this.config.testWhileIdle = true;
+		this.config.setTimeBetweenEvictionRunsMillis(5000);
+		this.config.setTestOnBorrow(true);
+		this.config.setTestOnReturn(true);
+		this.config.setTestWhileIdle(true);
 	}
 
 	/**
@@ -87,7 +88,7 @@ public final class ThriftReusableClientFactory<T> implements IClientFactory<T> {
 	/**
 	 * 连接池对象工厂。
 	 */
-	public PoolableObjectFactory<T> getPoolObjFactory() {
+	public PooledObjectFactory<T> getPoolObjFactory() {
 		return poolObjFactory;
 	}
 
@@ -95,7 +96,7 @@ public final class ThriftReusableClientFactory<T> implements IClientFactory<T> {
 	 * 连接池对象工厂。
 	 */
 	@Override
-	public void setPoolObjFactory(PoolableObjectFactory<T> poolObjFactory) {
+	public void setPoolObjFactory(PooledObjectFactory<T> poolObjFactory) {
 		this.poolObjFactory = poolObjFactory;
 	}
 
@@ -103,21 +104,21 @@ public final class ThriftReusableClientFactory<T> implements IClientFactory<T> {
 	 * 回收检查间隔时间。
 	 */
 	public void setEvictIntervalMilli(int interval) {
-		this.config.minEvictableIdleTimeMillis = interval;
+		this.config.setMinEvictableIdleTimeMillis(interval);
 	}
 
 	/**
 	 * 最小对象池容量。
 	 */
 	public void setMinPoolCap(int minPoolCap) {
-		this.config.minIdle = minPoolCap;
+		this.config.setMinIdle(minPoolCap);
 	}
 
 	/**
 	 * 最大对象池容量。
 	 */
 	public void setMaxPoolCap(int maxPoolCap) {
-		this.config.maxActive = maxPoolCap;
-		this.config.maxIdle = maxPoolCap;
+		this.config.setMaxTotal(maxPoolCap);
+		this.config.setMaxIdle(maxPoolCap);
 	}
 }

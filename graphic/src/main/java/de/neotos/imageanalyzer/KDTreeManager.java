@@ -19,8 +19,8 @@
 
 package de.neotos.imageanalyzer;
 
-import edu.wlu.cs.levy.CG.KDNode;
 import edu.wlu.cs.levy.CG.KDTree;
+import edu.wlu.cs.levy.CG.UoDist;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -143,7 +143,7 @@ public class KDTreeManager<UO> implements ImageFeatureManager<UO> {
 			return result;
 
 		final List<Future<?>> nearestTasks = new ArrayList<>(features.size());
-		final Queue<Object[]> nearestResult = new ConcurrentLinkedQueue<>();
+		final Queue<UoDist<UO>> nearestResult = new ConcurrentLinkedQueue<>();
 		final CountDownLatch taskLatch = new CountDownLatch(features.size());
 		for (final ImageFeature testFeature : features) {
 
@@ -154,11 +154,11 @@ public class KDTreeManager<UO> implements ImageFeatureManager<UO> {
 						float[] key = testFeature.getDescriptor();
 
 //						long start = System.nanoTime();
-						Object[][] nbrs = kdtree.getnbrs(key, 1);
+						UoDist<UO>[] nbrs = kdtree.getNbrs(key, 1);
 //						log.debug("search feature cost(micro-second): " + (System.nanoTime() - start) / 1000);
 
 //						if ((double) nbrs[0][1] < (double) nbrs[1][1] * 0.64)
-						if (nbrs[0][0] != null)
+						if (nbrs[0] != null)
 							nearestResult.add(nbrs[0]);
 					} finally {
 						taskLatch.countDown();
@@ -179,17 +179,14 @@ public class KDTreeManager<UO> implements ImageFeatureManager<UO> {
 		}
 
 		final Map<UO, ImageAnalyzerResult<UO>> matchResultMap = new HashMap<>();
-		for (Object[] nearestR : nearestResult) {
+		for (UoDist<UO> nearestR : nearestResult) {
 			try {
-				KDNode<UO> nearest = (KDNode<UO>) nearestR[0];
-				float dist = (float) nearestR[1];
-
-				UO userObj = nearest.v;
+				UO userObj = nearestR.node.v;
 				ImageAnalyzerResult<UO> mr = matchResultMap.get(userObj);
 				if (mr == null)
-					mr = new ImageAnalyzerResult<>(userObj, 1, dist);
+					mr = new ImageAnalyzerResult<>(userObj, 1, nearestR.dist);
 				else {
-					mr.distSum += dist;
+					mr.distSum += nearestR.dist;
 					mr.matches++;
 				}
 				matchResultMap.put(userObj, mr);

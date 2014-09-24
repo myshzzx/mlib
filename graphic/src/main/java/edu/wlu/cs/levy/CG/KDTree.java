@@ -7,7 +7,7 @@ import java.io.Serializable;
  * search, range search, and nearest neighbor(s) using double-precision
  * floating-point keys.  Splitting dimension is chosen naively, by
  * depth modulo K.  Semantics are as follows:
- * <p/>
+ * <p>
  * <UL>
  * <LI> Two different keys containing identical numbers should retrieve the
  * same value from a given KD-tree.  Therefore keys are cloned when a
@@ -17,9 +17,9 @@ import java.io.Serializable;
  * cloned.  Modifying a value between insertion and retrieval will
  * therefore modify the value stored in the tree.
  * </UL>
- * <p/>
+ * <p>
  * Implements the Nearest Neighbor algorithm (Table 6.4) of
- * <p/>
+ * <p>
  * <PRE>
  * &#064;techreport{AndrewMooreNearestNeighbor,
  * author  = {Andrew Moore},
@@ -43,18 +43,18 @@ public class KDTree<UO> implements Serializable {
 	private static final long DEFAULT_TIMEOUT = 100_000;
 
 	/**
-	 * micro-second timeout for each {@link #getnbrs(float[], int)} .
+	 * micro-second timeout for each {@link #getNbrs(float[], int)} .
 	 */
 	long m_timeout = DEFAULT_TIMEOUT;
 
 	// K = number of dimensions
-	final private int m_K;
+	final private int k;
 
 	// root of KD-tree
-	private KDNode<UO> m_root;
+	private KDNode<UO> root;
 
 	// count of nodes
-	private int m_count;
+	private int count;
 
 	/**
 	 * Creates a KD-tree with specified number of dimensions.
@@ -68,17 +68,21 @@ public class KDTree<UO> implements Serializable {
 	 */
 	public KDTree(int k, long timeout) {
 		this.m_timeout = timeout;
-		m_K = k;
-		m_root = null;
+		this.k = k;
+		root = null;
+	}
+
+	public int getK() {
+		return k;
 	}
 
 	public boolean isEmpty() {
-		return m_root == null;
+		return root == null;
 	}
 
 	/**
 	 * Insert a node in a KD-tree.  Uses algorithm translated from 352.ins.c of
-	 * <p/>
+	 * <p>
 	 * <PRE>
 	 * &#064;Book{GonnetBaezaYates1991,
 	 * author =    {G.H. Gonnet and R. Baeza-Yates},
@@ -93,17 +97,17 @@ public class KDTree<UO> implements Serializable {
 	 */
 	public int insert(float[] key, UO value) {
 
-		if (key.length != m_K) {
+		if (key.length != k) {
 			throw new IllegalArgumentException("key sizes mismatch.");
 		}
 
-		if (m_root == null) {
-			m_root = new KDNode<>(key, value);
-			m_count = 1;
+		if (root == null) {
+			root = new KDNode<>(key, value);
+			count = 1;
 			return 1;
 		} else {
-			int insert = KDNode.insert(key, value, m_root, 0, m_K);
-			m_count += insert;
+			int insert = KDNode.insert(key, value, root, 0, k);
+			count += insert;
 			return insert;
 		}
 	}
@@ -117,11 +121,11 @@ public class KDTree<UO> implements Serializable {
 	 */
 	public UO search(float[] key) {
 
-		if (key.length != m_K) {
+		if (key.length != k) {
 			throw new IllegalArgumentException("key sizes mismatch.");
 		}
 
-		KDNode<UO> kd = KDNode.srch(key, m_root, m_K);
+		KDNode<UO> kd = KDNode.srch(key, root, k);
 
 		return (kd == null ? null : kd.v);
 	}
@@ -133,32 +137,29 @@ public class KDTree<UO> implements Serializable {
 	 */
 	public void delete(float[] key) {
 
-		if (key.length != m_K)
+		if (key.length != k)
 			throw new IllegalArgumentException("key sizes mismatch.");
 
-		KDNode<UO> t = KDNode.srch(key, m_root, m_K);
+		KDNode<UO> t = KDNode.srch(key, root, k);
 		if (t != null && !t.deleted) {
 			t.v = null;
 			t.deleted = true;
-			m_count--;
+			count--;
 		}
 
 	}
 
 	public int size() { /* added by MSL */
-		return m_count;
+		return count;
 	}
 
 	public String toString() {
-		return m_root.toString(0);
+		return root.toString(0);
 	}
 
-	/**
-	 * Object[][KDNode<UO>, dist]
-	 */
-	public Object[][] getnbrs(float[] key, int n) {
+	public UoDist<UO>[] getNbrs(float[] key, int n) {
 
-		if (key.length != m_K) {
+		if (key.length != k) {
 			throw new IllegalArgumentException("key sizes mismatch.");
 		}
 
@@ -166,35 +167,48 @@ public class KDTree<UO> implements Serializable {
 		NnbrStore nnl = n == 1 ? new NnbrNode() : new NnbrList(n);
 
 		// initial call is with infinite hyper-rectangle and max distance
-		HRect hr = HRect.infiniteHRect(m_K);
+		HRect hr = HRect.infiniteHRect(k);
 
-		if (m_count > 0) {
+		if (count > 0) {
 			long timeLimit = (this.m_timeout > 0) ?
 							System.nanoTime() + this.m_timeout * 1000 :
 							System.nanoTime() + DEFAULT_TIMEOUT;
-			KDNode.nnbr(m_root, key, hr, Float.MAX_VALUE, 0, m_K, nnl, timeLimit);
+			KDNode.nnbr(root, key, hr, Float.MAX_VALUE, 0, k, nnl, timeLimit);
 		}
 
-		Object[][] result = new Object[n][2];
+		UoDist<UO>[] result = new UoDist[n];
 
 		if (n > 1) {
 			for (int i = n - 1; i > -1; i--) {
 				NnbrList.NeighborEntry<KDNode<UO>> nbrEtry = ((NnbrList<KDNode<UO>>) nnl).removeHighestEntry();
-				result[i][0] = nbrEtry.data;
-				result[i][1] = nbrEtry.value;
+				result[i] = new UoDist(nbrEtry.data, nbrEtry.value);
 			}
 		} else {
-			result[0][0] = ((NnbrNode<KDNode<UO>>) nnl).data;
-			result[0][1] = ((NnbrNode<KDNode<UO>>) nnl).value;
+			result[0] = new UoDist(((NnbrNode<KDNode<UO>>) nnl).data, ((NnbrNode<KDNode<UO>>) nnl).value);
 		}
 
 		return result;
-
 	}
 
-	public Object[][] paraGetNbrs(){
-return null;
+	/**
+	 * use GPGPU.
+	 *
+	 * @param keys features key reps.
+	 * @param fc   features count.
+	 * @param n    result size.
+	 * @return
+	 */
+	public UoDist<UO>[] getNbrsParallel(float[] keys, int fc, int n) {
+
+		float[] nodeKeys = new float[keys.length];
+		KDNode<UO>[] currentNodes = new KDNode[fc];
+		for (int i = 0; i < fc; i++) {
+			currentNodes[i] = root;
+		}
+
+		return null;
 	}
+
 
 	/**
 	 * timeout for each feature search(micro-second).
@@ -202,5 +216,6 @@ return null;
 	public void setTimeout(long timeout) {
 		this.m_timeout = timeout;
 	}
+
 }
 

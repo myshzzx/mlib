@@ -1,11 +1,13 @@
 package mysh.gpgpu.info;
 
-import com.amd.aparapi.device.Device;
 import com.amd.aparapi.Kernel;
+import com.amd.aparapi.device.Device;
 import com.amd.aparapi.device.OpenCLDevice;
 import com.jogamp.opencl.*;
 import mysh.gpgpu.AparapiUtil;
 import mysh.gpgpu.JogAmpUtil;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.nio.FloatBuffer;
 
@@ -18,6 +20,16 @@ import static com.jogamp.opencl.CLMemory.Mem.WRITE_ONLY;
  * @since 14-1-10 下午11:54
  */
 public class GPGPUBenchmark {
+	@BeforeClass
+	public void init() {
+		//		System.setProperty("com.amd.aparapi.enableExecutionModeReporting", "true");
+//		System.setProperty("com.amd.aparapi.enableShowGeneratedOpenCL", "true");
+//		System.setProperty("com.amd.aparapi.enableProfiling", "true");
+//		System.setProperty("com.amd.aparapi.enableVerboseJNI", "true");
+//		System.setProperty("com.amd.aparapi.logLevel", "INFO");
+
+	}
+
 	static class AparapiKernel extends Kernel {
 		float[] a, b, sum;
 
@@ -47,12 +59,13 @@ public class GPGPUBenchmark {
 		}
 	}
 
-	public static void main(String[] args) {
+	@Test
+	public void t1() {
 
 		System.out.println("warm up =================");
 		// warm up
 		initData();
-		cpu();
+//		cpu();
 		gpuAparapi();
 		gpuJogAmp();
 		System.out.println();
@@ -103,6 +116,8 @@ public class GPGPUBenchmark {
 		CLContext context = CLContext.create(plat, type);
 		CLDevice device = context.getMaxFlopsDevice();
 		CLCommandQueue queue = device.createCommandQueue();
+
+		long start = System.nanoTime();
 		CLProgram program = context.createProgram(
 						"kernel void Calc(global const float* a, global const float* b, global float* c, " +
 										"int numElements) {" +
@@ -136,7 +151,6 @@ public class GPGPUBenchmark {
 		CLKernel kernel = program.createCLKernel("Calc");
 		kernel.putArgs(clBufferA, clBufferB, clBufferC).putArg(size);
 
-		long start = System.nanoTime();
 		for (int i = 0; i < repeat; i++) {
 			queue.putWriteBuffer(clBufferA, false)
 							.putWriteBuffer(clBufferB, false)

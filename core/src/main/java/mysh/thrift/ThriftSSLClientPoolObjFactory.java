@@ -1,6 +1,8 @@
 package mysh.thrift;
 
-import org.apache.commons.pool.PoolableObjectFactory;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
@@ -14,7 +16,8 @@ import org.springframework.core.io.Resource;
  * @param <T> 要构建的客户端对象接口。
  * @author 张智贤
  */
-public class ThriftSSLClientPoolObjFactory<T extends TServiceClient> implements PoolableObjectFactory<T> {
+public final class ThriftSSLClientPoolObjFactory<T extends TServiceClient> implements
+				PooledObjectFactory<T> {
 
 	private Class<T> clientClass;
 	private String serverHost;
@@ -27,7 +30,7 @@ public class ThriftSSLClientPoolObjFactory<T extends TServiceClient> implements 
 	private String trustKeyStorePw;
 
 	@Override
-	public T makeObject() throws Exception {
+	public PooledObject<T> makeObject() throws Exception {
 		TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
 		transportParams.setTrustStore(this.trustKeyStore.getFile().getAbsolutePath(), this.trustKeyStorePw);
 		if (this.isRequireClientAuth) {
@@ -36,22 +39,23 @@ public class ThriftSSLClientPoolObjFactory<T extends TServiceClient> implements 
 		TTransport transport = TSSLTransportFactory.getClientSocket(this.serverHost, this.serverPort, this.clientInvokeTimeoutMilli, transportParams);
 
 		TProtocol protocol = new TCompactProtocol(transport);
-		return clientClass.getConstructor(TProtocol.class).newInstance(protocol);
+		return new DefaultPooledObject<>(clientClass.getConstructor(TProtocol.class).newInstance(protocol));
 	}
 
 	@Override
-	public void destroyObject(T obj) throws Exception {
-		obj.getOutputProtocol().getTransport().close();
-		if (obj.getInputProtocol().getTransport().isOpen()) {
-			obj.getInputProtocol().getTransport().close();
+	public void destroyObject(PooledObject<T> obj) throws Exception {
+		obj.getObject().getOutputProtocol().getTransport().close();
+		TTransport inTrans = obj.getObject().getInputProtocol().getTransport();
+		if (inTrans.isOpen()) {
+			inTrans.close();
 		}
 	}
 
 	@Override
-	public boolean validateObject(T obj) {
+	public boolean validateObject(PooledObject<T> obj) {
 		// 由于 Thrift 的问题，isClose() 和 isOpen() 都不能检查连接有效性，这里用 flush 异常检查
 		try {
-			obj.getOutputProtocol().getTransport().flush();
+			obj.getObject().getOutputProtocol().getTransport().flush();
 			return true;
 		} catch (Throwable t) {
 			return false;
@@ -59,11 +63,11 @@ public class ThriftSSLClientPoolObjFactory<T extends TServiceClient> implements 
 	}
 
 	@Override
-	public void activateObject(T obj) throws Exception {
+	public void activateObject(PooledObject<T> obj) throws Exception {
 	}
 
 	@Override
-	public void passivateObject(T obj) throws Exception {
+	public void passivateObject(PooledObject<T> obj) throws Exception {
 	}
 
 	/**

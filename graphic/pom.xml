@@ -17,16 +17,23 @@
 	</properties>
 
 	<dependencies>
+		<dependency>
+			<groupId>mysh</groupId>
+			<artifactId>mlib-core</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
+		</dependency>
 
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
 			<version>1.0.3</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.imagescience</groupId>
 			<artifactId>imagescience</artifactId>
 			<version>2.4.1</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!--aparapi-->
@@ -34,6 +41,7 @@
 			<groupId>com.amd</groupId>
 			<artifactId>aparapi</artifactId>
 			<version>1.0</version>
+			<scope>provided</scope>
 		</dependency>
 		<!--aparapi-->
 
@@ -42,21 +50,25 @@
 			<groupId>org.jogamp</groupId>
 			<artifactId>gluegen</artifactId>
 			<version>${jogampVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.jogamp</groupId>
 			<artifactId>gluegen-rt-natives-${jogampOS}</artifactId>
 			<version>${jogampVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.jogamp</groupId>
 			<artifactId>jocl</artifactId>
 			<version>${jogampVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.jogamp</groupId>
 			<artifactId>jocl-natives-${jogampOS}</artifactId>
 			<version>${jogampVersion}</version>
+			<scope>provided</scope>
 		</dependency>
 		<!--jogamp-->
 
