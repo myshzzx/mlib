@@ -18,14 +18,17 @@ public interface CrawlerSeed {
 	/**
 	 * does the url should be crawled.
 	 */
-	boolean isAcceptable(String url);
+	boolean accept(String url);
 
 	/**
 	 * on get url entity.
+	 * <p>
 	 * WARNING: the urlEntity content may not be readable out of the method,
 	 * because its inputStream will be closed after this invoking.
+	 *
+	 * @return whether fetch entity successfully. false indicate the entity need to be re-crawled.
 	 */
-	void onGet(HttpClientAssist.UrlEntity ue);
+	boolean onGet(HttpClientAssist.UrlEntity ue);
 
 	/**
 	 * make the crawler auto stop.
@@ -43,20 +46,6 @@ public interface CrawlerSeed {
 	 */
 	default int requestThreadSize() {
 		return 100;
-	}
-
-	/**
-	 * connection pool size for single route.
-	 */
-	default int requestMaxConnPerRoute() {
-		return 10;
-	}
-
-	/**
-	 * connection pool size.
-	 */
-	default int requestMaxConnTotal() {
-		return 30;
 	}
 
 }

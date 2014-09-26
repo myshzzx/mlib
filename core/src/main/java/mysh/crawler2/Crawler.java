@@ -1,5 +1,6 @@
 package mysh.crawler2;
 
+import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
@@ -58,8 +59,6 @@ public class Crawler {
 
 		this.log = LoggerFactory.getLogger(this.name);
 
-		hcc.setMaxConnPerRoute(max(1, seed.requestMaxConnPerRoute()));
-		hcc.setMaxConnTotal(max(1, seed.requestMaxConnTotal()));
 		this.hca = new HttpClientAssist(hcc);
 	}
 
@@ -94,7 +93,7 @@ public class Crawler {
 		log.info(toString() + " max thread size:" + threadSize);
 
 		AtomicInteger threadCount = new AtomicInteger(0);
-		e = new ThreadPoolExecutor(threadSize, threadSize, 2, TimeUnit.SECONDS, wq,
+		e = new ThreadPoolExecutor(threadSize, threadSize, 15, TimeUnit.SECONDS, wq,
 						r -> {
 							Thread t = new Thread(r, name + "-" + threadCount.incrementAndGet());
 							t.setDaemon(true);
@@ -121,6 +120,7 @@ public class Crawler {
 			e.shutdown();
 			e.awaitTermination(1, TimeUnit.MINUTES);
 		} finally {
+			log.info(this.name + " stopped.");
 			repo.unhandledSeeds(unhandledUrls);
 			hca.close();
 		}
@@ -144,8 +144,9 @@ public class Crawler {
 	private static final Pattern hrefValueExp =
 					Pattern.compile("[Hh][Rr][Ee][Ff][\\s]*=[\\s]*[\"']([^\"'#]*)");
 
+	@Immutable
 	private class Worker implements Runnable {
-		private String url;
+		private final String url;
 
 		public Worker(String url) {
 			this.url = url;
@@ -154,16 +155,19 @@ public class Crawler {
 		@Override
 		public void run() {
 			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
+				if (repo.contains(ue.getCurrentURL())) return;
+
 				log.debug("on accessing page: " + ue.getCurrentURL());
 				repo.put(url);
 				repo.put(ue.getCurrentURL());
-				seed.onGet(ue);
+				if (!seed.onGet(ue))
+					e.execute(this);
 
 				if (ue.isHtml()) {
 					distillUrl(ue.getCurrentURL(), ue.getEntityStr())
 									.stream()
-									.filter(url -> !repo.contains(url) && seed.isAcceptable(url))
-									.forEach(url -> e.execute(new Worker(url)));
+									.filter(dUrl -> !repo.contains(dUrl) && seed.accept(dUrl))
+									.forEach(dUrl -> e.execute(new Worker(dUrl)));
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);

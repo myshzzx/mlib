@@ -307,6 +307,13 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
+		 * content length in byte size.
+		 */
+		public long getContentLength() {
+			return rsp.getEntity().getContentLength();
+		}
+
+		/**
 		 * buf then convert to string. the buf is saved and can be reused.
 		 */
 		public synchronized String getEntityStr() throws IOException {
