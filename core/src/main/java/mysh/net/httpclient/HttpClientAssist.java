@@ -1,138 +1,113 @@
 
 package mysh.net.httpclient;
 
+import mysh.annotation.ThreadSafe;
 import mysh.util.EncodingUtil;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.conn.params.ConnRoutePNames;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.ProxyAuthenticationStrategy;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
+import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * HTTP 客户端组件.
  *
  * @author ZhangZhx
  */
-public class HttpClientAssist {
+@ThreadSafe
+public class HttpClientAssist implements Closeable {
+	private static final Logger log = LoggerFactory.getLogger(HttpClientAssist.class);
 
-	private final HttpClientConfig conf;
-
-	/**
-	 * 请求头
-	 */
-	private final Header[] headers;
-
-	/**
-	 * 代理主机
-	 */
-	private final HttpHost proxy;
+	private final CloseableHttpClient hc;
 
 	public HttpClientAssist(HttpClientConfig conf) {
-
 		if (conf == null) {
 			throw new IllegalArgumentException();
 		}
-		this.conf = conf;
 
-		Header connection = new BasicHeader("Connection", this.conf.isKeepAlive() ? "keep-alive" : "close");
-//		Header proxyConnection = new BasicHeader("Proxy-Connection", "close");
-		Header userAgent = new BasicHeader("User-Agent", this.conf.getUserAgent());
-		Header charSet = new BasicHeader("Accept-Charset", "iso-8859-1, utf-8");
-		this.headers = new Header[]{connection, userAgent, charSet};
+		HttpClientBuilder hcBuilder = HttpClientBuilder.create();
 
-		if (this.conf.isUseProxy()) {
-			this.proxy = new HttpHost(this.conf.getProxyHost(), this.conf.getProxyPort(),
-							this.conf.getProxyType());
-		} else {
-			this.proxy = null;
+		Header connection = new BasicHeader("Connection", conf.isKeepAlive() ? "keep-alive" : "close");
+		Header charSet = new BasicHeader("Accept-Charset", "*");
+		List<Header> headers = Arrays.asList(connection, charSet);
+		hcBuilder.setDefaultHeaders(headers);
+
+		RequestConfig reqConf = RequestConfig.custom()
+						.setConnectTimeout(conf.getConnectionTimeout() * 1000)
+						.setSocketTimeout(conf.getSoTimeout() * 1000)
+						.build();
+		hcBuilder.setDefaultRequestConfig(reqConf);
+
+		hcBuilder.setUserAgent(conf.getUserAgent());
+
+		if (conf.isUseProxy()) {
+			HttpHost proxyHost = new HttpHost(conf.getProxyHost(), conf.getProxyPort(),
+							conf.getProxyType());
+			hcBuilder.setProxy(proxyHost);
+
+			if (!StringUtils.isEmpty(conf.getProxyAuthName())) {
+				CredentialsProvider cp = new BasicCredentialsProvider();
+				cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
+								new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));
+				hcBuilder.setDefaultCredentialsProvider(cp);
+				hcBuilder.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
+			}
 		}
+
+		hc = hcBuilder.build();
 	}
 
 	/**
-	 * 取 URL 响应报文.
+	 * get url entity.
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	private RoutableHttpClient.RoutableHttpResponse getResp(String url)
+	public UrlEntity access(String url)
 					throws InterruptedException, IOException {
 
-		RoutableHttpClient client = new RoutableHttpClient();
-		HttpConnectionParams.setConnectionTimeout(client.getParams(),
-						this.conf.getConnectionTimeout() * 1000);
-		HttpConnectionParams
-						.setSoTimeout(client.getParams(), this.conf.getSoTimeout() * 1000);
-
-		if (this.conf.isUseProxy()) {
-			client.getCredentialsProvider()
-							.setCredentials(
-											new AuthScope(this.conf.getProxyHost(),
-															this.conf.getProxyPort()),
-											new UsernamePasswordCredentials(this.conf
-															.getProxyAuthName(), this.conf
-															.getProxyAuthPw())
-							);
-			client.getParams().setParameter(ConnRoutePNames.DEFAULT_PROXY, this.proxy);
-		}
-
 		HttpUriRequest req = new HttpGet(url);
-
-		req.setHeaders(this.headers);
 
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException();
 		}
 
-		return (RoutableHttpClient.RoutableHttpResponse) client.execute(req);
+		HttpContext ctx = new BasicHttpContext();
+		return new UrlEntity(req, hc.execute(req, ctx), ctx);
 	}
 
 	/**
-	 * 从 url 地址取页面数据. 可响应中断.<br/>
-	 * 线程安全.
-	 *
-	 * @param url 页面地址
-	 * @return 含真实地址的页面内容
-	 * @throws IOException                   连接异常
-	 * @throws InterruptedException          线程中断异常
-	 * @throws HCExceptions.GetPageException 取页面返回代码不是200, 或取得的页面不是文本
+	 * get input stream of the entity.
+	 * WARNING: the InputStream must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
 	 */
-	public Page getPage(String url)
-					throws IOException, InterruptedException, HCExceptions.GetPageException {
-
-		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
-
-		// 内容异常
-		Header[] type = resp.getHeaders("Content-Type");
-		if (resp.getStatusLine().getStatusCode() != 200
-						|| (type.length != 0 && !type[0].getValue().startsWith("text")
-						&& !type[0].getValue().startsWith("xml") && !type[0].getValue().startsWith("json"))) {
-			throw new HCExceptions.GetPageException(url);
-		}
-
-		byte[] contentByte = EntityUtils.toByteArray(resp.getEntity());
-		String contentCharset = EncodingUtil.isUTF8Bytes(contentByte) ? "UTF-8" : "GBK";
-		String content = new String(contentByte, contentCharset);
-
-		Page page = new Page(resp.getCurrentURL());
-		page.setContent(content);
-
-		return page;
+	public InputStream getInputStream(String url) throws IOException, InterruptedException {
+		UrlEntity newEntity = access(url);
+		return newEntity.rsp.getEntity().getContent();
 	}
 
 	/**
@@ -158,42 +133,35 @@ public class HttpClientAssist {
 			downloadBufLen = 500000;
 		}
 
-		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
+		try (UrlEntity ue = this.access(url)) {
 
-		long fileLength = resp.getEntity().getContentLength();
+			long fileLength = ue.rsp.getEntity().getContentLength();
 
-		file.getParentFile().mkdirs();
-		file.createNewFile();
-		try (RandomAccessFile fileOut = new RandomAccessFile(file, "rw");
-		     InputStream in = resp.getEntity().getContent()) {
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+			try (RandomAccessFile fileOut = new RandomAccessFile(file, "rw");
+			     InputStream in = ue.rsp.getEntity().getContent()) {
 
-			fileOut.setLength(fileLength);
+				fileOut.setLength(fileLength);
 
-			byte[] buf = new byte[downloadBufLen];
-			int readLen;
-			while (fileLength > 0) {
-				readLen = in.read(buf);
-				if (readLen == -1) {
-					break;
+				byte[] buf = new byte[downloadBufLen];
+				int readLen;
+				while (fileLength > 0) {
+					readLen = in.read(buf);
+					if (readLen == -1) {
+						break;
+					}
+					fileOut.write(buf, 0, readLen);
+					fileLength -= readLen;
 				}
-				fileOut.write(buf, 0, readLen);
-				fileLength -= readLen;
 			}
 		}
 		return true;
 	}
 
-	/**
-	 * 取地址输入流.
-	 *
-	 * @param url 页面地址.
-	 * @throws IOException          IO异常
-	 * @throws InterruptedException 线程中断异常
-	 */
-	public InputStream readContent(String url) throws IOException, InterruptedException {
-
-		RoutableHttpClient.RoutableHttpResponse resp = this.getResp(url);
-		return resp.getEntity().getContent();
+	@Override
+	public void close() throws IOException {
+		this.hc.close();
 	}
 
 	/**
@@ -279,5 +247,101 @@ public class HttpClientAssist {
 		}
 
 		return url.toString();
+	}
+
+	private static final byte[] EMPTY_BUF = new byte[0];
+
+	@ThreadSafe
+	public final class UrlEntity implements Closeable {
+
+		private HttpUriRequest req;
+		private CloseableHttpResponse rsp;
+		private HttpContext ctx;
+
+		private String currentUrl;
+		private String contentType;
+		private byte[] entityBuf;
+		private String entityStr;
+
+		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpContext ctx) {
+			this.req = req;
+			this.rsp = rsp;
+			this.ctx = ctx;
+
+			this.contentType = rsp.getEntity().getContentType().getValue();
+
+			int status = rsp.getStatusLine().getStatusCode();
+			if (status != 200)
+				log.warn("problem in url, status=" + status + ", url=" + getCurrentURL());
+		}
+
+		@Override
+		public void close() throws IOException {
+			rsp.getEntity().getContent().close();
+		}
+
+		public String getCurrentURL() {
+			if (this.currentUrl == null) {
+				HttpUriRequest currReq = (HttpUriRequest) ctx.getAttribute(HttpCoreContext.HTTP_REQUEST);
+				HttpHost currHost = (HttpHost) ctx.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
+				this.currentUrl = (currReq.getURI().isAbsolute()) ?
+								currReq.getURI().toString() : (currHost.toURI() + currReq.getURI());
+			}
+
+			return this.currentUrl;
+		}
+
+		public boolean isHtml() {
+			return contentType != null && contentType.contains("html");
+		}
+
+		public boolean isImage() {
+			return contentType != null && contentType.contains("image");
+		}
+
+		public boolean isContentType(String type) {
+			return contentType != null && contentType.contains(type);
+		}
+
+		/**
+		 * buf then convert to string. the buf is saved and can be reused.
+		 */
+		public synchronized String getEntityStr() throws IOException {
+			if (entityStr != null) return entityStr;
+
+			String enc = null;
+			if (contentType != null) {
+				String c = contentType.toUpperCase();
+				enc = c.contains("UTF-8") ? "UTF-8" : enc;
+				enc = c.contains("GBK") ? "GBK" : enc;
+			}
+			if (entityBuf == null) {
+				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
+				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
+			}
+			if (enc == null) {
+				enc = EncodingUtil.isUTF8Bytes(entityBuf) ? "UTF-8" : "GBK";
+			}
+			entityStr = new String(entityBuf, enc);
+
+			return entityStr;
+		}
+
+		/**
+		 * buf then write. the buf is saved and can be reused.
+		 */
+		public synchronized void bufWriteTo(OutputStream out) throws IOException {
+			if (entityBuf == null) {
+				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
+				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
+			}
+			out.write(entityBuf);
+			out.flush();
+		}
+
+		@Override
+		public String toString() {
+			return getCurrentURL();
+		}
 	}
 }

@@ -10,14 +10,30 @@ import java.io.Serializable;
  *
  * @author ZhangZhx
  */
-public class HttpClientConfig implements Serializable {
+public final class HttpClientConfig implements Serializable {
 
 	private static final long serialVersionUID = 9097930407282337575L;
+	public static final String UA = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36";
 
 	/**
 	 * Connection: keep-alive/close
 	 */
-	private boolean isKeepAlive = false;
+	private boolean isKeepAlive = true;
+
+	/**
+	 * 用户代理
+	 */
+	private String userAgent = UA;
+
+	/**
+	 * 连接超时.
+	 */
+	private int connectionTimeout = 5;
+
+	/**
+	 * 取数据内容超时.
+	 */
+	private int soTimeout = 5;
 
 	/**
 	 * 是否使用代理
@@ -49,30 +65,7 @@ public class HttpClientConfig implements Serializable {
 	 */
 	private String proxyAuthPw;
 
-	/**
-	 * 用户代理
-	 */
-	private String userAgent;
-
-	/**
-	 * 连接超时.
-	 */
-	private int connectionTimeout;
-
-	/**
-	 * 取数据内容超时.
-	 */
-	private int soTimeout;
-
-	/**
-	 * 取默认配置.
-	 */
-	public static HttpClientConfig getDefault() {
-
-		HttpClientConfig conf = new HttpClientConfig();
-		conf.connectionTimeout = 10;
-		conf.soTimeout = 10;
-		return conf;
+	public HttpClientConfig() {
 	}
 
 	/**
@@ -81,46 +74,50 @@ public class HttpClientConfig implements Serializable {
 	 * <p>
 	 * <pre>
 	 *
-	 * #是否使用代理. true 表示使用, 其他表示不用
-	 * httpclient.useProxy=true
+	 * # 是否保持连接
+	 * httpclient.isKeepAlive=true
 	 *
-	 * #代理主机地址
+	 * # 用户代理串
+	 * httpclient.userAgent=Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36
+	 *
+	 * # http 连接超时 ( 秒 )
+	 * httpclient.connectionTimeout=3
+	 *
+	 * # socket 响应超时 ( 秒 )
+	 * httpclient.soTimeout=3
+	 *
+	 * # 是否使用代理. true 表示使用, 其他表示不用
+	 * httpclient.useProxy=false
+	 *
+	 * # 代理主机地址
 	 * httpclient.proxyHost=192.168.1.1
 	 *
-	 * #代理主机服务端口
+	 * # 代理主机服务端口
 	 * httpclient.proxyPort=1234
 	 *
-	 * #代理协议
+	 * # 代理协议
 	 * httpclient.proxyType=http
 	 *
-	 * #代理验证名
+	 * # 代理验证名
 	 * httpclient.proxyAuthName=zzx
 	 *
-	 * #代理验证密码
+	 * # 代理验证密码
 	 * httpclient.proxyAuthPw=zzx
-	 *
-	 * #用户代理串
-	 * httpclient.userAgent=Myshbot 1.4
-	 *
-	 * #http 连接超时 ( 秒 )
-	 * httpclient.connectionTimeout=3
 	 *
 	 * </pre>
 	 */
-	public static HttpClientConfig genDefaultConfig(PropConf conf) {
+	public HttpClientConfig(PropConf conf) {
+		this.setUseProxy(conf.getPropString("httpclient.isKeepAlive", "true").equals("true"));
+		this.setUserAgent(conf.getPropString("httpclient.userAgent", UA));
+		this.setConnectionTimeout(conf.getPropInt("httpclient.connectionTimeout", 5));
+		this.setSoTimeout(conf.getPropInt("httpclient.soTimeout", 5));
 
-		HttpClientConfig httpClientconf = new HttpClientConfig();
-		httpClientconf.setConnectionTimeout(conf.getPropInt("httpclient.connectionTimeout",
-						10));
-		httpClientconf.setProxyAuthName(conf.getPropString("httpclient.proxyAuthName"));
-		httpClientconf.setProxyAuthPw(conf.getPropString("httpclient.proxyAuthPw"));
-		httpClientconf.setProxyHost(conf.getPropString("httpclient.proxyHost"));
-		httpClientconf.setProxyPort(conf.getPropInt("httpclient.proxyPort"));
-		httpClientconf.setProxyType(conf.getPropString("httpclient.proxyType", "http"));
-		httpClientconf.setSoTimeout(conf.getPropInt("httpclient.soTimeout", 10));
-		httpClientconf.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
-		httpClientconf.setUserAgent(conf.getPropString("httpclient.userAgent", "Myshbot 1.4"));
-		return httpClientconf;
+		this.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
+		this.setProxyHost(conf.getPropString("httpclient.proxyHost"));
+		this.setProxyPort(conf.getPropInt("httpclient.proxyPort"));
+		this.setProxyType(conf.getPropString("httpclient.proxyType", "http"));
+		this.setProxyAuthName(conf.getPropString("httpclient.proxyAuthName"));
+		this.setProxyAuthPw(conf.getPropString("httpclient.proxyAuthPw"));
 	}
 
 	public boolean isKeepAlive() {
@@ -129,6 +126,57 @@ public class HttpClientConfig implements Serializable {
 
 	public void setKeepAlive(boolean isKeepAlive) {
 		this.isKeepAlive = isKeepAlive;
+	}
+
+	/**
+	 * @return the userAgent
+	 */
+	public String getUserAgent() {
+
+		return userAgent;
+	}
+
+	/**
+	 * @param userAgent the userAgent to set
+	 */
+	public HttpClientConfig setUserAgent(String userAgent) {
+
+		this.userAgent = userAgent;
+		return this;
+	}
+
+	/**
+	 * @return the connectionTimeout in seconds
+	 */
+	public int getConnectionTimeout() {
+
+		return connectionTimeout;
+	}
+
+	/**
+	 * @param connectionTimeout the connectionTimeout to set in seconds
+	 */
+	public HttpClientConfig setConnectionTimeout(int connectionTimeout) {
+
+		this.connectionTimeout = connectionTimeout;
+		return this;
+	}
+
+	/**
+	 * @return the soTimeout in seconds
+	 */
+	public int getSoTimeout() {
+
+		return soTimeout;
+	}
+
+	/**
+	 * @param soTimeout the soTimeout to set in seconds
+	 */
+	public HttpClientConfig setSoTimeout(int soTimeout) {
+
+		this.soTimeout = soTimeout;
+		return this;
 	}
 
 	/**
@@ -230,57 +278,6 @@ public class HttpClientConfig implements Serializable {
 	public HttpClientConfig setProxyAuthPw(String proxyAuthPw) {
 
 		this.proxyAuthPw = proxyAuthPw;
-		return this;
-	}
-
-	/**
-	 * @return the userAgent
-	 */
-	public String getUserAgent() {
-
-		return userAgent;
-	}
-
-	/**
-	 * @param userAgent the userAgent to set
-	 */
-	public HttpClientConfig setUserAgent(String userAgent) {
-
-		this.userAgent = userAgent;
-		return this;
-	}
-
-	/**
-	 * @return the connectionTimeout
-	 */
-	public int getConnectionTimeout() {
-
-		return connectionTimeout;
-	}
-
-	/**
-	 * @param connectionTimeout the connectionTimeout to set
-	 */
-	public HttpClientConfig setConnectionTimeout(int connectionTimeout) {
-
-		this.connectionTimeout = connectionTimeout;
-		return this;
-	}
-
-	/**
-	 * @return the soTimeout
-	 */
-	public int getSoTimeout() {
-
-		return soTimeout;
-	}
-
-	/**
-	 * @param soTimeout the soTimeout to set
-	 */
-	public HttpClientConfig setSoTimeout(int soTimeout) {
-
-		this.soTimeout = soTimeout;
 		return this;
 	}
 
