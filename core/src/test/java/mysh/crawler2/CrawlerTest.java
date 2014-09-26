@@ -35,10 +35,10 @@ public class CrawlerTest {
 				return blockDomain.stream().filter(url::contains).count() == 0
 								&& (
 								url.startsWith("http://boards.vinylcollective.com/topic/73446-ass-appreciation-thread/")
-//												|| url.endsWith("jpg")
-//												|| url.endsWith("jpeg")
-//												|| url.endsWith("png")
-//												|| url.endsWith("gif")
+												|| url.endsWith("jpg")
+												|| url.endsWith("jpeg")
+												|| url.endsWith("png")
+												|| url.endsWith("gif")
 				);
 			}
 
@@ -65,7 +65,7 @@ public class CrawlerTest {
 
 			@Override
 			public int requestThreadSize() {
-				return 50;
+				return 40;
 			}
 		};
 
@@ -84,4 +84,5 @@ public class CrawlerTest {
 
 		Thread.sleep(1000000);
 	}
+
 }

@@ -8,7 +8,6 @@ import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
@@ -37,12 +36,18 @@ public class Crawler {
 	private final CrawlerRepo repo;
 	private final String name;
 
-	private AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
+	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
 
 	private ThreadPoolExecutor e;
 	private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
 	private final Queue<String> unhandledUrls = new ConcurrentLinkedQueue<>();
 
+	/**
+	 * create a crawler, to start, invoke {@link #start()}. <br/>
+	 * WARNING: thread pool size and connection pool size should not be a big diff,
+	 * which will cause race condition in connection resource,
+	 * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
+	 */
 	public Crawler(CrawlerSeed seed, HttpClientConfig hcc) {
 		Objects.requireNonNull(seed, "need seed");
 		Objects.requireNonNull(seed.getRepo(), "need crawler repository");
@@ -112,17 +117,20 @@ public class Crawler {
 			startAutoStopChk();
 	}
 
-	public void stop() throws InterruptedException, IOException {
+	public void stop() {
 		Status oldStatus = status.getAndSet(Status.STOPPED);
 		if (oldStatus == Status.STOPPED) return;
 
 		try {
-			e.shutdown();
-			e.awaitTermination(1, TimeUnit.MINUTES);
+			e.shutdownNow().stream()
+							.forEach(r -> unhandledUrls.add(((Worker) r).url));
+			e.awaitTermination(2, TimeUnit.MINUTES);
+		} catch (InterruptedException ex) {
+			log.debug(this.name + " stopping interrupted.", ex);
 		} finally {
 			log.info(this.name + " stopped.");
-			repo.unhandledSeeds(unhandledUrls);
 			hca.close();
+			repo.unhandledSeeds(unhandledUrls);
 		}
 	}
 
@@ -156,16 +164,21 @@ public class Crawler {
 		public void run() {
 			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
 				if (repo.contains(ue.getCurrentURL())) return;
+				if (status.get() == Status.STOPPED) {
+					unhandledUrls.offer(url);
+					return;
+				}
 
 				log.debug("on accessing page: " + ue.getCurrentURL());
 				repo.put(url);
 				repo.put(ue.getCurrentURL());
+
 				if (!seed.onGet(ue))
 					e.execute(this);
 
 				if (ue.isHtml()) {
-					distillUrl(ue.getCurrentURL(), ue.getEntityStr())
-									.stream()
+					Set<String> distillUrl = distillUrl(ue.getCurrentURL(), ue.getEntityStr());
+					distillUrl.stream()
 									.filter(dUrl -> !repo.contains(dUrl) && seed.accept(dUrl))
 									.forEach(dUrl -> e.execute(new Worker(dUrl)));
 				}
@@ -218,7 +231,7 @@ public class Crawler {
 					}
 				}
 			} catch (Exception e) {
-				log.error("分析页面链接时异常: " + pageUrl + "  " + e);
+				log.error("分析页面链接时异常: " + pageUrl, e);
 			}
 
 			return urls;

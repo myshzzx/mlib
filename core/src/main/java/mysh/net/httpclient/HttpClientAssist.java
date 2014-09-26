@@ -163,8 +163,12 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	@Override
-	public void close() throws IOException {
-		this.hc.close();
+	public void close() {
+		try {
+			this.hc.close();
+		} catch (Exception e) {
+			log.debug("http client close error.", e);
+		}
 	}
 
 	/**
@@ -279,8 +283,12 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		@Override
-		public void close() throws IOException {
-			rsp.getEntity().getContent().close();
+		public void close() {
+			try {
+				rsp.getEntity().getContent().close();
+			} catch (Exception e) {
+				log.debug("entity close error: " + getCurrentURL(), e);
+			}
 		}
 
 		public String getCurrentURL() {
