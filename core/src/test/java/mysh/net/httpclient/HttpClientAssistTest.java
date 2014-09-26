@@ -116,7 +116,7 @@ public class HttpClientAssistTest {
 	@Test
 	public void multiOps() throws IOException, InterruptedException {
 		while (true) {
-			Thread.sleep(1000);
+			Thread.sleep(5000);
 			HttpClientAssist.UrlEntity z = hca.access("http://baidu.com");
 			System.out.println(z.isHtml());
 			z.close();

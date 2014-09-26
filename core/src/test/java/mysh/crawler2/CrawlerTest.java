@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.List;
@@ -19,32 +18,6 @@ import java.util.List;
  */
 public class CrawlerTest {
 	private static final Logger log = LoggerFactory.getLogger(CrawlerTest.class);
-
-
-	@Test
-	public void t0() throws InterruptedException, IOException {
-		CrawlerSeed s = new CrawlerSeed() {
-			@Override
-			public List<String> getSeeds() {
-				return Arrays.asList("http://www.cmd5.com/a");
-			}
-
-			@Override
-			public boolean isAcceptable(String url) {
-				return url.startsWith("http://www.cmd5.com/a");
-			}
-
-			@Override
-			public void onGet(HttpClientAssist.UrlEntity e) {
-			}
-		};
-
-		Crawler c = new Crawler(s, new HttpClientConfig());
-		c.start();
-
-		Thread.sleep(50000);
-		c.stop();
-	}
 
 	@Test
 	public void t1() throws InterruptedException {
@@ -85,7 +58,10 @@ public class CrawlerTest {
 		Crawler c = new Crawler(s, new HttpClientConfig());
 		c.start();
 
-		Thread.sleep(120000000);
-		System.out.println();
+		while (c.getStatus() == Crawler.Status.RUNNING) {
+			Thread.sleep(5000);
+		}
+
+		Thread.sleep(1000000);
 	}
 }

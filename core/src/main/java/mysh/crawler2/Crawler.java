@@ -1,5 +1,6 @@
 package mysh.crawler2;
 
+import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import org.apache.http.conn.ConnectTimeoutException;
@@ -7,20 +8,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.lang.Math.max;
 
 /**
  * @author Mysh
  * @since 2014/9/24 12:50
  */
+@ThreadSafe
 public class Crawler {
 	private final Logger log;
 
@@ -28,6 +35,8 @@ public class Crawler {
 	private final CrawlerSeed seed;
 	private final CrawlerRepo repo;
 	private final String name;
+
+	private AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
 
 	private ThreadPoolExecutor e;
 	private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
@@ -43,9 +52,14 @@ public class Crawler {
 
 		String seedName = seed.getClass().getName();
 		int dotIdx = seedName.lastIndexOf('.');
-		this.name = dotIdx > -1 ? seedName.substring(dotIdx + 1) : seedName;
+		this.name = "Crawler[" +
+						(dotIdx > -1 ? seedName.substring(dotIdx + 1) : seedName)
+						+ "]";
 
-		this.log = LoggerFactory.getLogger("Crawler[" + name + "]");
+		this.log = LoggerFactory.getLogger(this.name);
+
+		hcc.setMaxConnPerRoute(max(1, seed.requestMaxConnPerRoute()));
+		hcc.setMaxConnTotal(max(1, seed.requestMaxConnTotal()));
 		this.hca = new HttpClientAssist(hcc);
 	}
 
@@ -70,10 +84,14 @@ public class Crawler {
 	}
 
 	public void start() {
+		if (!status.compareAndSet(Status.INIT, Status.RUNNING)) {
+			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
+		}
+
 		int threadSize = seed.requestThreadSize();
 		int maxThreadSize = Runtime.getRuntime().availableProcessors() * 50;
-		threadSize = Math.min(Math.max(1, threadSize), maxThreadSize);
-		log.info("crawler[" + name + "] max thread size:" + threadSize);
+		threadSize = Math.min(max(1, threadSize), maxThreadSize);
+		log.info(toString() + " max thread size:" + threadSize);
 
 		AtomicInteger threadCount = new AtomicInteger(0);
 		e = new ThreadPoolExecutor(threadSize, threadSize, 2, TimeUnit.SECONDS, wq,
@@ -86,7 +104,7 @@ public class Crawler {
 		);
 		e.allowCoreThreadTimeOut(true);
 
-		log.info("crawler [" + this.name + "] started.");
+		log.info(this.name + " started.");
 
 		seed.getSeeds().stream()
 						.forEach(url -> e.execute(new Worker(url)));
@@ -96,6 +114,9 @@ public class Crawler {
 	}
 
 	public void stop() throws InterruptedException, IOException {
+		Status oldStatus = status.getAndSet(Status.STOPPED);
+		if (oldStatus == Status.STOPPED) return;
+
 		try {
 			e.shutdown();
 			e.awaitTermination(1, TimeUnit.MINUTES);
@@ -103,6 +124,19 @@ public class Crawler {
 			repo.unhandledSeeds(unhandledUrls);
 			hca.close();
 		}
+	}
+
+	public Status getStatus() {
+		return status.get();
+	}
+
+	public String getName() {
+		return this.name;
+	}
+
+	@Override
+	public String toString() {
+		return this.name;
 	}
 
 	private static final Pattern httpExp =
@@ -131,7 +165,7 @@ public class Crawler {
 									.filter(url -> !repo.contains(url) && seed.isAcceptable(url))
 									.forEach(url -> e.execute(new Worker(url)));
 				}
-			} catch (SocketTimeoutException | ConnectTimeoutException ex) {
+			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);
 				log.debug(ex.toString());
 			} catch (Exception ex) {
@@ -141,7 +175,7 @@ public class Crawler {
 
 		private Set<String> distillUrl(String pageUrl, String pageContent) {
 
-			Set<String> urls = new HashSet<String>();
+			Set<String> urls = new HashSet<>();
 
 			try {
 				// 查找 http 开头的数据
@@ -185,5 +219,9 @@ public class Crawler {
 
 			return urls;
 		}
+	}
+
+	public static enum Status {
+		INIT, RUNNING, STOPPED
 	}
 }

@@ -13,10 +13,19 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public interface CrawlerRepo {
 
+	/**
+	 * put crawled url.
+	 */
 	void put(String url);
 
+	/**
+	 * if true, the url will not be crawled(or re-crawled).
+	 */
 	boolean contains(String url);
 
+	/**
+	 * un-crawled urls when the crawler stopped.
+	 */
 	void unhandledSeeds(Queue<String> seeds);
 
 	static CrawlerRepo getDefault() {

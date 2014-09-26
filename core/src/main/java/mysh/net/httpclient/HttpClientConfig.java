@@ -33,7 +33,17 @@ public final class HttpClientConfig implements Serializable {
 	/**
 	 * 取数据内容超时.
 	 */
-	private int soTimeout = 5;
+	private int soTimeout = 10;
+
+	/**
+	 * 连接池单域最大连接数.
+	 */
+	private int maxConnPerRoute = 10;
+
+	/**
+	 * 连接池最大连接数.
+	 */
+	private int maxConnTotal = 30;
 
 	/**
 	 * 是否使用代理
@@ -65,6 +75,7 @@ public final class HttpClientConfig implements Serializable {
 	 */
 	private String proxyAuthPw;
 
+
 	public HttpClientConfig() {
 	}
 
@@ -85,6 +96,12 @@ public final class HttpClientConfig implements Serializable {
 	 *
 	 * # socket 响应超时 ( 秒 )
 	 * httpclient.soTimeout=3
+	 *
+	 * # 连接池单域最大连接数
+	 * httpclient.maxConnPerRoute=10
+	 *
+	 * # 连接池最大连接数
+	 * httpclient.maxConnTotal=30
 	 *
 	 * # 是否使用代理. true 表示使用, 其他表示不用
 	 * httpclient.useProxy=false
@@ -110,7 +127,9 @@ public final class HttpClientConfig implements Serializable {
 		this.setUseProxy(conf.getPropString("httpclient.isKeepAlive", "true").equals("true"));
 		this.setUserAgent(conf.getPropString("httpclient.userAgent", UA));
 		this.setConnectionTimeout(conf.getPropInt("httpclient.connectionTimeout", 5));
-		this.setSoTimeout(conf.getPropInt("httpclient.soTimeout", 5));
+		this.setSoTimeout(conf.getPropInt("httpclient.soTimeout", 10));
+		this.setMaxConnPerRoute(conf.getPropInt("httpclient.maxConnPerRoute", 10));
+		this.setMaxConnTotal(conf.getPropInt("httpclient.maxConnTotal", 30));
 
 		this.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
 		this.setProxyHost(conf.getPropString("httpclient.proxyHost"));
@@ -124,8 +143,9 @@ public final class HttpClientConfig implements Serializable {
 		return isKeepAlive;
 	}
 
-	public void setKeepAlive(boolean isKeepAlive) {
+	public HttpClientConfig setKeepAlive(boolean isKeepAlive) {
 		this.isKeepAlive = isKeepAlive;
+		return this;
 	}
 
 	/**
@@ -281,4 +301,21 @@ public final class HttpClientConfig implements Serializable {
 		return this;
 	}
 
+	public int getMaxConnPerRoute() {
+		return maxConnPerRoute;
+	}
+
+	public HttpClientConfig setMaxConnPerRoute(int maxConnPerRoute) {
+		this.maxConnPerRoute = maxConnPerRoute;
+		return this;
+	}
+
+	public int getMaxConnTotal() {
+		return maxConnTotal;
+	}
+
+	public HttpClientConfig setMaxConnTotal(int maxConnTotal) {
+		this.maxConnTotal = maxConnTotal;
+		return this;
+	}
 }
