@@ -70,13 +70,13 @@ public class ImageDownloader implements CrawlerSeed {
 		);
 	}
 
-	private static final int ACCESS_WAIT = 700;
+	private static final int ACCESS_WAIT = 500;
 	private static final Random r = new Random();
 
 	@Override
 	public boolean onGet(HttpClientAssist.UrlEntity e) {
-		repo.put(e.getReqUrl(), v);
 		repo.put(e.getCurrentURL(), v);
+		repo.put(e.getReqUrl(), v);
 
 		try {
 			if (e.isImage() && e.getContentLength() > 15_000) {

@@ -161,7 +161,7 @@ public class Crawler {
 		@Override
 		public void run() {
 			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
-				if (!seed.accept(ue.getCurrentURL())) return;
+				if (!seed.accept(ue.getCurrentURL()) || !seed.accept(ue.getReqUrl())) return;
 				if (status.get() == Status.STOPPED) {
 					unhandledUrls.offer(url);
 					return;
