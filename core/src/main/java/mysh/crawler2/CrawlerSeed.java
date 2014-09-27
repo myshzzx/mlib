@@ -54,8 +54,6 @@ public interface CrawlerSeed extends Serializable {
 	/**
 	 * crawler thread pool size.
 	 */
-	default int requestThreadSize() {
-		return 100;
-	}
+	int requestThreadSize();
 
 }

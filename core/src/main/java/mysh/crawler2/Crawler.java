@@ -214,12 +214,12 @@ public class Crawler {
 
 				// 查找 href 指向的地址
 				Matcher hrefValueMatcher = hrefValueExp.matcher(pageContent);
-				String tValue = "";
+				String tValue;
 				while (hrefValueMatcher.find()) {
 					tValue = hrefValueMatcher.group(1);
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
 						continue;
-					} else if (tValue.startsWith("http://")) {
+					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
 						urls.add(tValue);
 					} else if (tValue.startsWith("/")) {
 						urls.add(currentRoot.substring(0, currentRoot.indexOf("/", 8)) + tValue);

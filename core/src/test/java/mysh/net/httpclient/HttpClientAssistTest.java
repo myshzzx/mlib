@@ -123,6 +123,13 @@ public class HttpClientAssistTest {
 //			Thread.sleep(2000);
 //			z.getEntityStr();
 		}
+	}
 
+	@Test
+	public void entityReadTest() throws IOException, InterruptedException {
+		try (HttpClientAssist.UrlEntity bigFile =
+						     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
+			System.out.println(bigFile.getContentLength());
+		}
 	}
 }

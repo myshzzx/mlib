@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<bean id="userAgent"
+	      class="org.springframework.beans.factory.config.FieldRetrievingFactoryBean">
+		<property name="staticField" value="mysh.net.httpclient.HttpClientConfig.UA"/>
+	</bean>
 
 	<bean id="httpClientConf" class="mysh.net.httpclient.HttpClientConfig">
-		<property name="connectionTimeout" value="3">
-			<description>连接超时 ( 秒 )</description>
-		</property>
-		<property name="proxyAuthName" value="" />
-		<property name="proxyAuthPw" value="" />
-		<property name="proxyHost" value="" />
-		<property name="proxyPort" value="" />
-		<property name="proxyType" value="http" />
-		<property name="soTimeout" value="5">
-			<description>成功连接后获取数据超时 ( 秒 )</description>
-		</property>
-		<property name="useProxy" value="false" />
-		<property name="userAgent" value="Myshbot 1.4" />
+		<property name="keepAlive" value="true"/>
+		<property name="connectionTimeout" value="5"/>
+		<property name="soTimeout" value="5"/>
+		<property name="userAgent" ref="userAgent"/>
+		<property name="maxConnPerRoute" value="4"/>
+		<property name="maxConnTotal" value="30"/>
+
+		<property name="useProxy" value="false"/>
+		<property name="proxyHost" value=""/>
+		<property name="proxyPort" value="8080"/>
+		<property name="proxyType" value="http"/>
+		<property name="proxyAuthName" value=""/>
+		<property name="proxyAuthPw" value=""/>
 	</bean>
 
 	<bean id="httpClientAssistor" class="mysh.net.httpclient.HttpClientAssist">
-		<constructor-arg ref="httpClientConf"></constructor-arg>
+		<constructor-arg ref="httpClientConf"/>
 	</bean>
 
 </beans>

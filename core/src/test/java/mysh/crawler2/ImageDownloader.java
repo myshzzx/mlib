@@ -32,7 +32,7 @@ public class ImageDownloader implements CrawlerSeed {
 		HttpClientConfig hcc = new HttpClientConfig();
 		hcc.setUserAgent(HttpClientConfig.UA);
 		hcc.setMaxConnPerRoute(4);
-		hcc.setUseProxy(true);
+//		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8058);
 
