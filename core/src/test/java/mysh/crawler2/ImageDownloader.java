@@ -30,8 +30,9 @@ public class ImageDownloader implements CrawlerSeed {
 
 	public static void main(String[] args) throws InterruptedException {
 		HttpClientConfig hcc = new HttpClientConfig();
+		hcc.setUserAgent(HttpClientConfig.UA);
 		hcc.setMaxConnPerRoute(4);
-//		hcc.setUseProxy(true);
+		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8058);
 
@@ -47,31 +48,29 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	public ImageDownloader() {
-		String u = "http://forum.bodybuilding.com/showthread.php?t=143308563";
+		String u = "http://forum.bodybuilding.com/showthread.php?t=160303301";
 		seeds.add(u);
 		int i = 1;
-		while (i++ < 105)
+		while (i++ < 345)
 			seeds.add(u + "&page=" + i);
 	}
 
 	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
+	public static final int WAIT_TIME = 500;
 
 	@Override
 	public boolean accept(String url) {
 		return !repo.containsKey(url)
 						&& blockDomain.stream().filter(url::contains).count() == 0
-						&& !url.contains("amp;")
+						&& !url.contains("amp;") && !url.contains("/user_images/")
 						&& (
 						url.endsWith("jpg")
 										|| url.endsWith("gif")
 										|| url.endsWith("jpeg")
 										|| url.endsWith("png")
-										|| url.startsWith("http://forum.bodybuilding.com/showthread.php?t=143308563")
+										|| url.startsWith("http://forum.bodybuilding.com/showthread.php?t=160303301&")
 		);
 	}
-
-	private static final int ACCESS_WAIT = 500;
-	private static final Random r = new Random();
 
 	@Override
 	public boolean onGet(HttpClientAssist.UrlEntity e) {
@@ -80,8 +79,10 @@ public class ImageDownloader implements CrawlerSeed {
 
 		try {
 			if (e.isImage() && e.getContentLength() > 15_000) {
-				File f = new File("l:/a", new File(e.getCurrentURL()).getName());
+				String imgName = new File(e.getCurrentURL()).getName();
+				File f = new File("l:/a", imgName);
 				if (f.exists() && f.length() > 0) return true;
+				if (new File("F:\\temp\\a", imgName).exists()) return true;
 
 				try (OutputStream out = new FileOutputStream(f)) {
 					e.bufWriteTo(out);
@@ -93,7 +94,7 @@ public class ImageDownloader implements CrawlerSeed {
 			return true;
 		} finally {
 			try {
-				Thread.sleep(300L + r.nextInt(ACCESS_WAIT));
+				Thread.sleep(WAIT_TIME);
 			} catch (InterruptedException e1) {
 			}
 		}

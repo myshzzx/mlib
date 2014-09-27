@@ -13,7 +13,17 @@ import java.io.Serializable;
 public final class HttpClientConfig implements Serializable {
 
 	private static final long serialVersionUID = 9097930407282337575L;
-	public static final String UA = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36";
+
+	public static final String UA =
+					"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36";
+
+	// http://user-agent-string.info/list-of-ua/bots
+	public static final String UA_GOOGLE =
+					"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+	public static final String UA_BAIDU =
+					"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
+	public static final String UA_BING =
+					"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
 	/**
 	 * Connection: keep-alive/close

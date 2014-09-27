@@ -180,7 +180,7 @@ public class Crawler {
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);
-				log.debug(ex.toString());
+				log.debug(ex.toString() + " - " + url);
 			} catch (Exception ex) {
 				unhandledUrls.offer(url);
 				log.error("on error handling url: " + this.url, ex);
