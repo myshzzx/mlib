@@ -33,7 +33,6 @@ public class Crawler {
 
 	private final HttpClientAssist hca;
 	private final CrawlerSeed seed;
-	private final CrawlerRepo repo;
 	private final String name;
 
 	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
@@ -50,11 +49,10 @@ public class Crawler {
 	 */
 	public Crawler(CrawlerSeed seed, HttpClientConfig hcc) {
 		Objects.requireNonNull(seed, "need seed");
-		Objects.requireNonNull(seed.getRepo(), "need crawler repository");
 		Objects.requireNonNull(hcc, "need http client config");
 
 		this.seed = seed;
-		this.repo = seed.getRepo();
+		this.seed.init();
 
 		String seedName = seed.getClass().getName();
 		int dotIdx = seedName.lastIndexOf('.');
@@ -130,7 +128,7 @@ public class Crawler {
 		} finally {
 			log.info(this.name + " stopped.");
 			hca.close();
-			repo.unhandledSeeds(unhandledUrls);
+			seed.onCrawlerStopped(unhandledUrls);
 		}
 	}
 
@@ -163,15 +161,13 @@ public class Crawler {
 		@Override
 		public void run() {
 			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
-				if (repo.contains(ue.getCurrentURL())) return;
+				if (!seed.accept(ue.getCurrentURL())) return;
 				if (status.get() == Status.STOPPED) {
 					unhandledUrls.offer(url);
 					return;
 				}
 
-				log.debug("on accessing page: " + ue.getCurrentURL());
-				repo.put(url);
-				repo.put(ue.getCurrentURL());
+				log.debug("on page: " + ue.getCurrentURL());
 
 				if (!seed.onGet(ue))
 					e.execute(this);
@@ -179,13 +175,14 @@ public class Crawler {
 				if (ue.isHtml()) {
 					Set<String> distillUrl = distillUrl(ue.getCurrentURL(), ue.getEntityStr());
 					distillUrl.stream()
-									.filter(dUrl -> !repo.contains(dUrl) && seed.accept(dUrl))
+									.filter(seed::accept)
 									.forEach(dUrl -> e.execute(new Worker(dUrl)));
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);
 				log.debug(ex.toString());
 			} catch (Exception ex) {
+				unhandledUrls.offer(url);
 				log.error("on error handling url: " + this.url, ex);
 			}
 		}

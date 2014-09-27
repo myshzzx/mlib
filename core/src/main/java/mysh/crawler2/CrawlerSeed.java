@@ -2,13 +2,21 @@ package mysh.crawler2;
 
 import mysh.net.httpclient.HttpClientAssist;
 
+import java.io.Serializable;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * @author Mysh
  * @since 2014/9/24 21:07
  */
-public interface CrawlerSeed {
+public interface CrawlerSeed extends Serializable {
+
+	/**
+	 * invoked by crawler immediately when crawler get this seed.
+	 */
+	default void init() {
+	}
 
 	/**
 	 * url seeds.
@@ -16,7 +24,7 @@ public interface CrawlerSeed {
 	List<String> getSeeds();
 
 	/**
-	 * does the url should be crawled.
+	 * whether the url should be crawled NOW.
 	 */
 	boolean accept(String url);
 
@@ -31,14 +39,16 @@ public interface CrawlerSeed {
 	boolean onGet(HttpClientAssist.UrlEntity ue);
 
 	/**
+	 * invoked by crawler after crawler being completely stopped.
+	 */
+	default void onCrawlerStopped(Queue<String> unhandledSeeds) {
+	}
+
+	/**
 	 * make the crawler auto stop.
 	 */
 	default boolean autoStop() {
 		return true;
-	}
-
-	default CrawlerRepo getRepo() {
-		return CrawlerRepo.getDefault();
 	}
 
 	/**

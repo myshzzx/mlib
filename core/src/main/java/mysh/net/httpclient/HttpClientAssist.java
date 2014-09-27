@@ -48,9 +48,8 @@ public class HttpClientAssist implements Closeable {
 
 		HttpClientBuilder hcBuilder = HttpClientBuilder.create();
 
-		Header connection = new BasicHeader("Connection", conf.isKeepAlive() ? "Keep-Alive" : "close");
-		Header charSet = new BasicHeader("Accept-Charset", "*");
-		List<Header> headers = Arrays.asList(connection, charSet);
+		Header connection = new BasicHeader("Connection", conf.isKeepAlive() ? "keep-alive" : "close");
+		List<Header> headers = Arrays.asList(connection);
 		hcBuilder.setDefaultHeaders(headers);
 
 		RequestConfig reqConf = RequestConfig.custom()
@@ -100,7 +99,7 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		HttpContext ctx = new BasicHttpContext();
-		return new UrlEntity(req, hc.execute(req, ctx), ctx);
+		return new UrlEntity(url, hc.execute(req, ctx), ctx);
 	}
 
 	/**
@@ -261,7 +260,7 @@ public class HttpClientAssist implements Closeable {
 	@ThreadSafe
 	public final class UrlEntity implements Closeable {
 
-		private HttpUriRequest req;
+		private String reqUrl;
 		private CloseableHttpResponse rsp;
 		private HttpContext ctx;
 
@@ -270,8 +269,8 @@ public class HttpClientAssist implements Closeable {
 		private byte[] entityBuf;
 		private String entityStr;
 
-		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpContext ctx) {
-			this.req = req;
+		public UrlEntity(String reqUrl, CloseableHttpResponse rsp, HttpContext ctx) {
+			this.reqUrl = reqUrl;
 			this.rsp = rsp;
 			this.ctx = ctx;
 
@@ -291,6 +290,16 @@ public class HttpClientAssist implements Closeable {
 			}
 		}
 
+		/**
+		 * @return original request url.
+		 */
+		public String getReqUrl() {
+			return reqUrl;
+		}
+
+		/**
+		 * @return request reqUrl may jump several times, get the real access url.
+		 */
 		public String getCurrentURL() {
 			if (this.currentUrl == null) {
 				HttpUriRequest currReq = (HttpUriRequest) ctx.getAttribute(HttpCoreContext.HTTP_REQUEST);
