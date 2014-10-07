@@ -30,8 +30,8 @@ public class ImageDownloader implements CrawlerSeed {
 
 	public static void main(String[] args) throws InterruptedException {
 		HttpClientConfig hcc = new HttpClientConfig();
-		hcc.setUserAgent(HttpClientConfig.UA);
-		hcc.setMaxConnPerRoute(4);
+		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
+		hcc.setMaxConnPerRoute(20);
 //		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8058);
@@ -48,7 +48,7 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	public ImageDownloader() {
-		String u = "http://forum.bodybuilding.com/showthread.php?t=160303301";
+		String u = "http://www.msnzx.com/";
 		seeds.add(u);
 		int i = 1;
 		while (i++ < 345)
@@ -56,19 +56,18 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
-	public static final int WAIT_TIME = 500;
+	public static final int WAIT_TIME = 4;
 
 	@Override
 	public boolean accept(String url) {
 		return !repo.containsKey(url)
 						&& blockDomain.stream().filter(url::contains).count() == 0
-						&& !url.contains("amp;") && !url.contains("/user_images/")
 						&& (
 						url.endsWith("jpg")
 										|| url.endsWith("gif")
 										|| url.endsWith("jpeg")
 										|| url.endsWith("png")
-										|| url.startsWith("http://forum.bodybuilding.com/showthread.php?t=160303301&")
+										|| url.startsWith("http://www.msnzx.com/")
 		);
 	}
 
@@ -78,16 +77,18 @@ public class ImageDownloader implements CrawlerSeed {
 		repo.put(e.getReqUrl(), v);
 
 		try {
-			if (e.isImage() && e.getContentLength() > 15_000) {
+			if (e.isImage() && e.getContentLength() > 25_000) {
 				String imgName = new File(e.getCurrentURL()).getName();
 				File f = new File("l:/a", imgName);
 				if (f.exists() && f.length() > 0) return true;
-				if (new File("F:\\temp\\a", imgName).exists()) return true;
+//				if (new File("F:\\temp\\a", imgName).exists()) return true;
 
 				try (OutputStream out = new FileOutputStream(f)) {
 					e.bufWriteTo(out);
 				} catch (Exception ex) {
 					log.error("下载失败: " + e.getCurrentURL(), ex);
+					repo.remove(e.getCurrentURL());
+					repo.remove(e.getReqUrl());
 					return false;
 				}
 			}
@@ -115,6 +116,8 @@ public class ImageDownloader implements CrawlerSeed {
 				seeds.addAll(tUnhandledSeeds);
 			}
 		}
+
+		log.info("seeds.size=" + this.seeds.size());
 	}
 
 	@Override
@@ -131,7 +134,7 @@ public class ImageDownloader implements CrawlerSeed {
 
 	@Override
 	public int requestThreadSize() {
-		return 30;
+		return 40;
 	}
 }
 

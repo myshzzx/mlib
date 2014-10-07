@@ -72,7 +72,8 @@ public class Crawler {
 				while (true) {
 					try {
 						Thread.sleep(5000);
-						log.debug("wq.size=" + wq.size() + ", e.actCount=" + e.getActiveCount());
+						log.debug("wq.size=" + wq.size() + ", e.actCount=" + e.getActiveCount()
+										+ ", unhandled.size=" + unhandledUrls.size());
 						if (wq.size() == 0 && e.getActiveCount() == 0) {
 							Crawler.this.stop();
 							return;
