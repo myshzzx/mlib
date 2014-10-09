@@ -31,7 +31,7 @@ public class ImageDownloader implements CrawlerSeed {
 	public static void main(String[] args) throws InterruptedException {
 		HttpClientConfig hcc = new HttpClientConfig();
 		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
-		hcc.setMaxConnPerRoute(20);
+		hcc.setMaxConnPerRoute(30);
 //		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8058);
@@ -50,9 +50,6 @@ public class ImageDownloader implements CrawlerSeed {
 	public ImageDownloader() {
 		String u = "http://www.msnzx.com/";
 		seeds.add(u);
-		int i = 1;
-		while (i++ < 345)
-			seeds.add(u + "&page=" + i);
 	}
 
 	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
@@ -134,7 +131,7 @@ public class ImageDownloader implements CrawlerSeed {
 
 	@Override
 	public int requestThreadSize() {
-		return 40;
+		return 60;
 	}
 }
 

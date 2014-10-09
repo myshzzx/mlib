@@ -4,13 +4,12 @@ import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.SocketException;
-import java.net.SocketTimeoutException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Queue;
@@ -183,7 +182,8 @@ public class Crawler {
 				e.execute(this);
 				log.debug(ex.toString() + " - " + url);
 			} catch (Exception ex) {
-				unhandledUrls.offer(url);
+				if (!isMalformedUrl(ex))
+					unhandledUrls.offer(url);
 				log.error("on error handling url: " + this.url, ex);
 			}
 		}
@@ -233,6 +233,13 @@ public class Crawler {
 			}
 
 			return urls;
+		}
+
+		private boolean isMalformedUrl(Exception ex) {
+			return ex.getCause() instanceof URISyntaxException
+							|| ex instanceof ClientProtocolException
+							|| ex instanceof MalformedURLException
+							;
 		}
 	}
 
