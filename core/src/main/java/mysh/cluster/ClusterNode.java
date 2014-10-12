@@ -108,13 +108,15 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	private volatile Cmd masterCandidate;
 
 	/**
-	 * @param cmdPort cmd port. UDP(cmdPort) will be used in broadcast communication,
-	 *                while TCP(cmdPort) in RMI services dispatching,
-	 *                TCP(cmdPort+1) in RMI Master-Node service and TCP(cmdPort+2) in RMI Worker-Node service.
+	 * @param cmdPort   cmd port. UDP(cmdPort) will be used in broadcast communication,
+	 *                  while TCP(cmdPort) in RMI services dispatching,
+	 *                  TCP(cmdPort+1) in RMI Master-Node service and TCP(cmdPort+2) in RMI Worker-Node service.
+	 * @param initState initial state of the worker, which can be updated and sent to master node automatically.
+	 *                  can be <code>null</code>.
 	 * @throws Exception fail to bind UDP port, or no available network interface,
 	 *                   or fail to bind rmi service.
 	 */
-	public ClusterNode(int cmdPort) throws Exception {
+	public ClusterNode(int cmdPort, WorkerState initState) throws Exception {
 
 		cmdSock = new DatagramSocket(cmdPort);
 		cmdSock.setReceiveBufferSize(15 * 1024 * 1024);
@@ -126,13 +128,15 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 							.filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
 							.forEach(addr -> {
 								if (bcAdds.add(addr)) {
-									if (id == null) id = "cn_" + addr.getAddress().toString() + "_" + System.currentTimeMillis();
+									if (id == null)
+										id = "cn_" + addr.getAddress().toString() + "_" + System.currentTimeMillis();
 									log.info("add addr with broadcast: " + addr);
 								}
 							});
 		});
 
-		if (bcAdds.size() < 1) throw new RuntimeException("no available network interface that support broadcast.");
+		if (bcAdds.size() < 1)
+			throw new RuntimeException("no available network interface that support broadcast.");
 
 //		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
 		System.setProperty(RESPONSE_TIMEOUT_PROP, String.valueOf(NETWORK_TIMEOUT));
@@ -140,10 +144,10 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		Registry registry = LocateRegistry.createRegistry(cmdPort);
 
 		master = new Master(id, cmdPort, this);
-		IMasterService.bindService(registry, master, cmdPort + 1);
+		IMaster.bindService(registry, master, cmdPort + 1);
 
-		worker = new Worker(id, cmdPort, this);
-		IWorkerService.bindService(registry, worker, cmdPort + 2);
+		worker = new Worker(id, cmdPort, this, initState);
+		IWorker.bindService(registry, worker, cmdPort + 2);
 
 		startTime = System.currentTimeMillis();
 

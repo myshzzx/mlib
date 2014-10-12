@@ -17,27 +17,28 @@ import java.util.concurrent.LinkedBlockingQueue;
  * @author Mysh
  * @since 14-1-22 上午10:17
  */
-class Worker implements IWorkerService {
+class Worker implements IWorker {
 	private static final Logger log = LoggerFactory.getLogger(Worker.class);
 
 	private volatile String id;
 	private final int port;
 	private volatile Listener listener;
 
-	private final Map<String, IMasterService> mastersCache = new ConcurrentHashMap<>();
+	private final Map<String, IMaster> mastersCache = new ConcurrentHashMap<>();
 	private volatile long lastMasterAction = System.currentTimeMillis();
 
 	private final BlockingQueue<SubTask> subTasks = new LinkedBlockingDeque<>();
 	private final BlockingQueue<SubTask> completedSubTasks = new LinkedBlockingQueue<>();
-	private final WorkerStateImpl state = new WorkerStateImpl();
+	private final WorkerState state;
 
-	Worker(String id, int port, Listener listener) {
+	Worker(String id, int port, Listener listener, WorkerState initState) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need worker listener.");
 
 		this.id = id;
 		this.port = port;
 		this.listener = listener;
+		this.state = initState == null ? new WorkerState() : initState;
 
 		Thread chkMasterT = new Thread(rChkMaster, "clusterWorker:check-master");
 		chkMasterT.setDaemon(true);
@@ -72,17 +73,17 @@ class Worker implements IWorkerService {
 	};
 
 	private final Runnable rTaskExec = () -> {
-		SubTask task = null;
+		SubTask sTask = null;
 		while (true) {
 			try {
-				task = subTasks.take();
-				task.execute();
-				completedSubTasks.add(task);
+				sTask = subTasks.take();
+				sTask.execute();
+				completedSubTasks.add(sTask);
 			} catch (InterruptedException e) {
 				// end thread if interrupted
 				return;
 			} catch (Exception e) {
-				log.error("run subTask error. " + task, e);
+				log.error("run subTask error. " + sTask, e);
 			}
 		}
 	};
@@ -93,7 +94,7 @@ class Worker implements IWorkerService {
 		while (true) {
 			try {
 				task = completedSubTasks.take();
-				IMasterService masterService = mastersCache.get(task.masterId);
+				IMaster masterService = mastersCache.get(task.masterId);
 				if (masterService != null) {
 					masterService.subTaskComplete(task.taskId, task.subTaskId, task.result,
 									Worker.this.id, Worker.this.updateState());
@@ -136,7 +137,7 @@ class Worker implements IWorkerService {
 		try {
 			// this pre-check(but not putIfAbsent) can be used in multi-thread app env
 			if (!mastersCache.containsKey(c.id))
-				mastersCache.put(c.id, IMasterService.getService(c.ipAddr, c.masterPort));
+				mastersCache.put(c.id, IMaster.getService(c.ipAddr, c.masterPort));
 		} catch (Exception e) {
 			log.error("failed to connect to master. " + c, e);
 		}
@@ -160,7 +161,8 @@ class Worker implements IWorkerService {
 	}
 
 	private WorkerState updateState() {
-		this.state.taskQueueSize = this.subTasks.size();
+		this.state.setTaskQueueSize(this.subTasks.size());
+		this.state.update();
 		return this.state;
 	}
 
@@ -171,9 +173,9 @@ class Worker implements IWorkerService {
 		void masterUnavailable(String masterId);
 	}
 
-	private static class SubTask<T, ST, SR, R> {
+	private static final ClusterExcp.TaskTimeout taskTimeoutExcp = new ClusterExcp.TaskTimeout();
 
-		private static final ClusterExcp.TaskTimeout taskTimeoutExcp = new ClusterExcp.TaskTimeout();
+	private class SubTask<T, ST, SR, R> {
 
 		private final String masterId;
 		private final int taskId;
@@ -201,8 +203,12 @@ class Worker implements IWorkerService {
 				if (System.currentTimeMillis() > this.execBefore) {
 					result = taskTimeoutExcp;
 					log.error("task exec timeout. " + this);
-				} else
+				} else {
+					if (cUser instanceof IClusterMgr) {
+						((IClusterMgr) cUser).worker = Worker.this;
+					}
 					result = cUser.procSubTask(subTask, timeout);
+				}
 			} catch (Exception e) {
 				result = e;
 				log.error("task exec error.", e);
@@ -217,16 +223,6 @@ class Worker implements IWorkerService {
 							", subTaskId=" + subTaskId +
 							", execBefore=" + execBefore +
 							'}';
-		}
-	}
-
-	private static class WorkerStateImpl implements WorkerState {
-		private static final long serialVersionUID = -8275435482240858040L;
-		private int taskQueueSize;
-
-		@Override
-		public int getTaskQueueSize() {
-			return taskQueueSize;
 		}
 	}
 

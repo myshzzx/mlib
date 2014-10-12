@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import mysh.cluster.mgr.GetWorkerStates;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +11,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.rmi.RemoteException;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -107,6 +109,16 @@ public final class ClusterClient {
 		}
 	}
 
+	/**
+	 * get all workers' current states.
+	 * <p>
+	 * see {@link #runTask}
+	 */
+	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
+					throws RemoteException, ClusterExcp.TaskTimeout, InterruptedException, ClusterExcp.Unready {
+		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
+	}
+
 	private final AtomicBoolean isPreparingClusterService = new AtomicBoolean(false);
 
 	private void prepareClusterService() {
@@ -132,7 +144,7 @@ public final class ClusterClient {
 					log.debug("receive cmd: " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
-							service = IMasterService.getService(cmd.ipAddr, cmd.masterPort);
+							service = IMaster.getService(cmd.ipAddr, cmd.masterPort);
 						} catch (Exception e) {
 							log.error("connect to master service error.", e);
 						}

@@ -25,4 +25,5 @@ interface IClusterService extends Remote {
 					throws RemoteException,
 					ClusterExcp.NotMaster, ClusterExcp.NoWorkers, ClusterExcp.TaskTimeout,
 					InterruptedException;
+
 }

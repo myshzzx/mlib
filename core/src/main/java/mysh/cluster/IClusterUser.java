@@ -23,13 +23,27 @@ import java.util.Objects;
 public interface IClusterUser<T, ST, SR, R> extends Serializable {
 
 	/**
+	 * subTask encapsulation.
+	 */
+	public static interface SubTasksPack<ST> {
+		public ST[] getSubTasks();
+
+		/**
+		 * @return refers subTasks to the specified workerNodes by nodeIds, can be null.
+		 * if the nodeId is null, a proper workerNode will be assigned.
+		 * if the workerNode is unavailable, the subTask will be ignored.
+		 */
+		public String[] getReferredNodeIds();
+	}
+
+	/**
 	 * generate sub-tasks.
 	 *
 	 * @param task            task description.
 	 * @param workerNodeCount available worker nodes (>0).
 	 * @return sub-task-descriptions. can't be NULL.
 	 */
-	ST[] fork(T task, int workerNodeCount);
+	SubTasksPack<ST> fork(T task, int workerNodeCount);
 
 	/**
 	 * get SubResult type. will be invoked only once when creating result array.
@@ -50,9 +64,26 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	/**
 	 * join sub-tasks results.
 	 *
-	 * @param subResults sub-tasks results.
+	 * @param subResults      sub-tasks results.
+	 * @param assignedNodeIds nodes who are assigned the subTasks,and then submit results.
+	 *                        nodeId may be null, which means the subTask is ignored.
+	 * @return task result.
 	 */
-	R join(SR[] subResults);
+	R join(SR[] subResults, String[] assignedNodeIds);
+
+	default <ST> SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
+		return new SubTasksPack<ST>() {
+			@Override
+			public ST[] getSubTasks() {
+				return subTasks;
+			}
+
+			@Override
+			public String[] getReferredNodeIds() {
+				return referredNodeIds;
+			}
+		};
+	}
 
 	/**
 	 * split entire array into parts.
@@ -61,7 +92,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @param splitCount parts count.
 	 * @return parts array.
 	 */
-	static <OT> OT[][] split(OT[] entire, int splitCount) {
+	default <OT> OT[][] split(OT[] entire, int splitCount) {
 		Objects.requireNonNull(entire);
 		if (entire.length < splitCount || entire.length < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
@@ -91,7 +122,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @param splitCount parts count.
 	 * @return parts array.
 	 */
-	static <OT> List<OT>[] split(List<OT> entire, int splitCount) {
+	default <OT> List<OT>[] split(List<OT> entire, int splitCount) {
 		Objects.requireNonNull(entire);
 		if (entire.size() < splitCount || entire.size() < 1 || splitCount < 1)
 			throw new IllegalArgumentException(

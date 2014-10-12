@@ -201,7 +201,7 @@ public class Crawler {
 
 				// 取得当前根目录
 				String currentRoot = pageUrl;
-				int sepIndex = -1;
+				int sepIndex;
 				// 取 ? 前面的串
 				if ((sepIndex = currentRoot.lastIndexOf('?')) != -1) {
 					currentRoot = currentRoot.substring(0, sepIndex);

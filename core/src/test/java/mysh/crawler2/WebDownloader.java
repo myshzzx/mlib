@@ -18,25 +18,28 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * @author Mysh
  * @since 2014/9/25 15:37
  */
-public class ImageDownloader implements CrawlerSeed {
+public class WebDownloader implements CrawlerSeed {
 	private static final long serialVersionUID = 498361912566529068L;
-	private static final Logger log = LoggerFactory.getLogger(ImageDownloader.class);
-	private static final File saveFile = new File("l:/idStore");
+	private static final Logger log = LoggerFactory.getLogger(WebDownloader.class);
+	private static final File saveFile = new File("l:/wdStore");
 	private static final String v = "";
 
 	transient List<String> seeds = new ArrayList<>();
+
 	Queue<String> unhandledSeeds = new ConcurrentLinkedQueue<>();
 	Map<String, Serializable> repo = new ConcurrentHashMap<>(8000);
+
+	private static final String ROOT = "http://www.geekonomics10000.com/";
 
 	public static void main(String[] args) throws InterruptedException {
 		HttpClientConfig hcc = new HttpClientConfig();
 //		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
-		hcc.setMaxConnPerRoute(30);
+		hcc.setMaxConnPerRoute(3);
 //		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
-		hcc.setProxyPort(8058);
+		hcc.setProxyPort(8087);
 
-		Crawler c = new Crawler(new ImageDownloader(), hcc);
+		Crawler c = new Crawler(new WebDownloader(), hcc);
 		c.start();
 
 		while (c.getStatus() == Crawler.Status.RUNNING) {
@@ -47,48 +50,44 @@ public class ImageDownloader implements CrawlerSeed {
 		System.out.println("end");
 	}
 
-	public ImageDownloader() {
-		String u = "http://www.msnzx.com/";
+	public WebDownloader() {
+		String u = ROOT;
 		seeds.add(u);
 	}
 
-	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
-	public static final int WAIT_TIME = 4;
+	public static final int WAIT_TIME = 5000;
 
 	@Override
 	public boolean accept(String url) {
-//		if (1 == 1)
-//			return true;
 		return !repo.containsKey(url)
-						&& blockDomain.stream().filter(url::contains).count() == 0
-						&& (url.endsWith("jpg")
-						|| url.endsWith("gif")
-						|| url.endsWith("jpeg")
-						|| url.endsWith("png")
-						|| url.startsWith("http://www.msnzx.com/")
-		);
+						&& url.startsWith(ROOT)
+						;
 	}
 
 	@Override
 	public boolean onGet(HttpClientAssist.UrlEntity e) {
+		if (e.getContentLength() < 512) return false;
+
 		repo.put(e.getCurrentURL(), v);
 		repo.put(e.getReqUrl(), v);
 
 		try {
-			if (e.isImage() && e.getContentLength() > 25_000) {
-				String imgName = new File(e.getCurrentURL()).getName();
-				File f = new File("l:/a", imgName);
-				if (f.exists() && f.length() > 0) return true;
-//				if (new File("F:\\temp\\a", imgName).exists()) return true;
+			String fUri = e.getCurrentURL().substring(ROOT.length());
+			int endIdx = fUri.lastIndexOf('?');
+			if (endIdx > 0) {
+				fUri = fUri.substring(0, endIdx);
+			}
+			File f = new File("l:/a/" + fUri);
+			f.getParentFile().mkdirs();
+			if (f.exists() && f.length() > 0) return true;
 
-				try (OutputStream out = new FileOutputStream(f)) {
-					e.bufWriteTo(out);
-				} catch (Exception ex) {
-					log.error("下载失败: " + e.getCurrentURL(), ex);
-					repo.remove(e.getCurrentURL());
-					repo.remove(e.getReqUrl());
-					return false;
-				}
+			try (OutputStream out = new FileOutputStream(f)) {
+				e.bufWriteTo(out);
+			} catch (Exception ex) {
+				log.error("下载失败: " + e.getCurrentURL(), ex);
+				repo.remove(e.getCurrentURL());
+				repo.remove(e.getReqUrl());
+				return false;
 			}
 			return true;
 		} finally {
@@ -132,7 +131,7 @@ public class ImageDownloader implements CrawlerSeed {
 
 	@Override
 	public int requestThreadSize() {
-		return 60;
+		return 10;
 	}
 }
 

@@ -20,7 +20,7 @@ public class ClusterTest2 {
 
 	@Test
 	public void singleTest() throws Exception {
-		new ClusterNode(cmdPort);
+		new ClusterNode(cmdPort, null);
 		this.calcTest();
 	}
 
@@ -49,13 +49,13 @@ public class ClusterTest2 {
 						private static final long serialVersionUID = -6500480014655019875L;
 
 						@Override
-						public float[][][] fork(float[][] task, int workerNodeCount) {
+						public SubTasksPack<float[][]> fork(float[][] task, int workerNodeCount) {
 							System.out.println("==begin to fork sumUser task.==");
 
-							float[][][] r = IClusterUser.split(task, workerNodeCount);
+							float[][][] r = split(task, workerNodeCount);
 
 							System.out.println("==fork sumUser task end.==");
-							return r;
+							return pack(r, null);
 						}
 
 						@Override
@@ -72,7 +72,7 @@ public class ClusterTest2 {
 						}
 
 						@Override
-						public Integer join(Integer[] subResult) {
+						public Integer join(Integer[] subResult, String[] nodes) {
 							int sum = 0;
 							for (int sr : subResult) sum += sr;
 							return sum;
