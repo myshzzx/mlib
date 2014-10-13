@@ -54,11 +54,44 @@ class Worker implements IWorker {
 		taskCompleteT.setDaemon(true);
 		taskCompleteT.setPriority(Thread.NORM_PRIORITY + 1);
 		taskCompleteT.start();
+
+		rCloseWorker = () -> {
+			try {
+				log.info("closing worker.rChkMaster");
+				chkMasterT.interrupt();
+				chkMasterT.join();
+			} catch (Exception e) {
+				log.error("worker.rChkMaster close error.", e);
+			}
+			try {
+				log.info("closing worker.rTaskExec");
+				taskExecT.interrupt();
+				taskExecT.join();
+			} catch (Exception e) {
+				log.error("worker.rTaskExec close error.", e);
+			}
+			try {
+				log.info("closing worker.rTaskComplete");
+				taskCompleteT.interrupt();
+				taskCompleteT.join();
+			} catch (Exception e) {
+				log.error("worker.rTaskComplete close error.", e);
+			}
+		};
+	}
+
+	private final Runnable rCloseWorker;
+
+	@Override
+	public void closeWorker() {
+		rCloseWorker.run();
 	}
 
 	private final Runnable rChkMaster = () -> {
 		int timeout = ClusterNode.NETWORK_TIMEOUT * 2;
-		while (true) {
+
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				Thread.sleep(timeout);
 				if (listener != null && lastMasterAction < System.currentTimeMillis() - timeout)
@@ -74,7 +107,9 @@ class Worker implements IWorker {
 
 	private final Runnable rTaskExec = () -> {
 		SubTask sTask = null;
-		while (true) {
+
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				sTask = subTasks.take();
 				sTask.execute();
@@ -91,7 +126,8 @@ class Worker implements IWorker {
 	private final Runnable rTaskComplete = () -> {
 		SubTask task = new SubTask<>(null, 0, 0, null, null, 0, 0);
 
-		while (true) {
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				task = completedSubTasks.take();
 				IMaster masterService = mastersCache.get(task.masterId);

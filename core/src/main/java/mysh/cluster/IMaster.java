@@ -1,6 +1,7 @@
 package mysh.cluster;
 
 import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
@@ -14,9 +15,13 @@ public interface IMaster extends IClusterService {
 
 	String SERVICE_NAME = IMaster.class.getSimpleName();
 
-	static void bindService(Registry registry, IMaster service, int port)
-					throws RemoteException, AlreadyBoundException {
-		registry.bind(SERVICE_NAME, UnicastRemoteObject.exportObject(service, port));
+	static void bind(Registry registry, IMaster master, int port) throws RemoteException, AlreadyBoundException {
+		registry.bind(SERVICE_NAME, UnicastRemoteObject.exportObject(master, port));
+	}
+
+	static void unbind(Registry registry, IMaster master) throws RemoteException, NotBoundException {
+		registry.unbind(SERVICE_NAME);
+		UnicastRemoteObject.unexportObject(master, true);
 	}
 
 	static IMaster getService(String host, int port) throws Exception {
@@ -37,5 +42,10 @@ public interface IMaster extends IClusterService {
 	/**
 	 * get current workers state.
 	 */
-	<WS extends WorkerState> Map<String, WS> getWorkerStates();
+	<WS extends WorkerState> Map<String, WS> getWorkerStates() throws RemoteException;
+
+	/**
+	 * close master.
+	 */
+	void closeMaster() throws RemoteException;
 }

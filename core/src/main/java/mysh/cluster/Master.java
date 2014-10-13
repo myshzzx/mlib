@@ -59,11 +59,37 @@ class Master implements IMaster {
 		stDistT.setDaemon(true);
 		stDistT.setPriority(Thread.NORM_PRIORITY + 1);
 		stDistT.start();
+
+		rCloseMaster = () -> {
+			try {
+				log.info("closing master.rWorkersHeartBeat");
+				workersHBT.interrupt();
+				workersHBT.join();
+			} catch (Exception e) {
+				log.error("master.rWorkersHeartBeat stop error.", e);
+			}
+
+			try {
+				log.info("closing master.rSubTaskDispatcher");
+				stDistT.interrupt();
+				stDistT.join();
+			} catch (Exception e) {
+				log.error("master.rSubTaskDispatcher stop error.", e);
+			}
+		};
+	}
+
+	private final Runnable rCloseMaster;
+
+	@Override
+	public void closeMaster() {
+		rCloseMaster.run();
 	}
 
 	private final Runnable rSubTaskDispatcher = () -> {
 
-		while (true) {
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			SubTask subTask = null;
 			WorkerNode node = null;
 
@@ -125,7 +151,8 @@ class Master implements IMaster {
 		long lastHBTime = 0, tTime;
 		// broadcast factor
 		int bcFact = 0;
-		while (true) {
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				Thread.sleep(ClusterNode.NETWORK_TIMEOUT / 2);
 

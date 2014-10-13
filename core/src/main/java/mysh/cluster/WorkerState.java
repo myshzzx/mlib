@@ -31,9 +31,9 @@ public class WorkerState implements Serializable {
 	private long procCpu = -1;
 	private long sysCpu = -1;
 
-	private MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-	private ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-	private OperatingSystemMXBean opBean = ManagementFactory.getOperatingSystemMXBean();
+	private transient MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+	private transient ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
+	private transient OperatingSystemMXBean opBean = ManagementFactory.getOperatingSystemMXBean();
 
 	/**
 	 * the update method will be invoked each time master-heart-beat and subTask complete.

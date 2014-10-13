@@ -12,10 +12,7 @@ import java.rmi.registry.Registry;
 import java.rmi.server.RMIClientSocketFactory;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
  * self-organized and decentralized Master-Worker cluster network keeper.<br/>
@@ -144,10 +141,10 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		Registry registry = LocateRegistry.createRegistry(cmdPort);
 
 		master = new Master(id, cmdPort, this);
-		IMaster.bindService(registry, master, cmdPort + 1);
+		IMaster.bind(registry, master, cmdPort + 1);
 
 		worker = new Worker(id, cmdPort, this, initState);
-		IWorker.bindService(registry, worker, cmdPort + 2);
+		IWorker.bind(registry, worker, cmdPort + 2);
 
 		startTime = System.currentTimeMillis();
 
@@ -162,16 +159,75 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		procCmdT.start();
 
 		changeState(State.INIT);
+
+		rShutdownNode = () -> {
+			log.info("closing cmdSock");
+			cmdSock.close();
+
+			try {
+				log.info("closing node.rGetCmd");
+				getCmdT.interrupt();
+				getCmdT.join();
+			} catch (Exception e) {
+				log.error("node.rGetCmd close error.", e);
+			}
+			try {
+				log.info("closing node.rProcCmd");
+				procCmdT.interrupt();
+				procCmdT.join();
+			} catch (Exception e) {
+				log.error("node.rProcCmd close error.", e);
+			}
+			try{
+				log.info("closing node.rChkMaster");
+				rChkMaster.shutdownNow();
+			} catch (Exception e) {
+				log.error("node.rChkMaster close error.", e);
+			}
+
+			try {
+				log.info("unbinding master");
+				IMaster.unbind(registry, master);
+			} catch (Exception e) {
+				log.error("unbind master service error.", e);
+			}
+			try {
+				log.info("unbinding worker");
+				IWorker.unbind(registry, worker);
+			} catch (Exception e) {
+				log.error("unbind worker service error.", e);
+			}
+
+			log.info("closing master");
+			master.closeMaster();
+			log.info("closing worker");
+			worker.closeWorker();
+		};
+	}
+
+	private final Runnable rShutdownNode;
+
+	/**
+	 * shutdown cluster node and release resource.
+	 */
+	public void shutdownNode() {
+		log.info("closing cluster node.");
+		rShutdownNode.run();
+		log.info("cluster node closed.");
 	}
 
 	private final Runnable rGetCmd = () -> {
 		byte[] buf = new byte[10_000];
 		DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
-		while (true) {
+
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				Cmd cmd = SockUtil.receiveCmd(cmdSock, p);
 				cmd.receiveTime = System.currentTimeMillis();
 				cmds.add(cmd);
+			} catch (InterruptedException e) {
+				return;
 			} catch (Exception e) {
 				log.error("get cmd error.", e);
 			}
@@ -179,7 +235,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	};
 
 	private final Runnable rProcCmd = () -> {
-		while (true) {
+		Thread currentThread = Thread.currentThread();
+		while (!currentThread.isInterrupted()) {
 			try {
 				Cmd cmd = cmds.take();
 				log.debug("receive cmd: " + cmd);
@@ -231,6 +288,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 					default:
 						throw new RuntimeException("unknown action:" + cmd.action);
 				}
+			} catch (InterruptedException e) {
+				return;
 			} catch (Exception e) {
 				log.error("proc cmd failed.", e);
 			}
@@ -275,6 +334,12 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		}
 	}
 
+	private ScheduledExecutorService rChkMaster = Executors.newScheduledThreadPool(1,r->{
+		Thread t = new Thread(r, "clusterNode:check-master");
+		t.setDaemon(true);
+		return t;
+	});
+
 	/**
 	 * change state to newState.
 	 */
@@ -285,12 +350,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 			case INIT:
 				masterCandidate = null;
 				broadcastCmd(Cmd.Action.WHO_IS_THE_MASTER_BY_WORKER);
-				new Timer("clusterNode:check-master-timer", true).schedule(new TimerTask() {
-					@Override
-					public void run() {
-						cmds.add(new Cmd(Cmd.Action.CHECK_MASTER, null, 0, null, (short) 0, 0, 0));
-					}
-				}, NETWORK_TIMEOUT);
+				rChkMaster.schedule(() -> cmds.add(new Cmd(Cmd.Action.CHECK_MASTER, null, 0, null, (short) 0, 0, 0)),
+								NETWORK_TIMEOUT, TimeUnit.MILLISECONDS);
 				break;
 			case MASTER:
 				master.setMaster(true);
