@@ -3,14 +3,17 @@ package mysh.cluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.*;
-import java.rmi.NotBoundException;
-import java.rmi.RemoteException;
-import java.rmi.UnmarshalException;
+import java.rmi.*;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.RMIClientSocketFactory;
+import java.rmi.server.RMIServerSocketFactory;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.HashSet;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.*;
 
@@ -41,7 +44,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	/**
 	 * ClusterNode state.
 	 */
-	private static enum State {
+	private static enum ClusterState {
 		INIT, MASTER, WORKER
 	}
 
@@ -62,19 +65,24 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	 * and a value of zero indicates an infinite timeout. The default value is zero (no timeout).
 	 */
 	private static final String RESPONSE_TIMEOUT_PROP = "sun.rmi.transport.tcp.responseTimeout";
-
-	/**
-	 * network timeout(milli-second).
-	 */
-	public static final int NETWORK_TIMEOUT = 5000;
-	public static final int NODES_SCALE = 1024;
+	static final String MASTER_RMI_NAME = IMaster.class.getSimpleName();
+	private static final String WORKER_RMI_NAME = IWorker.class.getSimpleName();
+	private final int rmiPort;
+	private final Registry registry;
+	private final Queue<Closeable> rmiCreatedSocks = new ConcurrentLinkedQueue<>();
 	/**
 	 * create rmi client with timeout {@link #NETWORK_TIMEOUT}.
 	 */
-	static final RMIClientSocketFactory clientSockFact = (host, port) -> {
+	private final RMIClientSocketFactory clientSockFact = (host, port) -> {
 		Socket sock = new Socket();
 		sock.connect(new InetSocketAddress(host, port), ClusterNode.NETWORK_TIMEOUT);
+		this.rmiCreatedSocks.add(sock);
 		return sock;
+	};
+	private final RMIServerSocketFactory serverSockFact = port -> {
+		ServerSocket s = new ServerSocket(port);
+		this.rmiCreatedSocks.add(s);
+		return s;
 	};
 
 	/**
@@ -87,22 +95,27 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	private volatile long startTime;
 
 	/**
+	 * network timeout(milli-second).
+	 */
+	public static final int NETWORK_TIMEOUT = 5000;
+	public static final int NODES_SCALE = 1024;
+	/**
 	 * UDP command sock.
 	 */
 	private DatagramSocket cmdSock;
-
 	/**
 	 * network interface addresses with broadcast address.
 	 */
 	private final Set<InterfaceAddress> bcAdds = new HashSet<>();
-
+	/**
+	 * received cmds.
+	 */
 	private final BlockingQueue<Cmd> cmds = new LinkedBlockingQueue<>();
-	private volatile State state;
-	private Master master;
-
-	private Worker worker;
-
 	private volatile Cmd masterCandidate;
+	private volatile ClusterState clusterState;
+
+	private Master master;
+	private Worker worker;
 
 	/**
 	 * @param cmdPort   cmd port. UDP(cmdPort) will be used in broadcast communication,
@@ -138,170 +151,198 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 //		http://docs.oracle.com/javase/7/docs/technotes/guides/rmi/sunrmiproperties.html
 		System.setProperty(RESPONSE_TIMEOUT_PROP, String.valueOf(NETWORK_TIMEOUT));
 
-		Registry registry = LocateRegistry.createRegistry(cmdPort);
+		this.rmiPort = cmdPort;
+		registry = LocateRegistry.createRegistry(this.rmiPort, clientSockFact, serverSockFact);
 
-		master = new Master(id, cmdPort, this);
-		IMaster.bind(registry, master, cmdPort + 1);
+		master = new Master(id, this);
+		bind(registry, MASTER_RMI_NAME, master, this.rmiPort + 1);
 
-		worker = new Worker(id, cmdPort, this, initState);
-		IWorker.bind(registry, worker, cmdPort + 2);
+		worker = new Worker(id, this, initState);
+		bind(registry, WORKER_RMI_NAME, worker, this.rmiPort + 2);
 
 		startTime = System.currentTimeMillis();
 
-		Thread getCmdT = new Thread(rGetCmd, "clusterNode:get-cmd");
-		getCmdT.setDaemon(true);
-		getCmdT.setPriority(Thread.MAX_PRIORITY);
-		getCmdT.start();
+		tGetCmd.setDaemon(true);
+		tGetCmd.setPriority(Thread.MAX_PRIORITY);
+		tGetCmd.start();
 
-		Thread procCmdT = new Thread(rProcCmd, "clusterNode:proc-cmd");
-		procCmdT.setDaemon(true);
-		procCmdT.setPriority(Thread.MAX_PRIORITY);
-		procCmdT.start();
+		tProcCmd.setDaemon(true);
+		tProcCmd.setPriority(Thread.MAX_PRIORITY);
+		tProcCmd.start();
 
-		changeState(State.INIT);
-
-		rShutdownNode = () -> {
-			log.info("closing cmdSock");
-			cmdSock.close();
-
-			try {
-				log.info("closing node.rGetCmd");
-				getCmdT.interrupt();
-				getCmdT.join();
-			} catch (Exception e) {
-				log.error("node.rGetCmd close error.", e);
-			}
-			try {
-				log.info("closing node.rProcCmd");
-				procCmdT.interrupt();
-				procCmdT.join();
-			} catch (Exception e) {
-				log.error("node.rProcCmd close error.", e);
-			}
-			try{
-				log.info("closing node.rChkMaster");
-				rChkMaster.shutdownNow();
-			} catch (Exception e) {
-				log.error("node.rChkMaster close error.", e);
-			}
-
-			try {
-				log.info("unbinding master");
-				IMaster.unbind(registry, master);
-			} catch (Exception e) {
-				log.error("unbind master service error.", e);
-			}
-			try {
-				log.info("unbinding worker");
-				IWorker.unbind(registry, worker);
-			} catch (Exception e) {
-				log.error("unbind worker service error.", e);
-			}
-
-			log.info("closing master");
-			master.closeMaster();
-			log.info("closing worker");
-			worker.closeWorker();
-		};
+		changeState(ClusterState.INIT);
 	}
 
-	private final Runnable rShutdownNode;
+	private final Thread tGetCmd = new Thread("clusterNode:get-cmd") {
+		@Override
+		public void run() {
+			byte[] buf = new byte[10_000];
+			DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
+
+			while (!this.isInterrupted()) {
+				try {
+					Cmd cmd = SockUtil.receiveCmd(cmdSock, p);
+					cmd.receiveTime = System.currentTimeMillis();
+					cmds.add(cmd);
+				} catch (InterruptedException e) {
+					return;
+				} catch (Exception e) {
+					log.error("get cmd error.", e);
+				}
+			}
+		}
+	};
+
+	private final Thread tProcCmd = new Thread("clusterNode:proc-cmd") {
+		@Override
+		public void run() {
+			while (!this.isInterrupted()) {
+				try {
+					Cmd cmd = cmds.take();
+					log.debug("receive cmd: " + cmd);
+					if (cmd.action == Cmd.Action.I_AM_THE_MASTER
+									|| cmd.action == Cmd.Action.I_AM_A_WORKER
+									|| cmd.action == Cmd.Action.WHO_IS_THE_MASTER_BY_WORKER)
+						master.newNode(cmd);
+					if (cmd.action == Cmd.Action.I_AM_THE_MASTER)
+						worker.newMaster(cmd);
+
+					switch (cmd.action) {
+						case WHO_IS_THE_MASTER_BY_WORKER:
+							prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
+
+							if (clusterState == ClusterState.MASTER)
+								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
+							break;
+						case WHO_IS_THE_MASTER_BY_CLIENT:
+							if (clusterState == ClusterState.MASTER) {
+								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
+								replyClient(cmd);
+							}
+							break;
+						case I_AM_THE_MASTER:
+							prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
+
+							if (!cmd.id.equals(id)) { // cmd is from other node
+								if (startTime < cmd.startTime) { // current node should be a master
+									changeState(ClusterState.MASTER);
+									broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
+								} else if (startTime > cmd.startTime) { // current node should not be a master
+									changeState(ClusterState.WORKER);
+								}
+							}
+							break;
+						case I_AM_A_WORKER:
+							prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
+							break;
+						case CHECK_MASTER:
+							if (masterCandidate == null || masterCandidate.id.equals(id)) {
+								changeState(ClusterState.MASTER);
+								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
+							} else
+								changeState(ClusterState.WORKER);
+							break;
+						case REINIT:
+							changeState(ClusterState.INIT);
+							break;
+						default:
+							throw new RuntimeException("unknown action:" + cmd.action);
+					}
+				} catch (InterruptedException e) {
+					return;
+				} catch (Exception e) {
+					log.error("proc cmd failed.", e);
+				}
+			}
+		}
+	};
 
 	/**
 	 * shutdown cluster node and release resource.
 	 */
 	public void shutdownNode() {
 		log.info("closing cluster node.");
-		rShutdownNode.run();
+
+		log.debug("closing cmdSock.");
+		cmdSock.close();
+
+		try {
+			log.debug("closing node.tGetCmd.");
+			tGetCmd.interrupt();
+			tGetCmd.join();
+		} catch (Exception e) {
+			log.error("node.tGetCmd close error.", e);
+		}
+		try {
+			log.debug("closing node.tProcCmd.");
+			tProcCmd.interrupt();
+			tProcCmd.join();
+		} catch (Exception e) {
+			log.error("node.tProcCmd close error.", e);
+		}
+		try {
+			log.debug("closing node.rChkMaster.");
+			rChkMaster.shutdownNow();
+		} catch (Exception e) {
+			log.error("node.rChkMaster close error.", e);
+		}
+
+		try {
+			log.debug("unbinding master.");
+			unbind(this.registry, MASTER_RMI_NAME, master);
+		} catch (Exception e) {
+			log.error("unbind master service error.", e);
+		}
+		try {
+			log.debug("unbinding worker.");
+			unbind(this.registry, WORKER_RMI_NAME, worker);
+		} catch (Exception e) {
+			log.error("unbind worker service error.", e);
+		}
+		log.debug("closing rmi socks, count:" + this.rmiCreatedSocks.size());
+		Closeable rmiSock;
+		while ((rmiSock = this.rmiCreatedSocks.poll()) != null) {
+			try {
+				rmiSock.close();
+			} catch (IOException e) {
+			}
+		}
+
+		master.closeMaster();
+		worker.closeWorker();
+
 		log.info("cluster node closed.");
 	}
 
-	private final Runnable rGetCmd = () -> {
-		byte[] buf = new byte[10_000];
-		DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
-
-		Thread currentThread = Thread.currentThread();
-		while (!currentThread.isInterrupted()) {
-			try {
-				Cmd cmd = SockUtil.receiveCmd(cmdSock, p);
-				cmd.receiveTime = System.currentTimeMillis();
-				cmds.add(cmd);
-			} catch (InterruptedException e) {
-				return;
-			} catch (Exception e) {
-				log.error("get cmd error.", e);
-			}
-		}
-	};
-
-	private final Runnable rProcCmd = () -> {
-		Thread currentThread = Thread.currentThread();
-		while (!currentThread.isInterrupted()) {
-			try {
-				Cmd cmd = cmds.take();
-				log.debug("receive cmd: " + cmd);
-				if (cmd.action == Cmd.Action.I_AM_THE_MASTER
-								|| cmd.action == Cmd.Action.I_AM_A_WORKER
-								|| cmd.action == Cmd.Action.WHO_IS_THE_MASTER_BY_WORKER)
-					master.newNode(cmd);
-				if (cmd.action == Cmd.Action.I_AM_THE_MASTER)
-					worker.newMaster(cmd);
-
-				switch (cmd.action) {
-					case WHO_IS_THE_MASTER_BY_WORKER:
-						prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
-
-						if (state == State.MASTER)
-							broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
-						break;
-					case WHO_IS_THE_MASTER_BY_CLIENT:
-						if (state == State.MASTER) {
-							broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
-							replyClient(cmd);
-						}
-						break;
-					case I_AM_THE_MASTER:
-						prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
-
-						if (!cmd.id.equals(id)) { // cmd is from other node
-							if (startTime < cmd.startTime) { // current node should be a master
-								changeState(State.MASTER);
-								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
-							} else if (startTime > cmd.startTime) { // current node should not be a master
-								changeState(State.WORKER);
-							}
-						}
-						break;
-					case I_AM_A_WORKER:
-						prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
-						break;
-					case CHECK_MASTER:
-						if (masterCandidate == null || masterCandidate.id.equals(id)) {
-							changeState(State.MASTER);
-							broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
-						} else
-							changeState(State.WORKER);
-						break;
-					case REINIT:
-						changeState(State.INIT);
-						break;
-					default:
-						throw new RuntimeException("unknown action:" + cmd.action);
-				}
-			} catch (InterruptedException e) {
-				return;
-			} catch (Exception e) {
-				log.error("proc cmd failed.", e);
-			}
-		}
-	};
+	// ============ RMI below ===============
 
 	@SuppressWarnings("unchecked")
-	static <T> T getRMIService(String host, int port, String serviceName)
+	static <T> T getRMIService(String host, int port, String serviceRmiName, RMIClientSocketFactory clientSockFact)
 					throws RemoteException, NotBoundException {
-		Registry registry = LocateRegistry.getRegistry(host, port, ClusterNode.clientSockFact);
-		return (T) registry.lookup(serviceName);
+		Registry registry = LocateRegistry.getRegistry(host, port, clientSockFact);
+		return (T) registry.lookup(serviceRmiName);
 	}
+
+	public IMaster getMasterService(String host, int port) throws RemoteException, NotBoundException {
+		return getRMIService(host, port, MASTER_RMI_NAME, this.clientSockFact);
+	}
+
+	public IWorker getWorkerService(String host, int port) throws RemoteException, NotBoundException {
+		return getRMIService(host, port, WORKER_RMI_NAME, this.clientSockFact);
+	}
+
+	private static void bind(Registry registry, String name, Remote remote, int port)
+					throws RemoteException, AlreadyBoundException {
+		registry.bind(name, UnicastRemoteObject.exportObject(remote, port));
+	}
+
+	private static void unbind(Registry registry, String name, Remote remote)
+					throws RemoteException, NotBoundException {
+		registry.unbind(name);
+		UnicastRemoteObject.unexportObject(remote, true);
+	}
+
+	// ============ RMI above ===============
 
 	/**
 	 * whether the exception throw by remote invoking means node unavailable.
@@ -334,7 +375,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		}
 	}
 
-	private ScheduledExecutorService rChkMaster = Executors.newScheduledThreadPool(1,r->{
+	private ScheduledExecutorService rChkMaster = Executors.newScheduledThreadPool(1, r -> {
 		Thread t = new Thread(r, "clusterNode:check-master");
 		t.setDaemon(true);
 		return t;
@@ -343,10 +384,10 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	/**
 	 * change state to newState.
 	 */
-	private void changeState(State newState) {
-		if (state == newState) return;
+	private void changeState(ClusterState newClusterState) {
+		if (clusterState == newClusterState) return;
 
-		switch (newState) {
+		switch (newClusterState) {
 			case INIT:
 				masterCandidate = null;
 				broadcastCmd(Cmd.Action.WHO_IS_THE_MASTER_BY_WORKER);
@@ -360,11 +401,11 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 				master.setMaster(false);
 				break;
 			default:
-				throw new RuntimeException("unknown state:" + newState);
+				throw new RuntimeException("unknown state:" + newClusterState);
 		}
 
-		state = newState;
-		log.info("state changed to " + state);
+		clusterState = newClusterState;
+		log.info("state changed to " + clusterState);
 	}
 
 
@@ -376,8 +417,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 			if (SockUtil.isInTheSameBroadcastDomain(addr, clientCmd.ipAddr, clientCmd.ipMask)) {
 				Cmd cmdForClient = new Cmd(Cmd.Action.I_AM_THE_MASTER, this.id, this.startTime,
 								addr.getAddress().getHostAddress(), addr.getNetworkPrefixLength(),
-								master != null ? master.getServicePort() : 0,
-								worker != null ? worker.getServicePort() : 0);
+								master != null ? this.rmiPort : 0,
+								worker != null ? this.rmiPort : 0);
 				try {
 					SockUtil.sendCmd(this.cmdSock, cmdForClient, InetAddress.getByName(clientCmd.ipAddr), clientCmd.masterPort);
 					log.debug("reply client: " + cmdForClient);
@@ -393,8 +434,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		for (InterfaceAddress ifa : bcAdds) {
 			Cmd c = new Cmd(action, this.id, this.startTime,
 							ifa.getAddress().getHostAddress(), ifa.getNetworkPrefixLength(),
-							master != null ? master.getServicePort() : 0,
-							worker != null ? worker.getServicePort() : 0);
+							master != null ? this.rmiPort : 0,
+							worker != null ? this.rmiPort : 0);
 			try {
 				SockUtil.sendCmd(cmdSock, c, ifa.getBroadcast(), cmdSock.getLocalPort());
 				log.debug("broadcast cmd: " + c);
@@ -406,12 +447,12 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 	@Override
 	public void masterTimeout() {
-		changeState(State.INIT);
+		changeState(ClusterState.INIT);
 	}
 
 	@Override
 	public void broadcastIAmTheMaster() {
-		if (this.state == State.MASTER)
+		if (this.clusterState == ClusterState.MASTER)
 			this.broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
 	}
 

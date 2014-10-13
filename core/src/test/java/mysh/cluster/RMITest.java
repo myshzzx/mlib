@@ -6,6 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
 import java.rmi.Remote;
@@ -87,8 +89,11 @@ public class RMITest implements Serializable {
 	@Test
 	public void clientRemoteObj() throws RemoteException, NotBoundException, InterruptedException {
 		int port = 8030;
-		Registry registry = LocateRegistry.getRegistry("mysh", port, ClusterNode.clientSockFact);
-
+		Registry registry = LocateRegistry.getRegistry("mysh", port, (h, p) -> {
+			Socket sock = new Socket();
+			sock.connect(new InetSocketAddress(h, p), ClusterNode.NETWORK_TIMEOUT);
+			return sock;
+		});
 
 		try {
 			final RI riClient = (RI) registry.lookup("ro");

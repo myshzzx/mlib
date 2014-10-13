@@ -27,7 +27,6 @@ class Master implements IMaster {
 	private ClusterExcp.TaskTimeout taskTimeoutExcp;
 
 	private String id;
-	private final int port;
 	private volatile Listener listener;
 	private volatile boolean isMaster = false;
 
@@ -42,154 +41,148 @@ class Master implements IMaster {
 	private final Map<Integer, TaskInfo> taskInfoTable = new ConcurrentHashMap<>();
 	private final BlockingQueue<SubTask> subTasks = new LinkedBlockingQueue<>();
 
-	Master(String id, int port, Listener listener) {
+	Master(String id, Listener listener) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need master listener.");
 
 		this.id = id;
-		this.port = port;
 		this.listener = listener;
 
-		Thread workersHBT = new Thread(rWorkersHeartBeat, "clusterMaster:workers-heart-beat");
-		workersHBT.setDaemon(true);
-		workersHBT.setPriority(Thread.NORM_PRIORITY);
-		workersHBT.start();
+		tWorkersHeartBeat.setDaemon(true);
+		tWorkersHeartBeat.setPriority(Thread.NORM_PRIORITY);
+		tWorkersHeartBeat.start();
 
-		Thread stDistT = new Thread(rSubTaskDispatcher, "clusterMaster:subTask-dispatcher");
-		stDistT.setDaemon(true);
-		stDistT.setPriority(Thread.NORM_PRIORITY + 1);
-		stDistT.start();
-
-		rCloseMaster = () -> {
-			try {
-				log.info("closing master.rWorkersHeartBeat");
-				workersHBT.interrupt();
-				workersHBT.join();
-			} catch (Exception e) {
-				log.error("master.rWorkersHeartBeat stop error.", e);
-			}
-
-			try {
-				log.info("closing master.rSubTaskDispatcher");
-				stDistT.interrupt();
-				stDistT.join();
-			} catch (Exception e) {
-				log.error("master.rSubTaskDispatcher stop error.", e);
-			}
-		};
+		tSubTaskDispatcher.setDaemon(true);
+		tSubTaskDispatcher.setPriority(Thread.NORM_PRIORITY + 1);
+		tSubTaskDispatcher.start();
 	}
 
-	private final Runnable rCloseMaster;
+	Thread tWorkersHeartBeat = new Thread("clusterMaster:workers-heart-beat") {
+		@Override
+		public void run() {
 
-	@Override
-	public void closeMaster() {
-		rCloseMaster.run();
-	}
-
-	private final Runnable rSubTaskDispatcher = () -> {
-
-		Thread currentThread = Thread.currentThread();
-		while (!currentThread.isInterrupted()) {
-			SubTask subTask = null;
-			WorkerNode node = null;
-
-			try {
-				subTask = subTasks.take();
-				// ignore the subTask if its main-task removed.
-				if (!taskInfoTable.containsKey(subTask.ti.taskId)) continue;
-
-				String referredNodeId = subTask.getReferredWorkerNode();
-				if (referredNodeId != null) {
-					node = workersCache.get(referredNodeId);
-					if (node != null) {
-						workersDispatchQueue.remove(node);
-					} else { // ignore subTask because of unavailable node
-						subTask.ti.subTaskComplete(subTask.subTaskIdx, null, null);
-						continue;
-					}
-				} else {
-					node = workersDispatchQueue.take();
-				}
-
-				int taskTimeout = 0;
+			long lastHBTime = 0, tTime;
+			// broadcast factor
+			int bcFact = 0;
+			while (!this.isInterrupted()) {
 				try {
-					taskTimeout = subTask.taskTimeout();
-				} catch (ClusterExcp.TaskTimeout e) {
-					subTask.ti.completeLatch.countDown();
-					continue;
-				}
+					Thread.sleep(ClusterNode.NETWORK_TIMEOUT / 2);
 
-				@SuppressWarnings("unchecked")
-				WorkerState state = node.workerService.runSubTask(
-								Master.this.id, subTask.ti.taskId, subTask.subTaskIdx,
-								subTask.ti.cUser, subTask.getSubTask(),
-								taskTimeout, subTask.ti.subTaskTimeout);
+					tTime = System.currentTimeMillis();
+					if (isMaster && tTime - lastHBTime > ClusterNode.NETWORK_TIMEOUT) {
+						lastHBTime = tTime;
 
-				subTask.workerAssigned(node.id);
-				updateWorkerState(node.id, state);
+						// broadcast I_AM_THE_MASTER
+						if (listener != null && (bcFact = (bcFact + 1) % 10) == 0 && runTaskFlagForBC) {
+							runTaskFlagForBC = false;
+							listener.broadcastIAmTheMaster();
+						}
 
-			} catch (InterruptedException e) {
-				return;
-			} catch (Exception e) {
-				log.error("subTask dispatch error.", e);
-
-				if (subTask != null) subTasks.add(subTask);
-
-				if (node != null) {
-					updateWorkerState(node.id, node.workerState);
-
-					if (ClusterNode.isNodeUnavailable(e)) {
-						workerUnavailable(node);
-						log.error("worker is unavailable: " + node.id);
+						for (Map.Entry<String, WorkerNode> worker : workersCache.entrySet()) {
+							try {
+								WorkerState state = worker.getValue().workerService.masterHeartBeat();
+								updateWorkerState(worker.getKey(), state);
+							} catch (Exception e) {
+								if (ClusterNode.isNodeUnavailable(e)) {
+									workerUnavailable(worker.getValue());
+									log.error("worker is unavailable: " + worker.getValue().id, e);
+								} else
+									log.error("heart beat error, worker id: " + worker.getValue(), e);
+							}
+						}
 					}
+				} catch (InterruptedException e) {
+					return;
+				} catch (Exception e) {
+					log.error("master-to-worker-heart-beat error.", e);
 				}
 			}
 		}
 	};
 
-	private final Runnable rWorkersHeartBeat = () -> {
-		long lastHBTime = 0, tTime;
-		// broadcast factor
-		int bcFact = 0;
-		Thread currentThread = Thread.currentThread();
-		while (!currentThread.isInterrupted()) {
-			try {
-				Thread.sleep(ClusterNode.NETWORK_TIMEOUT / 2);
+	Thread tSubTaskDispatcher = new Thread("clusterMaster:subTask-dispatcher") {
+		@Override
+		public void run() {
+			while (!this.isInterrupted()) {
+				SubTask subTask = null;
+				WorkerNode node = null;
 
-				tTime = System.currentTimeMillis();
-				if (isMaster && tTime - lastHBTime > ClusterNode.NETWORK_TIMEOUT) {
-					lastHBTime = tTime;
+				try {
+					subTask = subTasks.take();
+					// ignore the subTask if its main-task removed.
+					if (!taskInfoTable.containsKey(subTask.ti.taskId)) continue;
 
-					// broadcast I_AM_THE_MASTER
-					if (listener != null && (bcFact = (bcFact + 1) % 10) == 0 && runTaskFlagForBC) {
-						runTaskFlagForBC = false;
-						listener.broadcastIAmTheMaster();
+					String referredNodeId = subTask.getReferredWorkerNode();
+					if (referredNodeId != null) {
+						node = workersCache.get(referredNodeId);
+						if (node != null) {
+							workersDispatchQueue.remove(node);
+						} else { // ignore subTask because of unavailable node
+							subTask.ti.subTaskComplete(subTask.subTaskIdx, null, null);
+							continue;
+						}
+					} else {
+						node = workersDispatchQueue.take();
 					}
 
-					for (Map.Entry<String, WorkerNode> worker : workersCache.entrySet()) {
-						try {
-							WorkerState state = worker.getValue().workerService.masterHeartBeat();
-							updateWorkerState(worker.getKey(), state);
-						} catch (Exception e) {
-							if (ClusterNode.isNodeUnavailable(e)) {
-								workerUnavailable(worker.getValue());
-								log.error("worker is unavailable: " + worker.getValue().id, e);
-							} else
-								log.error("heart beat error, worker id: " + worker.getValue(), e);
+					int taskTimeout = 0;
+					try {
+						taskTimeout = subTask.taskTimeout();
+					} catch (ClusterExcp.TaskTimeout e) {
+						subTask.ti.completeLatch.countDown();
+						continue;
+					}
+
+					@SuppressWarnings("unchecked")
+					WorkerState state = node.workerService.runSubTask(
+									Master.this.id, subTask.ti.taskId, subTask.subTaskIdx,
+									subTask.ti.cUser, subTask.getSubTask(),
+									taskTimeout, subTask.ti.subTaskTimeout);
+
+					subTask.workerAssigned(node.id);
+					updateWorkerState(node.id, state);
+
+				} catch (InterruptedException e) {
+					return;
+				} catch (Exception e) {
+					log.error("subTask dispatch error.", e);
+
+					if (subTask != null) subTasks.add(subTask);
+
+					if (node != null) {
+						updateWorkerState(node.id, node.workerState);
+
+						if (ClusterNode.isNodeUnavailable(e)) {
+							workerUnavailable(node);
+							log.error("worker is unavailable: " + node.id);
 						}
 					}
 				}
-			} catch (InterruptedException e) {
-				return;
-			} catch (Exception e) {
-				log.error("master-to-worker-heart-beat error.", e);
 			}
 		}
 	};
 
+	@Override
+	public void closeMaster() {
+		log.debug("closing master.");
 
-	public int getServicePort() {
-		return port;
+		try {
+			log.debug("closing master.tWorkersHeartBeat.");
+			tWorkersHeartBeat.interrupt();
+			tWorkersHeartBeat.join();
+		} catch (Exception e) {
+			log.error("master.tWorkersHeartBeat stop error.", e);
+		}
+
+		try {
+			log.debug("closing master.tSubTaskDispatcher.");
+			tSubTaskDispatcher.interrupt();
+			tSubTaskDispatcher.join();
+		} catch (Exception e) {
+			log.error("master.tSubTaskDispatcher stop error.", e);
+		}
+
+		log.debug("master closed.");
 	}
 
 	public void setMaster(boolean isMaster) {
@@ -203,7 +196,7 @@ class Master implements IMaster {
 	void newNode(Cmd c) {
 		try {
 			if (!workersCache.containsKey(c.id)) {
-				WorkerNode node = new WorkerNode(c.id, IWorker.getService(c.ipAddr, c.workerPort));
+				WorkerNode node = new WorkerNode(c.id, listener.getWorkerService(c.ipAddr, c.workerPort));
 				this.workersCache.put(node.id, node);
 				this.workersDispatchQueue.offer(node);
 			}
@@ -307,6 +300,7 @@ class Master implements IMaster {
 	}
 
 	public static interface Listener {
+		IWorker getWorkerService(String host, int port) throws Exception;
 
 		void broadcastIAmTheMaster();
 

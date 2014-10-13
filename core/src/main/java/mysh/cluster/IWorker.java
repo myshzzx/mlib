@@ -1,11 +1,7 @@
 package mysh.cluster;
 
-import java.rmi.AlreadyBoundException;
-import java.rmi.NotBoundException;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
 
 /**
  * without any master-heart-beat/invoke-call in NETWORK_TIMEOUT*2,
@@ -16,21 +12,6 @@ import java.rmi.server.UnicastRemoteObject;
  * @since 14-1-28 下午6:07
  */
 public interface IWorker extends Remote {
-
-	String SERVICE_NAME = IWorker.class.getSimpleName();
-
-	static void bind(Registry registry, IWorker worker, int port) throws RemoteException, AlreadyBoundException {
-		registry.bind(SERVICE_NAME, UnicastRemoteObject.exportObject(worker, port));
-	}
-
-	static void unbind(Registry registry, IWorker worker) throws RemoteException, NotBoundException {
-		registry.unbind(SERVICE_NAME);
-		UnicastRemoteObject.unexportObject(worker, true);
-	}
-
-	static IWorker getService(String host, int port) throws Exception {
-		return ClusterNode.getRMIService(host, port, SERVICE_NAME);
-	}
 
 	/**
 	 * master-heart-beat at a fixed rate of {@link ClusterNode#NETWORK_TIMEOUT}.

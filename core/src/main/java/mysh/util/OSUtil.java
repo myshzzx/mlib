@@ -1,5 +1,8 @@
 package mysh.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,6 +15,8 @@ import java.lang.management.RuntimeMXBean;
  * @since 2014/10/12 18:37
  */
 public class OSUtil {
+	private static final Logger log = LoggerFactory.getLogger(OSUtil.class);
+
 	public static enum OS {
 		Windows, Linux, Mac, Unix, Unknown
 	}
@@ -81,16 +86,9 @@ public class OSUtil {
 	 */
 	public static void restart() throws IOException {
 		String cmd = getCmdLine();
-		Runtime runtime = Runtime.getRuntime();
-		runtime.addShutdownHook(new Thread() {
-			@Override
-			public void run() {
-				try {
-					runtime.exec(cmd);
-				} catch (IOException e) {
-				}
-			}
-		});
+		log.debug("restart cmdLine:" + cmd);
+
+		Runtime.getRuntime().exec(cmd);
 		System.exit(0);
 	}
 }

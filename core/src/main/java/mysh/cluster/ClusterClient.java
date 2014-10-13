@@ -110,6 +110,16 @@ public final class ClusterClient {
 	}
 
 	/**
+	 * todo: close the client.
+	 */
+	private void close(){
+		this.cmdSock.close();
+		// check while(true)
+		// close rmi connection
+		// close thread
+	}
+
+	/**
 	 * get all workers' current states.
 	 * <p>
 	 * see {@link #runTask}
@@ -144,7 +154,8 @@ public final class ClusterClient {
 					log.debug("receive cmd: " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
-							service = IMaster.getService(cmd.ipAddr, cmd.masterPort);
+							service = ClusterNode.getRMIService(cmd.ipAddr, cmd.masterPort,
+											ClusterNode.MASTER_RMI_NAME, null);
 						} catch (Exception e) {
 							log.error("connect to master service error.", e);
 						}
