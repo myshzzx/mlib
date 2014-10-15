@@ -1,9 +1,13 @@
 package mysh.net.httpclient;
 
 import jdk.nashorn.internal.ir.annotations.Ignore;
+import org.apache.http.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -131,5 +135,22 @@ public class HttpClientAssistTest {
 						     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
 			System.out.println(bigFile.getContentLength());
 		}
+	}
+
+	@Test
+	public void noProtocolTest() throws IOException, InterruptedException {
+		HttpClientAssist.UrlEntity ue = hca.access("http://www.baidu.com/baidu?cl=3&tn=baidutop10");
+		System.out.println(ue.getReqUrl());
+		System.out.println(ue.getEntityStr());
+	}
+
+	@Test
+	public void postTest() throws IOException, InterruptedException {
+		List<NameValuePair> nvps = new ArrayList<>();
+		nvps.add(new BasicNameValuePair("in_id", "6526011966061508122"));
+
+		HttpClientAssist.UrlEntity ue = hca.access("http://idquery.duapp.com/index.php", nvps, null);
+		System.out.println(ue.getReqUrl());
+		System.out.println(ue.getEntityStr());
 	}
 }

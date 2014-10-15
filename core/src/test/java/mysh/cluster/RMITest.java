@@ -18,6 +18,7 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Mysh
@@ -44,16 +45,18 @@ public class RMITest implements Serializable {
 	public static class RIImpl implements RI {
 		final Random r = new Random();
 		int v = 1;
+		AtomicInteger i = new AtomicInteger(0);
 
 		@Override
 		public int getValue(CustomObj obj) {
 			System.out.println("RIImpl getValue");
+			int ii = i.incrementAndGet();
 			try {
-				Thread.sleep(r.nextInt(40000));
+				Thread.sleep(r.nextInt(4000));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			return v + obj.getValue();
+			return ii + obj.getValue();
 		}
 	}
 
@@ -98,6 +101,7 @@ public class RMITest implements Serializable {
 		try {
 			final RI riClient = (RI) registry.lookup("ro");
 			ExecutorService exec = Executors.newFixedThreadPool(4);
+
 			Runnable task = () -> {
 				log.info("invoke remote method...");
 				try {
@@ -110,7 +114,7 @@ public class RMITest implements Serializable {
 				exec.execute(task);
 				exec.execute(task);
 				exec.execute(task);
-				Thread.sleep(2000);
+				Thread.sleep(10000);
 			}
 		} catch (Exception e) {
 			log.error("invoke error.", e);
@@ -134,4 +138,9 @@ public class RMITest implements Serializable {
 		}
 	}
 
+
+	@Test
+	public void threadSafe() {
+
+	}
 }

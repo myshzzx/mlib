@@ -93,7 +93,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @return parts array.
 	 */
 	default <OT> OT[][] split(OT[] entire, int splitCount) {
-		Objects.requireNonNull(entire);
+		Objects.requireNonNull(entire,"entire obj should not be null");
 		if (entire.length < splitCount || entire.length < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
 							"can't split " + entire.length + "-ele-array into " + splitCount + " parts.");
@@ -123,7 +123,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @return parts array.
 	 */
 	default <OT> List<OT>[] split(List<OT> entire, int splitCount) {
-		Objects.requireNonNull(entire);
+		Objects.requireNonNull(entire, "entire obj should not be null");
 		if (entire.size() < splitCount || entire.size() < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
 							"can't split " + entire.size() + "-ele-array into " + splitCount + " parts.");

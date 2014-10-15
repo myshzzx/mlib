@@ -9,7 +9,7 @@ import java.util.Objects;
 
 /**
  * 在文本区内部带灰色提示标签的文本输入框.
- * 
+ *
  * @author Allen
  */
 public final class JTextFieldWithTips extends JTextField {
@@ -98,7 +98,7 @@ public final class JTextFieldWithTips extends JTextField {
 	@Override
 	public void setFont(Font f) {
 
-		Objects.requireNonNull(f);
+		Objects.requireNonNull(f, "font can't be null");
 
 		this.defaultFont = f;
 		this.labelFont = new Font(f.getName(), Font.ITALIC, f.getSize());
@@ -113,7 +113,7 @@ public final class JTextFieldWithTips extends JTextField {
 	@Override
 	public void setForeground(Color fg) {
 
-		Objects.requireNonNull(fg);
+		Objects.requireNonNull(fg, "color can't be null");
 
 		this.defaultForeground = fg;
 
@@ -140,7 +140,6 @@ public final class JTextFieldWithTips extends JTextField {
 
 	/**
 	 * 取提示标签.
-	 * 
 	 */
 	public String getLabel() {
 
@@ -149,7 +148,6 @@ public final class JTextFieldWithTips extends JTextField {
 
 	/**
 	 * 设置提示标签.
-	 * 
 	 */
 	public JTextFieldWithTips setLabel(String label) {
 

@@ -3,14 +3,15 @@ package mysh.net.httpclient;
 
 import mysh.annotation.ThreadSafe;
 import mysh.util.EncodingUtil;
-import org.apache.http.Header;
-import org.apache.http.HttpHost;
+import org.apache.http.*;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -28,6 +29,7 @@ import org.springframework.util.StringUtils;
 import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -81,7 +83,7 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
-	 * get url entity.
+	 * get url entity by get method.
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
@@ -91,15 +93,43 @@ public class HttpClientAssist implements Closeable {
 	public UrlEntity access(String url)
 					throws InterruptedException, IOException {
 
-		HttpUriRequest req = new HttpGet(url);
+		return access(new HttpGet(url));
+	}
 
+	/**
+	 * get url entity by post method.
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param charset encoding the name/value pairs be encoded with. can be null.
+	 * @throws InterruptedException 线程中断.
+	 * @throws IOException          连接异常.
+	 */
+	public UrlEntity access(String url, List<NameValuePair> postParams, Charset charset)
+					throws IOException, InterruptedException {
+		HttpPost post = new HttpPost(url);
+		HttpEntity reqEntity = new UrlEncodedFormEntity(postParams, charset);
+		post.setEntity(reqEntity);
+		return access(post);
+	}
+
+	/**
+	 * get url entity.
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @throws InterruptedException 线程中断.
+	 * @throws IOException          连接异常.
+	 */
+	public UrlEntity access(HttpUriRequest req)
+					throws InterruptedException, IOException {
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
 			throw new InterruptedException();
 		}
 
 		HttpContext ctx = new BasicHttpContext();
-		return new UrlEntity(url, hc.execute(req, ctx), ctx);
+		return new UrlEntity(req.getURI().toString(), hc.execute(req, ctx), ctx);
 	}
 
 	/**
