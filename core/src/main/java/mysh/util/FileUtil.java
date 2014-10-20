@@ -17,6 +17,13 @@ public class FileUtil {
 	private static final Logger log = LoggerFactory.getLogger(FileUtil.class);
 
 	/**
+	 * 文件处理任务.
+	 */
+	public static interface FileTask {
+		void handle(File f);
+	}
+
+	/**
 	 * 取当前目录(结尾不带分隔符).
 	 */
 	public static String getCurrentDirPath() {
@@ -34,72 +41,20 @@ public class FileUtil {
 	}
 
 	/**
-	 * 取文件输入流.<br/>
-	 * 失败时返回 null.
-	 *
-	 * @param filepath 文件路径.
-	 */
-	public static FileInputStream getFileInputStream(String filepath) {
-
-		try {
-			return new FileInputStream(filepath);
-		} catch (FileNotFoundException e) {
-			log.error("打开文件失败: " + filepath, e);
-			return null;
-		}
-	}
-
-	/**
-	 * 取文件输出流. (文件不存在时自动创建)<br/>
-	 * 失败时返回 null.
-	 *
-	 * @param filepath 文件路径.
-	 */
-	public static FileOutputStream getFileOutputStream(String filepath) {
-
-		File file = new File(filepath);
-
-		try {
-			if (!file.exists()) {
-				file.getParentFile().mkdirs();
-				file.createNewFile();
-			}
-
-			return new FileOutputStream(file);
-		} catch (Exception e) {
-			log.error("准备写入文件失败: " + filepath, e);
-			return null;
-		}
-	}
-
-	/**
 	 * 从文件取得数据.<br/>
-	 * 失败则返回 null.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromFile(String filepath) {
+	public static <T> T getObjectFromFile(String filepath) throws IOException, ClassNotFoundException {
 
 		if (!new File(filepath).exists()) {
 			log.error(filepath + " 不存在, 加载文件失败.");
 			return null;
 		}
 
-		ObjectInputStream in = null;
-		try {
-			in = new ObjectInputStream(new FileInputStream(filepath));
+		try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filepath))) {
 			T o = (T) in.readObject();
-			log.info("从文件加载数据成功: " + filepath);
+			log.info("load object from file: " + filepath);
 			return o;
-		} catch (Exception e) {
-			log.error("从文件加载数据失败: " + filepath, e);
-			return null;
-		} finally {
-			if (in != null) {
-				try {
-					in.close();
-				} catch (Exception e) {
-				}
-			}
 		}
 	}
 
@@ -110,38 +65,12 @@ public class FileUtil {
 	 * @param filepath  文件路径.
 	 * @param maxLength 文件最大长度, 超过此长度将失败.
 	 */
-	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) {
-
-		byte[] buf;
-		try {
-			buf = readFileToByteArray(filepath, maxLength);
-			T obj = getObjectFromByteArray(buf);
-			log.info("从文件加载数据成功: " + filepath);
-			return obj;
-		} catch (Exception e) {
-			log.error("从文件加载数据失败: " + filepath, e);
-			return null;
-		}
-	}
-
-	/**
-	 * 从缓存反序列化数据. 失败则抛异常.
-	 *
-	 * @param buf 缓存.
-	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromByteArray(byte[] buf) throws Exception {
-
-		if (buf == null) {
-			throw new NullPointerException();
-		}
-
-		try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(buf))) {
-			return (T) in.readObject();
-		} catch (Exception e) {
-			log.error("从缓存反序列化数据失败: ", e);
-			throw e;
-		}
+	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) throws IOException, ClassNotFoundException {
+		byte[] buf = readFileToByteArray(filepath, maxLength);
+		T obj = SerializeUtil.unSerialize(buf);
+		log.info("从文件加载数据成功: " + filepath);
+		return obj;
 	}
 
 	/**
@@ -151,7 +80,7 @@ public class FileUtil {
 	 * @param filepath 文件路径.
 	 * @param maxLengh 文件大小限制.
 	 */
-	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws Exception {
+	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws IOException {
 
 		File file = new File(filepath);
 		if (!file.isFile() || !file.exists() || !file.canRead()) {
@@ -174,32 +103,24 @@ public class FileUtil {
 	 *
 	 * @param filepath 文件路径.
 	 * @param obj      要写入的对象.
-	 * @return 写入成功则返回 true;
 	 */
-	public static boolean writeObjectToFile(String filepath, Object obj) {
-
-		ObjectOutput out = null;
-		try {
-			File file = new File(filepath);
-			file.getParentFile().mkdirs();
-			if (!file.exists())
-				file.createNewFile();
-
-			out = new ObjectOutputStream(new FileOutputStream(file));
+	public static void writeObjectToFile(String filepath, Object obj) throws IOException {
+		File file = ensureWritable(filepath);
+		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file))) {
 			out.writeObject(obj);
-			log.info("写文件成功: " + file.getPath());
-			return true;
-		} catch (Exception e) {
-			log.error("写文件失败: " + filepath, e);
-			return false;
-		} finally {
-			if (out != null) {
-				try {
-					out.close();
-				} catch (Exception e) {
-				}
-			}
+			log.info("write file: " + file.getPath());
 		}
+	}
+
+	/**
+	 * make sure filepath writable. if not, return null.
+	 */
+	private static File ensureWritable(String filepath) throws IOException {
+		File file = new File(filepath);
+		file.getAbsoluteFile().getParentFile().mkdirs();
+		if (!file.exists())
+			file.createNewFile();
+		return file;
 	}
 
 	/**
@@ -208,29 +129,10 @@ public class FileUtil {
 	 * @param filepath 文件路径.
 	 * @param data     要写入数据.
 	 */
-	public static boolean writeFile(String filepath, byte[] data) {
-
-		FileOutputStream out = null;
-		try {
-			File file = new File(filepath);
-			file.getParentFile().mkdirs();
-			if (!file.exists())
-				file.createNewFile();
-			out = new FileOutputStream(file);
+	public static void writeFile(String filepath, byte[] data) throws IOException {
+		File file = ensureWritable(filepath);
+		try (FileOutputStream out = new FileOutputStream(file)) {
 			out.write(data);
-			log.info("写文件成功: " + file.getPath());
-			return true;
-		} catch (Exception e) {
-			log.error("写文件失败: " + filepath, e);
-			return false;
-		} finally {
-			if (out != null) {
-				try {
-					out.close();
-				} catch (Exception e) {
-				}
-				System.gc();
-			}
 		}
 	}
 
@@ -299,13 +201,6 @@ public class FileUtil {
 		}
 
 		return new File(filePath).getAbsoluteFile();
-	}
-
-	/**
-	 * 文件处理任务.
-	 */
-	public static interface FileTask {
-		void handle(File f);
 	}
 
 	/**

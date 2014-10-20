@@ -6,10 +6,7 @@ import mysh.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -31,7 +28,7 @@ public class WebDownloader implements CrawlerSeed {
 
 	private static final String ROOT = "http://www.geekonomics10000.com/";
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws Exception {
 		HttpClientConfig hcc = new HttpClientConfig();
 //		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
 		hcc.setMaxConnPerRoute(3);
@@ -99,11 +96,11 @@ public class WebDownloader implements CrawlerSeed {
 	}
 
 	@Override
-	public void init() {
+	public void init() throws IOException, ClassNotFoundException {
 		if (saveFile.exists()) {
-			Object[] savedObj = FileUtil.getObjectFromFile(saveFile.getAbsolutePath());
+			Map[] savedObj = FileUtil.getObjectFromFile(saveFile.getAbsolutePath());
 
-			Map tRepo = (Map) savedObj[0];
+			Map tRepo = savedObj[0];
 			if (tRepo != null && tRepo.size() > 0)
 				repo = tRepo;
 
@@ -120,8 +117,12 @@ public class WebDownloader implements CrawlerSeed {
 	@Override
 	public void onCrawlerStopped(Queue<String> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
-		FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
-						new Object[]{this.repo, this.unhandledSeeds});
+		try {
+			FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
+							new Object[]{this.repo, this.unhandledSeeds});
+		} catch (IOException e) {
+			log.error("save unhandled seeds failed.", e);
+		}
 	}
 
 	@Override

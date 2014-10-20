@@ -15,7 +15,7 @@ public interface CrawlerSeed extends Serializable {
 	/**
 	 * invoked by crawler immediately when crawler get this seed.
 	 */
-	default void init() {
+	default void init() throws Exception {
 	}
 
 	/**

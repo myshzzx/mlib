@@ -6,10 +6,7 @@ import mysh.util.FileUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -28,7 +25,7 @@ public class ImageDownloader implements CrawlerSeed {
 	Queue<String> unhandledSeeds = new ConcurrentLinkedQueue<>();
 	Map<String, Serializable> repo = new ConcurrentHashMap<>(8000);
 
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args) throws Exception {
 		HttpClientConfig hcc = new HttpClientConfig();
 //		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
 		hcc.setMaxConnPerRoute(30);
@@ -100,7 +97,7 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	@Override
-	public void init() {
+	public void init() throws IOException, ClassNotFoundException {
 		if (saveFile.exists()) {
 			Object[] savedObj = FileUtil.getObjectFromFile(saveFile.getAbsolutePath());
 
@@ -121,8 +118,12 @@ public class ImageDownloader implements CrawlerSeed {
 	@Override
 	public void onCrawlerStopped(Queue<String> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
-		FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
-						new Object[]{this.repo, this.unhandledSeeds});
+		try {
+			FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
+							new Object[]{this.repo, this.unhandledSeeds});
+		} catch (IOException e) {
+			log.error("save unhandled seeds failed.", e);
+		}
 	}
 
 	@Override

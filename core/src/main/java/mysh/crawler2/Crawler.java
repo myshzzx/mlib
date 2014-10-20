@@ -46,7 +46,7 @@ public class Crawler {
 	 * which will cause race condition in connection resource,
 	 * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
 	 */
-	public Crawler(CrawlerSeed seed, HttpClientConfig hcc) {
+	public Crawler(CrawlerSeed seed, HttpClientConfig hcc) throws Exception {
 		Objects.requireNonNull(seed, "need seed");
 		Objects.requireNonNull(hcc, "need http client config");
 
