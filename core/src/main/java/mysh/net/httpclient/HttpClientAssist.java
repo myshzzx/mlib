@@ -328,6 +328,13 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
+		 * @return response protocol version.
+		 */
+		public ProtocolVersion getProtocol() {
+			return this.rsp.getProtocolVersion();
+		}
+
+		/**
 		 * @return request reqUrl may jump several times, get the real access url.
 		 */
 		public String getCurrentURL() {
@@ -339,6 +346,10 @@ public class HttpClientAssist implements Closeable {
 			}
 
 			return this.currentUrl;
+		}
+
+		public boolean isText() {
+			return contentType != null && contentType.contains("text");
 		}
 
 		public boolean isHtml() {

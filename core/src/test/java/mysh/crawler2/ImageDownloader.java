@@ -10,10 +10,10 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 /**
- * @author Mysh
- * @since 2014/9/25 15:37
+ * http://ppmsg.com/
  */
 public class ImageDownloader implements CrawlerSeed {
 	private static final long serialVersionUID = 498361912566529068L;
@@ -28,7 +28,7 @@ public class ImageDownloader implements CrawlerSeed {
 	public static void main(String[] args) throws Exception {
 		HttpClientConfig hcc = new HttpClientConfig();
 //		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
-		hcc.setMaxConnPerRoute(30);
+		hcc.setMaxConnPerRoute(4);
 //		hcc.setUseProxy(true);
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8058);
@@ -45,12 +45,17 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	public ImageDownloader() {
-		String u = "http://www.msnzx.com/";
+		String u = "http://s.taobao.com/search?initiative_id=tbindexz_20141021&spm=1.7274553.1997520841.1&sourceId=tb.index&search_type=item&ssid=s5-e&commend=all&q=%E6%83%85%E8%B6%A3%E5%86%85%E8%A1%A3&suggest=0_1&_input_charset=utf-8&wq=%E6%83%85%E8%B6%A3&suggest_query=%E6%83%85%E8%B6%A3&source=suggest";
 		seeds.add(u);
+
+		int n = 0;
+		while (++n < 100) {
+			seeds.add(u + "&tab=all&bcoffset=8&s=" + (n * 44));
+		}
 	}
 
 	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
-	public static final int WAIT_TIME = 4;
+	public static final int WAIT_TIME = 700;
 
 	@Override
 	public boolean accept(String url) {
@@ -58,12 +63,29 @@ public class ImageDownloader implements CrawlerSeed {
 //			return true;
 		return !repo.containsKey(url)
 						&& blockDomain.stream().filter(url::contains).count() == 0
-						&& (url.endsWith("jpg")
-						|| url.endsWith("gif")
-						|| url.endsWith("jpeg")
-						|| url.endsWith("png")
-						|| url.startsWith("http://www.msnzx.com/")
+						&& !url.contains("|")
+						&& (url.startsWith("http://dsc.taobaocdn.com/")
+						|| url.startsWith("http://s.taobao.com/search?initiative_id=tbindexz_20141021&spm=1.7274553.1997520841.1&sourceId=tb.index&search_type=item&ssid=s5-e&commend=all&q=%E6%83%85%E8%B6%A3%E5%86%85%E8%A1%A3&suggest=0_1&_input_charset=utf-8&wq=%E6%83%85%E8%B6%A3&suggest_query=%E6%83%85%E8%B6%A3&source=suggest")
+						|| url.contains("item.taobao.com")
+						|| url.contains(".taobaocdn.com/")
 		);
+	}
+
+	@Override
+	public boolean needDistillUrl(HttpClientAssist.UrlEntity ue) {
+		try {
+			return !ue.getCurrentURL().contains("item.taobao.com") || ue.getEntityStr().contains("情趣");
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	@Override
+	public Stream<String> afterDistillUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+		return distilledUrl.stream()
+						.map(url -> url.endsWith(".jpg") ? (url + "_.webp") : url)
+						.filter(url -> !url.contains("400x400"))
+						;
 	}
 
 	@Override
@@ -72,7 +94,7 @@ public class ImageDownloader implements CrawlerSeed {
 		repo.put(e.getReqUrl(), v);
 
 		try {
-			if (e.isImage() && e.getContentLength() > 25_000) {
+			if (e.isImage() && e.getContentLength() > 120_000) {
 				String imgName = new File(e.getCurrentURL()).getName();
 				File f = new File("l:/a", imgName);
 				if (f.exists() && f.length() > 0) return true;
@@ -133,7 +155,7 @@ public class ImageDownloader implements CrawlerSeed {
 
 	@Override
 	public int requestThreadSize() {
-		return 60;
+		return 12;
 	}
 }
 

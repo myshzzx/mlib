@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @author Mysh
@@ -152,5 +154,27 @@ public class HttpClientAssistTest {
 		HttpClientAssist.UrlEntity ue = hca.access("http://idquery.duapp.com/index.php", nvps, null);
 		System.out.println(ue.getReqUrl());
 		System.out.println(ue.getEntityStr());
+	}
+
+	@Test
+	public void urlTest() throws IOException, InterruptedException {
+		try (HttpClientAssist.UrlEntity ue = hca.access("http://www.baidu.com/s?wd=判断需要encode")) {
+			System.out.println(ue.getCurrentURL());
+			System.out.println(ue.getEntityStr());
+		}
+	}
+
+	@Test
+	public void urlTest2() throws IOException, InterruptedException {
+		try (HttpClientAssist.UrlEntity ue = hca.access("http://codemacro.com/2014/10/12/diamond/")) {
+			Pattern srcValueExp =
+							Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
+			System.out.println(ue.getEntityStr());
+			System.out.println("==================");
+			Matcher srcValueMatcher = srcValueExp.matcher(ue.getEntityStr());
+			while (srcValueMatcher.find()) {
+				System.out.println(srcValueMatcher.group(4));
+			}
+		}
 	}
 }

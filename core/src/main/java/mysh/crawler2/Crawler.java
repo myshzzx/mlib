@@ -4,11 +4,13 @@ import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
+import org.apache.http.ProtocolVersion;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.net.*;
 import java.util.HashSet;
 import java.util.Objects;
@@ -146,9 +148,9 @@ public class Crawler {
 	}
 
 	private static final Pattern httpExp =
-					Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?://[^\"'<>\\s#]+");
-	private static final Pattern hrefValueExp =
-					Pattern.compile("[Hh][Rr][Ee][Ff][\\s]*=[\\s]*[\"']([^\"'#]*)");
+					Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
+	private static final Pattern srcValueExp =
+					Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 
 	@Immutable
 	private class Worker implements Runnable {
@@ -160,6 +162,8 @@ public class Crawler {
 
 		@Override
 		public void run() {
+			if (!seed.accept(this.url)) return;
+
 			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
 				if (!seed.accept(ue.getCurrentURL()) || !seed.accept(ue.getReqUrl())) return;
 				if (status.get() == Status.STOPPED) {
@@ -172,9 +176,9 @@ public class Crawler {
 				if (!seed.onGet(ue))
 					e.execute(this);
 
-				if (ue.isHtml()) {
-					Set<String> distillUrl = distillUrl(ue.getCurrentURL(), ue.getEntityStr());
-					distillUrl.stream()
+				if (ue.isText() && seed.needDistillUrl(ue)) {
+					Set<String> distillUrl = distillUrl(ue);
+					seed.afterDistillUrl(ue, distillUrl)
 									.filter(seed::accept)
 									.forEach(dUrl -> e.execute(new Worker(dUrl)));
 				}
@@ -188,7 +192,10 @@ public class Crawler {
 			}
 		}
 
-		private Set<String> distillUrl(String pageUrl, String pageContent) {
+		private Set<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
+			ProtocolVersion protocol = ue.getProtocol();
+			String pageUrl = ue.getCurrentURL();
+			String pageContent = ue.getEntityStr();
 
 			Set<String> urls = new HashSet<>();
 
@@ -196,7 +203,7 @@ public class Crawler {
 				// 查找 http 开头的数据
 				Matcher httpExpMatcher = httpExp.matcher(pageContent);
 				while (httpExpMatcher.find()) {
-					urls.add(HttpClientAssist.getShortURL(httpExpMatcher.group()));
+					urls.add(HttpClientAssist.getShortURL(httpExpMatcher.group()).replace('\\', '/'));
 				}
 
 				// 取得当前根目录
@@ -214,19 +221,22 @@ public class Crawler {
 				currentRoot = currentRoot.substring(0, currentRoot.lastIndexOf('/') + 1);
 
 				// 查找 href 指向的地址
-				Matcher hrefValueMatcher = hrefValueExp.matcher(pageContent);
+				Matcher srcValueMatcher = srcValueExp.matcher(pageContent);
 				String tValue;
-				while (hrefValueMatcher.find()) {
-					tValue = hrefValueMatcher.group(1);
+				String protocolPrefix = protocol.getProtocol().toLowerCase() + ":";
+				while (srcValueMatcher.find()) {
+					tValue = srcValueMatcher.group(4);
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
 						continue;
 					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
-						urls.add(tValue);
+					} else if (tValue.startsWith("//")) {
+						tValue = protocolPrefix + tValue;
 					} else if (tValue.startsWith("/")) {
-						urls.add(currentRoot.substring(0, currentRoot.indexOf("/", 8)) + tValue);
+						tValue = currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue;
 					} else {
-						urls.add(HttpClientAssist.getShortURL(currentRoot + tValue));
+						tValue = HttpClientAssist.getShortURL(currentRoot + tValue);
 					}
+					urls.add(tValue.replace('\\', '/'));
 				}
 			} catch (Exception e) {
 				log.error("分析页面链接时异常: " + pageUrl, e);

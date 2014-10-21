@@ -5,6 +5,8 @@ import mysh.net.httpclient.HttpClientAssist;
 import java.io.Serializable;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
+import java.util.stream.Stream;
 
 /**
  * @author Mysh
@@ -27,6 +29,7 @@ public interface CrawlerSeed extends Serializable {
 	 * whether the url should be crawled NOW.
 	 */
 	boolean accept(String url);
+
 
 	/**
 	 * on get url entity.
@@ -56,4 +59,17 @@ public interface CrawlerSeed extends Serializable {
 	 */
 	int requestThreadSize();
 
+	/**
+	 * whether the UrlEntity(text content) needs to be distilled.
+	 */
+	default boolean needDistillUrl(HttpClientAssist.UrlEntity ue) {
+		return true;
+	}
+
+	/**
+	 * after distilling url from UrlEntity, the distill result can be re-handled.
+	 */
+	default Stream<String> afterDistillUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+		return distilledUrl.stream();
+	}
 }
