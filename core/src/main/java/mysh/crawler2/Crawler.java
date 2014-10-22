@@ -184,8 +184,7 @@ public class Crawler {
 						return;
 					}
 
-					log.debug("req page: " + ue.getReqUrl());
-					log.debug("cur page: " + ue.getCurrentURL());
+					log.debug("onGet= " + ue.getCurrentURL() + ", reqUrl= " + ue.getReqUrl());
 
 					if (!seed.onGet(ue))
 						e.execute(this);
@@ -259,10 +258,10 @@ public class Crawler {
 				log.error("分析页面链接时异常: " + pageUrl, e);
 			}
 
-
 			Set<String> unEscapedUrls = new HashSet<>();
 			for (String url : urls) {
 				unEscapedUrls.add(url.replace('\\', '/')
+								.replace("////", "//")
 								.replace("&amp;", "&")
 								.replace("&lt;", "<")
 								.replace("&gt;", ">")
