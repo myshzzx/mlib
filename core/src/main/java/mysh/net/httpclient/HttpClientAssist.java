@@ -304,11 +304,12 @@ public class HttpClientAssist implements Closeable {
 			this.rsp = rsp;
 			this.ctx = ctx;
 
-			this.contentType = rsp.getEntity().getContentType().getValue();
-
 			int status = rsp.getStatusLine().getStatusCode();
 			if (status != 200)
-				log.warn("problem in url, status=" + status + ", url=" + getCurrentURL());
+				log.warn("problem in url, status=" + rsp.getStatusLine() + ", url=" + getCurrentURL());
+
+			if (rsp.getEntity() != null && rsp.getEntity().getContentType() != null)
+				this.contentType = rsp.getEntity().getContentType().getValue();
 		}
 
 		@Override
@@ -346,6 +347,13 @@ public class HttpClientAssist implements Closeable {
 			}
 
 			return this.currentUrl;
+		}
+
+		/**
+		 * get response status.
+		 */
+		public StatusLine getStatusLine() {
+			return rsp.getStatusLine();
 		}
 
 		public boolean isText() {

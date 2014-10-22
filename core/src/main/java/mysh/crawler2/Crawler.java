@@ -177,8 +177,8 @@ public class Crawler {
 					e.execute(this);
 
 				if (ue.isText() && seed.needDistillUrl(ue)) {
-					Set<String> distillUrl = distillUrl(ue);
-					seed.afterDistillUrl(ue, distillUrl)
+					Set<String> distilledUrl = distillUrl(ue);
+					seed.afterDistillingUrl(ue, distilledUrl)
 									.filter(seed::accept)
 									.forEach(dUrl -> e.execute(new Worker(dUrl)));
 				}
@@ -203,7 +203,7 @@ public class Crawler {
 				// 查找 http 开头的数据
 				Matcher httpExpMatcher = httpExp.matcher(pageContent);
 				while (httpExpMatcher.find()) {
-					urls.add(HttpClientAssist.getShortURL(httpExpMatcher.group()).replace('\\', '/'));
+					urls.add(HttpClientAssist.getShortURL(httpExpMatcher.group()));
 				}
 
 				// 取得当前根目录
@@ -229,20 +229,30 @@ public class Crawler {
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
 						continue;
 					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
+						urls.add(tValue);
 					} else if (tValue.startsWith("//")) {
-						tValue = protocolPrefix + tValue;
+						urls.add(protocolPrefix + tValue);
 					} else if (tValue.startsWith("/")) {
-						tValue = currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue;
+						urls.add(currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue);
 					} else {
-						tValue = HttpClientAssist.getShortURL(currentRoot + tValue);
+						urls.add(HttpClientAssist.getShortURL(currentRoot + tValue));
 					}
-					urls.add(tValue.replace('\\', '/'));
 				}
 			} catch (Exception e) {
 				log.error("分析页面链接时异常: " + pageUrl, e);
 			}
 
-			return urls;
+
+			Set<String> unEscapedUrls = new HashSet<>();
+			for (String url : urls) {
+				unEscapedUrls.add(url.replace('\\', '/')
+								.replace("&amp;", "&")
+								.replace("&lt;", "<")
+								.replace("&gt;", ">")
+								.replace("&quot;", "\""));
+			}
+
+			return unEscapedUrls;
 		}
 
 		private boolean isMalformedUrl(Exception ex) {

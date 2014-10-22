@@ -69,7 +69,7 @@ public interface CrawlerSeed extends Serializable {
 	/**
 	 * after distilling url from UrlEntity, the distill result can be re-handled.
 	 */
-	default Stream<String> afterDistillUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+	default Stream<String> afterDistillingUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
 		return distilledUrl.stream();
 	}
 }

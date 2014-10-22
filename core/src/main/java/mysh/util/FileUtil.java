@@ -115,7 +115,7 @@ public class FileUtil {
 	/**
 	 * make sure filepath writable. if not, return null.
 	 */
-	private static File ensureWritable(String filepath) throws IOException {
+	public static File ensureWritable(String filepath) throws IOException {
 		File file = new File(filepath);
 		file.getAbsoluteFile().getParentFile().mkdirs();
 		if (!file.exists())
