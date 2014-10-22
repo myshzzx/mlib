@@ -2,10 +2,16 @@
 package mysh.util;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
+import static mysh.util.FileUtil.*;
 import static org.junit.Assert.assertEquals;
 
 public class FileUtilTest {
@@ -13,33 +19,33 @@ public class FileUtilTest {
 	@Test
 	public void getFileExtensionTest() {
 
-		assertEquals("txt", FileUtil.getFileExtension("fea.txt"));
-		assertEquals("txt", FileUtil.getFileExtension("  fe a  .txt     "));
-		assertEquals("txt", FileUtil.getFileExtension(".txt"));
-		assertEquals("txt", FileUtil.getFileExtension(".txt       "));
-		assertEquals("", FileUtil.getFileExtension("txt"));
-		assertEquals("", FileUtil.getFileExtension("txt.    "));
-		assertEquals("    txt", FileUtil.getFileExtension("     .    txt.    "));
-		assertEquals("txt", FileUtil.getFileExtension("   abc.def.txt     "));
-		assertEquals(" t xt", FileUtil.getFileExtension("   abc.def. t xt "));
-		assertEquals("", FileUtil.getFileExtension("."));
-		assertEquals("", FileUtil.getFileExtension(""));
+		assertEquals("txt", getFileExtension("fea.txt"));
+		assertEquals("txt", getFileExtension("  fe a  .txt     "));
+		assertEquals("txt", getFileExtension(".txt"));
+		assertEquals("txt", getFileExtension(".txt       "));
+		assertEquals("", getFileExtension("txt"));
+		assertEquals("", getFileExtension("txt.    "));
+		assertEquals("    txt", getFileExtension("     .    txt.    "));
+		assertEquals("txt", getFileExtension("   abc.def.txt     "));
+		assertEquals(" t xt", getFileExtension("   abc.def. t xt "));
+		assertEquals("", getFileExtension("."));
+		assertEquals("", getFileExtension(""));
 	}
 
 	@Test
 	public void getFileNameWithoutExtensionTest() {
 
-		assertEquals("fea", FileUtil.getFileNameWithoutExtention("fea.txt"));
-		assertEquals("fe a  ", FileUtil.getFileNameWithoutExtention("  fe a  .txt     "));
-		assertEquals("", FileUtil.getFileNameWithoutExtention(".txt"));
-		assertEquals("", FileUtil.getFileNameWithoutExtention(".txt       "));
-		assertEquals("txt", FileUtil.getFileNameWithoutExtention("txt"));
-		assertEquals("txt", FileUtil.getFileNameWithoutExtention("txt.    "));
-		assertEquals("", FileUtil.getFileNameWithoutExtention("     .    txt.    "));
-		assertEquals("abc.def", FileUtil.getFileNameWithoutExtention("   abc.def.txt     "));
-		assertEquals("abc.def", FileUtil.getFileNameWithoutExtention("   abc.def. t xt "));
-		assertEquals("", FileUtil.getFileNameWithoutExtention("."));
-		assertEquals("", FileUtil.getFileNameWithoutExtention(""));
+		assertEquals("fea", getFileNameWithoutExtention("fea.txt"));
+		assertEquals("fe a  ", getFileNameWithoutExtention("  fe a  .txt     "));
+		assertEquals("", getFileNameWithoutExtention(".txt"));
+		assertEquals("", getFileNameWithoutExtention(".txt       "));
+		assertEquals("txt", getFileNameWithoutExtention("txt"));
+		assertEquals("txt", getFileNameWithoutExtention("txt.    "));
+		assertEquals("", getFileNameWithoutExtention("     .    txt.    "));
+		assertEquals("abc.def", getFileNameWithoutExtention("   abc.def.txt     "));
+		assertEquals("abc.def", getFileNameWithoutExtention("   abc.def. t xt "));
+		assertEquals("", getFileNameWithoutExtention("."));
+		assertEquals("", getFileNameWithoutExtention(""));
 	}
 
 	@Test
@@ -49,5 +55,33 @@ public class FileUtilTest {
 		System.out.println(new File("").getAbsoluteFile().getParent());
 		Assert.assertNotNull(new File("abc/def").getAbsoluteFile().getParent());
 		System.out.println((new File("abc/def").getAbsoluteFile().getParent()));
+	}
+
+	@Test
+	@Ignore
+	public void pathTest() throws IOException {
+		String file = "pom.xml";
+		System.out.println(Paths.get(file).toFile().getAbsolutePath());
+		System.out.println(new String(Files.readAllBytes(Paths.get(file))));
+	}
+
+	@Test
+	@Ignore
+	public void writeTest() throws IOException {
+		Files.write(Paths.get("l:/aa/b/c.txt"), "mysh".getBytes(),
+						StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+	}
+
+	@Test
+	@Ignore
+	public void writeTest2() throws IOException {
+		writeFile("l:/aa/b/c.txt", "mysh".getBytes());
+	}
+
+
+	@Test
+	@Ignore
+	public void testFolderSize() throws Exception {
+		System.out.println(folderSize("l:/temp"));
 	}
 }

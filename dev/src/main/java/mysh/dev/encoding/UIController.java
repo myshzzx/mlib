@@ -7,6 +7,8 @@ import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -133,7 +135,7 @@ public class UIController {
 		File desFile = new File(desDir.getAbsolutePath() + "/" + srcDir.getName());
 		if (srcDir.isFile() && srcDir.canRead()
 						&& fileNamePattern.matcher(srcDir.getName().toLowerCase()).matches()) {
-			byte[] fileByteArray = FileUtil.readFileToByteArray(srcDir.getAbsolutePath(), 100_000_000);
+			byte[] fileByteArray = Files.readAllBytes(Paths.get(srcDir.getAbsolutePath()));
 
 			if (transType == TransType.UTF82GBK) {
 

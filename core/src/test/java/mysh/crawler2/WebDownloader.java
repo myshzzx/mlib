@@ -39,7 +39,7 @@ public class WebDownloader implements CrawlerSeed {
 		Crawler c = new Crawler(new WebDownloader(), hcc);
 		c.start();
 
-		while (c.getStatus() == Crawler.Status.RUNNING) {
+		while (c.getStatus() != Crawler.Status.STOPPED) {
 			// offer an opportunity to run c.stop()
 			Thread.sleep(5000);
 		}

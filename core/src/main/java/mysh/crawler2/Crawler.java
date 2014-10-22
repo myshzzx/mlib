@@ -117,6 +117,14 @@ public class Crawler {
 			startAutoStopChk();
 	}
 
+	public void pause() {
+		this.status.compareAndSet(Status.RUNNING, Status.PAUSED);
+	}
+
+	public void resume() {
+		this.status.compareAndSet(Status.PAUSED, Status.RUNNING);
+	}
+
 	public void stop() {
 		Status oldStatus = status.getAndSet(Status.STOPPED);
 		if (oldStatus == Status.STOPPED) return;
@@ -164,30 +172,39 @@ public class Crawler {
 		public void run() {
 			if (!seed.accept(this.url)) return;
 
-			try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
-				if (!seed.accept(ue.getCurrentURL()) || !seed.accept(ue.getReqUrl())) return;
-				if (status.get() == Status.STOPPED) {
-					unhandledUrls.offer(url);
-					return;
+			try {
+				while (Crawler.this.status.get() == Status.PAUSED) {
+					Thread.sleep(50);
 				}
 
-				log.debug("on page: " + ue.getCurrentURL());
+				try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
+					if (!seed.accept(ue.getCurrentURL()) || !seed.accept(ue.getReqUrl())) return;
+					if (status.get() == Status.STOPPED) {
+						unhandledUrls.offer(url);
+						return;
+					}
 
-				if (!seed.onGet(ue))
-					e.execute(this);
+					log.debug("req page: " + ue.getReqUrl());
+					log.debug("cur page: " + ue.getCurrentURL());
 
-				if (ue.isText() && seed.needDistillUrl(ue)) {
-					Set<String> distilledUrl = distillUrl(ue);
-					seed.afterDistillingUrl(ue, distilledUrl)
-									.filter(seed::accept)
-									.forEach(dUrl -> e.execute(new Worker(dUrl)));
+					if (!seed.onGet(ue))
+						e.execute(this);
+
+					if (ue.isText() && seed.needDistillUrl(ue)) {
+						Set<String> distilledUrl = distillUrl(ue);
+						seed.afterDistillingUrl(ue, distilledUrl)
+										.filter(seed::accept)
+										.forEach(dUrl -> e.execute(new Worker(dUrl)));
+					}
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);
-				log.debug(ex.toString() + " - " + url);
+				log.debug(ex.toString() + " - " + this.url);
+			} catch (InterruptedException ex) {
+				unhandledUrls.offer(this.url);
 			} catch (Exception ex) {
 				if (!isMalformedUrl(ex))
-					unhandledUrls.offer(url);
+					unhandledUrls.offer(this.url);
 				log.error("on error handling url: " + this.url, ex);
 			}
 		}
@@ -264,6 +281,6 @@ public class Crawler {
 	}
 
 	public static enum Status {
-		INIT, RUNNING, STOPPED
+		INIT, RUNNING, PAUSED, STOPPED
 	}
 }

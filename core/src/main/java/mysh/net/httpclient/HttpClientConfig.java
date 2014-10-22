@@ -2,8 +2,11 @@
 package mysh.net.httpclient;
 
 import mysh.util.PropConf;
+import org.apache.http.Header;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 配置VO.
@@ -24,6 +27,8 @@ public final class HttpClientConfig implements Serializable {
 					"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
 	public static final String UA_BING =
 					"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
+
+	List<Header> headers = new ArrayList<>();
 
 	/**
 	 * Connection: keep-alive/close
@@ -147,6 +152,11 @@ public final class HttpClientConfig implements Serializable {
 		this.setProxyType(conf.getPropString("httpclient.proxyType", "http"));
 		this.setProxyAuthName(conf.getPropString("httpclient.proxyAuthName"));
 		this.setProxyAuthPw(conf.getPropString("httpclient.proxyAuthPw"));
+	}
+
+	public HttpClientConfig addHeader(Header header) {
+		this.headers.add(header);
+		return this;
 	}
 
 	public boolean isKeepAlive() {

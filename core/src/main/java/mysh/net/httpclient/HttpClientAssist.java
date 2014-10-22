@@ -51,8 +51,8 @@ public class HttpClientAssist implements Closeable {
 		HttpClientBuilder hcBuilder = HttpClientBuilder.create();
 
 		Header connection = new BasicHeader("Connection", conf.isKeepAlive() ? "keep-alive" : "close");
-		List<Header> headers = Arrays.asList(connection);
-		hcBuilder.setDefaultHeaders(headers);
+		conf.addHeader(connection);
+		hcBuilder.setDefaultHeaders(conf.headers);
 
 		RequestConfig reqConf = RequestConfig.custom()
 						.setConnectTimeout(conf.getConnectionTimeout() * 1000)

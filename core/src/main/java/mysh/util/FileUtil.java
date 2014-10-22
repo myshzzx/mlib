@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,23 +26,6 @@ public class FileUtil {
 	}
 
 	/**
-	 * 取当前目录(结尾不带分隔符).
-	 */
-	public static String getCurrentDirPath() {
-
-		return System.getProperty("user.dir");
-	}
-
-	/**
-	 * 取相对于当前目录的完整路径.
-	 *
-	 * @param filename 文件名.
-	 */
-	public static String getAbstractPath(String filename) {
-		return System.getProperty("user.dir") + System.getProperty("file.separator") + filename;
-	}
-
-	/**
 	 * 从文件取得数据.<br/>
 	 */
 	@SuppressWarnings("unchecked")
@@ -53,7 +38,7 @@ public class FileUtil {
 
 		try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filepath))) {
 			T o = (T) in.readObject();
-			log.info("load object from file: " + filepath);
+			log.debug("load object from file: " + filepath);
 			return o;
 		}
 	}
@@ -62,40 +47,14 @@ public class FileUtil {
 	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度).<br/>
 	 * 失败则返回 null.
 	 *
-	 * @param filepath  文件路径.
-	 * @param maxLength 文件最大长度, 超过此长度将失败.
+	 * @param filepath 文件路径.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromFileWithBuf(String filepath, int maxLength) throws IOException, ClassNotFoundException {
-		byte[] buf = readFileToByteArray(filepath, maxLength);
+	public static <T> T getObjectFromFileWithBuf(String filepath) throws IOException, ClassNotFoundException {
+		byte[] buf = Files.readAllBytes(Paths.get(filepath));
 		T obj = SerializeUtil.unSerialize(buf);
-		log.info("从文件加载数据成功: " + filepath);
+		log.debug("load object from file: " + filepath);
 		return obj;
-	}
-
-	/**
-	 * 将文件数据读到缓存.<br/>
-	 * 不会返回 null. 失败抛异常.
-	 *
-	 * @param filepath 文件路径.
-	 * @param maxLengh 文件大小限制.
-	 */
-	public static byte[] readFileToByteArray(String filepath, int maxLengh) throws IOException {
-
-		File file = new File(filepath);
-		if (!file.isFile() || !file.exists() || !file.canRead()) {
-			throw new IllegalArgumentException(filepath + " 不存在或不可读, 加载文件失败.");
-		}
-
-		if (file.length() > maxLengh) {
-			throw new IllegalArgumentException("要读取的文件大小 (" + file.length() + ") 超出指定大小: " + maxLengh);
-		}
-
-		try (FileInputStream in = new FileInputStream(filepath)) {
-			byte[] buf = new byte[(int) file.length()];
-			in.read(buf);
-			return buf;
-		}
 	}
 
 	/**
@@ -108,7 +67,7 @@ public class FileUtil {
 		File file = ensureWritable(filepath);
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file))) {
 			out.writeObject(obj);
-			log.info("write file: " + file.getPath());
+			log.debug("write file: " + file.getPath());
 		}
 	}
 
@@ -116,8 +75,8 @@ public class FileUtil {
 	 * make sure filepath writable. if not, return null.
 	 */
 	public static File ensureWritable(String filepath) throws IOException {
-		File file = new File(filepath);
-		file.getAbsoluteFile().getParentFile().mkdirs();
+		File file = new File(filepath).getAbsoluteFile();
+		file.getParentFile().mkdirs();
 		if (!file.exists())
 			file.createNewFile();
 		return file;
@@ -230,5 +189,20 @@ public class FileUtil {
 				}
 			}
 		}
+	}
+
+	public static long folderSize(String path) throws IOException {
+		File dir = new File(path).getAbsoluteFile();
+		if (!dir.isDirectory())
+			throw new IllegalArgumentException("not directory: " + path);
+
+		return Files.walk(Paths.get(dir.getAbsolutePath())).mapToLong(p -> {
+			try {
+				return Files.size(p);
+			} catch (IOException e) {
+				log.debug("get file size error: " + p, e);
+				return 0;
+			}
+		}).sum();
 	}
 }
