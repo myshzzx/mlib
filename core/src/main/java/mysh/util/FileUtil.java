@@ -67,7 +67,7 @@ public class FileUtil {
 		File file = ensureWritable(filepath);
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file))) {
 			out.writeObject(obj);
-			log.debug("write file: " + file.getPath());
+			log.debug("written file: " + file.getPath());
 		}
 	}
 

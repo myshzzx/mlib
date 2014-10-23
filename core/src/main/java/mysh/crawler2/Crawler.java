@@ -190,8 +190,8 @@ public class Crawler {
 						e.execute(this);
 
 					if (ue.isText() && seed.needDistillUrl(ue)) {
-						Set<String> distilledUrl = distillUrl(ue);
-						seed.afterDistillingUrl(ue, distilledUrl)
+						Set<String> distilledUrls = distillUrl(ue);
+						seed.afterDistillingUrl(ue, distilledUrls)
 										.filter(seed::accept)
 										.forEach(dUrl -> e.execute(new Worker(dUrl)));
 					}

@@ -122,7 +122,7 @@ public class CompressUtil {
 	 * 此方法会阻塞直到完成(输入流关闭或输入结束).
 	 *
 	 * @param picker 压缩实体拾取器.
-	 * @param in     数据输入流.
+	 * @param in     数据输入流(不要关闭).
 	 * @return 操作结果.
 	 */
 	public static boolean deCompress(EntryPicker picker, final InputStream in) {
