@@ -60,7 +60,7 @@ public class ImageDownloader implements CrawlerSeed {
 	}
 
 	@Override
-	public Stream<String> afterDistillingUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+	public Stream<String> afterDistillingUrls(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
 		return distilledUrl.stream()
 						.filter(url -> !url.endsWith(".jpg"))
 						.filter(url -> !url.endsWith("png") || url.contains("128x128"))

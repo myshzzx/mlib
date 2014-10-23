@@ -9,6 +9,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 /**
+ * Crawler seed, where crawler start from.
+ *
  * @author Mysh
  * @since 2014/9/24 21:07
  */
@@ -30,14 +32,15 @@ public interface CrawlerSeed extends Serializable {
 	 */
 	boolean accept(String url);
 
-
 	/**
 	 * on get url entity.
 	 * <p>
 	 * WARNING: the urlEntity content may not be readable out of the method,
-	 * because its inputStream will be closed after this invoking.
+	 * because its inputStream will be closed after this invoking, but cached content is still
+	 * readable.
 	 *
-	 * @return whether fetch entity successfully. false indicate the entity need to be re-crawled.
+	 * @return whether fetch the entity successfully. <code>false</code> indicate the entity
+	 * need to be re-crawled.
 	 */
 	boolean onGet(HttpClientAssist.UrlEntity ue);
 
@@ -60,16 +63,16 @@ public interface CrawlerSeed extends Serializable {
 	int requestThreadSize();
 
 	/**
-	 * whether the UrlEntity(text content) needs to be distilled.
+	 * whether the urls in UrlEntity(text content) needs to be distilled.
 	 */
-	default boolean needDistillUrl(HttpClientAssist.UrlEntity ue) {
+	default boolean needToDistillUrls(HttpClientAssist.UrlEntity ue) {
 		return true;
 	}
 
 	/**
-	 * after distilling url from UrlEntity, the distill result can be re-handled.
+	 * after distilling urls from UrlEntity(text content), the results can be re-handled.
 	 */
-	default Stream<String> afterDistillingUrl(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+	default Stream<String> afterDistillingUrls(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
 		return distilledUrl.stream();
 	}
 }

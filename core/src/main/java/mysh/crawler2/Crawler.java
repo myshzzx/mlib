@@ -25,6 +25,8 @@ import java.util.regex.Pattern;
 import static java.lang.Math.max;
 
 /**
+ * Web Crawler. Give it a seed, it will hunt for anything you need.
+ *
  * @author Mysh
  * @since 2014/9/24 12:50
  */
@@ -66,6 +68,9 @@ public class Crawler {
 		this.hca = new HttpClientAssist(hcc);
 	}
 
+	/**
+	 * start auto-check-stop thread. if there's nothing to crawl, it will stop the crawler.
+	 */
 	private void startAutoStopChk() {
 		new Thread(name + "-autoStopChk") {
 			@Override
@@ -87,6 +92,9 @@ public class Crawler {
 		}.start();
 	}
 
+	/**
+	 * start the crawler. a crawler can't be restarted.
+	 */
 	public void start() {
 		if (!status.compareAndSet(Status.INIT, Status.RUNNING)) {
 			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
@@ -117,14 +125,24 @@ public class Crawler {
 			startAutoStopChk();
 	}
 
+	/**
+	 * pause, until resumed. effective only in Running state.
+	 */
 	public void pause() {
 		this.status.compareAndSet(Status.RUNNING, Status.PAUSED);
 	}
 
+	/**
+	 * resume to running state. effective only in pause state.
+	 */
 	public void resume() {
 		this.status.compareAndSet(Status.PAUSED, Status.RUNNING);
 	}
 
+	/**
+	 * stop the crawler, which release all the resources it took.
+	 * WARNING: can't restart after stopping.
+	 */
 	public void stop() {
 		Status oldStatus = status.getAndSet(Status.STOPPED);
 		if (oldStatus == Status.STOPPED) return;
@@ -142,10 +160,16 @@ public class Crawler {
 		}
 	}
 
+	/**
+	 * get current crawler state.
+	 */
 	public Status getStatus() {
 		return status.get();
 	}
 
+	/**
+	 * get crawler name.
+	 */
 	public String getName() {
 		return this.name;
 	}
@@ -189,9 +213,9 @@ public class Crawler {
 					if (!seed.onGet(ue))
 						e.execute(this);
 
-					if (ue.isText() && seed.needDistillUrl(ue)) {
+					if (ue.isText() && seed.needToDistillUrls(ue)) {
 						Set<String> distilledUrls = distillUrl(ue);
-						seed.afterDistillingUrl(ue, distilledUrls)
+						seed.afterDistillingUrls(ue, distilledUrls)
 										.filter(seed::accept)
 										.forEach(dUrl -> e.execute(new Worker(dUrl)));
 					}
@@ -279,6 +303,9 @@ public class Crawler {
 		}
 	}
 
+	/**
+	 * crawler state.
+	 */
 	public static enum Status {
 		INIT, RUNNING, PAUSED, STOPPED
 	}
