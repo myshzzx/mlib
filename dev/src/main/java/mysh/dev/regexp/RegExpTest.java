@@ -37,7 +37,7 @@ public class RegExpTest extends javax.swing.JPanel {
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-
+				testReg();
 			}
 		};
 		this.textTest.getDocument().addDocumentListener(listener);
