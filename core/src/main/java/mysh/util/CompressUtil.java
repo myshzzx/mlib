@@ -64,7 +64,8 @@ public class CompressUtil {
 	public static OutputStream getCompressOutputStream(
 					String entry, OutputStream compressedDataOut, int bufSize,
 					AtomicReference<RunnableFuture<Boolean>> result) throws IOException {
-		if (entry == null || compressedDataOut == null || result == null) throw new IllegalArgumentException();
+		if (entry == null || compressedDataOut == null || result == null)
+			throw new IllegalArgumentException();
 
 		PipedOutputStream dataOut = new PipedOutputStream();
 		PipedInputStream dataIn = new PipedInputStream(dataOut, CompressUtil.DEFAULT_BUF_SIZE);
