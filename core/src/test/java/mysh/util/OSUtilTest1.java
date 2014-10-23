@@ -6,7 +6,7 @@ import org.junit.Test;
 import javax.swing.*;
 
 @Ignore
-public class OSUtilTest {
+public class OSUtilTest1 {
 
 	@Test
 	public void testGetOS() throws Exception {
