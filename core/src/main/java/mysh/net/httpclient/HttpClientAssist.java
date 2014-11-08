@@ -30,7 +30,10 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 /**
  * HTTP 客户端组件.
@@ -373,7 +376,7 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
-		 * content length in byte size.
+		 * content length in byte size. Pls notice that some entity may have a (-1) length.
 		 */
 		public long getContentLength() {
 			return rsp.getEntity().getContentLength();

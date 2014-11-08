@@ -45,32 +45,5 @@
 		</dependency>
 		<!--aparapi-->
 
-		<!--jogamp-->
-		<dependency>
-			<groupId>org.jogamp</groupId>
-			<artifactId>gluegen</artifactId>
-			<version>${jogampVersion}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jogamp</groupId>
-			<artifactId>gluegen-rt-natives-${jogampOS}</artifactId>
-			<version>${jogampVersion}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jogamp</groupId>
-			<artifactId>jocl</artifactId>
-			<version>${jogampVersion}</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.jogamp</groupId>
-			<artifactId>jocl-natives-${jogampOS}</artifactId>
-			<version>${jogampVersion}</version>
-			<scope>provided</scope>
-		</dependency>
-		<!--jogamp-->
-
 	</dependencies>
 </project>

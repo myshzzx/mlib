@@ -462,4 +462,48 @@ public class Math2 {
 	public static interface IntArrayHandler {
 		void handle(int[] a);
 	}
+
+	/**
+	 * whether given string is number.
+	 */
+	public static boolean isNumber(String s) {
+		if (s == null) return false;
+		String ss = s.trim();
+
+		boolean hasE = false;
+		boolean canSymbolAppear = true;
+		boolean canPointAppear = true;
+		boolean valid = false;
+
+		for (int i = 0; i < ss.length(); i++) {
+			char c = ss.charAt(i);
+			if ((c == '+' || c == '-') && canSymbolAppear) {
+				canSymbolAppear = false;
+				continue;
+			}
+
+			if (!hasE) {
+				if ((c >= '0' && c <= '9')) {
+					valid = true;
+					canSymbolAppear = false;
+				} else if (c == '.' && canPointAppear) {
+					canPointAppear = false;
+					canSymbolAppear = false;
+				} else if ((c == 'e' || c == 'E') && valid) {
+					hasE = true;
+					canSymbolAppear = true;
+					valid = false;
+				} else
+					return false;
+			} else {
+				if ((c >= '0' && c <= '9')) {
+					valid = true;
+					canSymbolAppear = false;
+				} else
+					return false;
+			}
+		}
+		return valid;
+	}
+
 }
