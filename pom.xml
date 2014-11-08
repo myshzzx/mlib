@@ -9,6 +9,7 @@
 		<module>core</module>
 		<module>graphic</module>
 		<module>dev</module>
+		<module>cluster</module>
 	</modules>
 
 	<dependencies>
