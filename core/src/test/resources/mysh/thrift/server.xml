@@ -5,8 +5,9 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
 	<!--server-->
-	<bean id="_service1Factory" class="mysh.thrift.ThriftSSLServerFactory"
+	<bean id="_service1Factory" class="mysh.thrift.ThriftServerFactory"
 	      p:serverHost="localhost" p:serverPort="19090"
+	      p:useTLS="true"
 	      p:selfKeyStore="classpath:mysh/thrift/server.jks" p:selfKeyStorePw="server"
 	      p:requireClientAuth="true"
 	      p:trustKeyStore="classpath:mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456">
@@ -22,5 +23,5 @@
 		</property>
 	</bean>
 
-	<bean factory-bean="_service1Factory" factory-method="buildAndServe"/>
+	<bean factory-bean="_service1Factory" factory-method="build"/>
 </beans>

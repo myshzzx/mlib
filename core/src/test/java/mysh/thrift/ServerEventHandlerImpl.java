@@ -26,13 +26,15 @@ public class ServerEventHandlerImpl implements TServerEventHandler {
 	@Override
 	public ServerContext createContext(TProtocol input, TProtocol output) {
 		String clientName = null;
-		try {
-			clientName = ((SSLSocket) ((TSocket) input.getTransport()).getSocket()).getSession().getPeerCertificateChain()[0]
-					.getSubjectDN().getName();
-		} catch (SSLPeerUnverifiedException e) {
-			log.error(e.getMessage(), e);
+		if (input.getTransport() instanceof TSocket) { // tls
+			try {
+				clientName = ((SSLSocket) ((TSocket) input.getTransport()).getSocket())
+								.getSession().getPeerCertificateChain()[0].getSubjectDN().getName();
+			} catch (SSLPeerUnverifiedException e) {
+				log.error(e.getMessage(), e);
+			}
+			log.info("createContext: " + clientName);
 		}
-		log.info("createContext: " + clientName);
 		return null;
 	}
 
