@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.nio.ByteBuffer;
 import java.util.Date;
 
 /**
@@ -21,17 +22,20 @@ public class ClientTest2 {
 
 	@Autowired
 	@Qualifier("client2")
-	private TService1.Iface client;
+	private ThriftClientFactory.ClientHolder<TService1.Iface> client;
 
 	@Test
 	public void test1() throws Exception {
+
+		byte[] b = new byte[]{1, 2, 3};
 
 		for (int i = 0; i < 3; i++)
 			new Thread("Client " + i) {
 				@Override
 				public void run() {
 					try {
-						System.out.println(new Date() + " - " + this.getName() + ": " + client.getStr("mysh", 1));
+						System.out.println(new Date() + " - " + this.getName() + ": "
+										+ client.getClient().getStr("mysh", ByteBuffer.wrap(b)));
 					} catch (Throwable t) {
 						log.error(Thread.currentThread().getName(), t);
 					}
@@ -40,12 +44,14 @@ public class ClientTest2 {
 
 		Thread.sleep(150000);
 
+
 		for (int i = 0; i < 1; i++) {
 			new Thread("Client " + i) {
 				@Override
 				public void run() {
 					try {
-						System.out.println(new Date() + " - " + this.getName() + ": " + client.getStr("xxxx", 1));
+						System.out.println(new Date() + " - " + this.getName() + ": " +
+										client.getClient().getStr("xxxx", ByteBuffer.wrap(b)));
 					} catch (Throwable t) {
 						log.error(Thread.currentThread().getName(), t);
 					}

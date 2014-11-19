@@ -3,7 +3,6 @@ package mysh.cluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.rmi.RemoteException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
@@ -175,7 +174,7 @@ class Worker implements IWorker {
 	}
 
 	@Override
-	public WorkerState masterHeartBeat() throws RemoteException {
+	public WorkerState masterHeartBeat() {
 		this.lastMasterAction = System.currentTimeMillis();
 		return this.updateState();
 	}
@@ -183,7 +182,7 @@ class Worker implements IWorker {
 	@Override
 	public <T, ST, SR, R> WorkerState runSubTask(
 					String masterId, int taskId, int subTaskId, IClusterUser<T, ST, SR, R> cUser, ST subTask,
-					int timeout, int subTaskTimeout) throws RemoteException {
+					int timeout, int subTaskTimeout) {
 		this.lastMasterAction = System.currentTimeMillis();
 		this.subTasks.add(new SubTask<>(masterId, taskId, subTaskId, cUser, subTask,
 						timeout <= 0 ? Long.MAX_VALUE : this.lastMasterAction + timeout, subTaskTimeout));
@@ -204,7 +203,7 @@ class Worker implements IWorker {
 		void masterUnavailable(String masterId);
 	}
 
-	private static final ClusterExcp.TaskTimeout taskTimeoutExcp = new ClusterExcp.TaskTimeout();
+	private static final ClusterExp.TaskTimeout taskTimeoutExcp = new ClusterExp.TaskTimeout();
 
 	private class SubTask<T, ST, SR, R> {
 

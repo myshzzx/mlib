@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Array;
-import java.rmi.RemoteException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -22,9 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 class Master implements IMaster {
 	private static final Logger log = LoggerFactory.getLogger(Master.class);
 
-	private ClusterExcp.NotMaster notMasterExcp;
-	private ClusterExcp.NoWorkers noWorkersExcp;
-	private ClusterExcp.TaskTimeout taskTimeoutExcp;
+	private ClusterExp.NotMaster notMasterExcp;
+	private ClusterExp.NoWorkers noWorkersExcp;
+	private ClusterExp.TaskTimeout taskTimeoutExcp;
 
 	private String id;
 	private volatile Listener listener;
@@ -128,7 +127,7 @@ class Master implements IMaster {
 					int taskTimeout = 0;
 					try {
 						taskTimeout = subTask.taskTimeout();
-					} catch (ClusterExcp.TaskTimeout e) {
+					} catch (ClusterExp.TaskTimeout e) {
 						subTask.ti.completeLatch.countDown();
 						continue;
 					}
@@ -246,11 +245,11 @@ class Master implements IMaster {
 	@Override
 	@SuppressWarnings("unchecked")
 	public void subTaskComplete(int taskId, int subTaskId, Object result,
-	                            String workerNodeId, WorkerState workerState) throws RemoteException {
+	                            String workerNodeId, WorkerState workerState) {
 		TaskInfo ti = this.taskInfoTable.get(taskId);
 		if (ti != null) {
 			ti.subTaskComplete(subTaskId, result, workerNodeId);
-			if ((result instanceof Throwable) && !(result instanceof ClusterExcp.TaskTimeout))
+			if ((result instanceof Throwable) && !(result instanceof ClusterExp.TaskTimeout))
 				subTasks.add(new SubTask(ti, subTaskId));
 		}
 
@@ -259,17 +258,15 @@ class Master implements IMaster {
 
 	@Override
 	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws RemoteException,
-					ClusterExcp.NotMaster, ClusterExcp.NoWorkers, ClusterExcp.TaskTimeout,
-					InterruptedException {
+					throws ClusterExp.NotMaster, ClusterExp.NoWorkers, ClusterExp.TaskTimeout, InterruptedException {
 		if (!isMaster)
 			throw notMasterExcp == null ?
-							(notMasterExcp = new ClusterExcp.NotMaster()) : notMasterExcp;
+							(notMasterExcp = new ClusterExp.NotMaster()) : notMasterExcp;
 
 		int workerCount = workersCache.size();
 		if (workerCount < 1)
 			throw noWorkersExcp == null ?
-							(noWorkersExcp = new ClusterExcp.NoWorkers()) : noWorkersExcp;
+							(noWorkersExcp = new ClusterExp.NoWorkers()) : noWorkersExcp;
 
 		runTaskFlagForBC = true;
 
@@ -281,6 +278,8 @@ class Master implements IMaster {
 		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
 
 		Integer taskId = taskIdGen.incrementAndGet();
+		if (taskId > Integer.MAX_VALUE / 2) taskIdGen.compareAndSet(taskId, 0);
+
 		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
 						System.currentTimeMillis(), timeout, subTaskTimeout, sTasks.getReferredNodeIds());
 		this.taskInfoTable.put(taskId, ti);
@@ -293,7 +292,7 @@ class Master implements IMaster {
 			ti.completeLatch.await();
 		else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS) || ti.unfinishedTask.get() > 0)
 			throw taskTimeoutExcp == null ?
-							(taskTimeoutExcp = new ClusterExcp.TaskTimeout()) : taskTimeoutExcp;
+							(taskTimeoutExcp = new ClusterExp.TaskTimeout()) : taskTimeoutExcp;
 
 		this.taskInfoTable.remove(taskId);
 		return cUser.join(ti.results, ti.assignedNodeIds);
@@ -364,7 +363,7 @@ class Master implements IMaster {
 	}
 
 	private static class SubTask {
-		private static ClusterExcp.TaskTimeout timeoutExcp;
+		private static ClusterExp.TaskTimeout timeoutExcp;
 
 		private final TaskInfo ti;
 		private final int subTaskIdx;
@@ -385,14 +384,14 @@ class Master implements IMaster {
 		/**
 		 * calculate left time of the task from now on.
 		 */
-		private int taskTimeout() throws ClusterExcp.TaskTimeout {
+		private int taskTimeout() throws ClusterExp.TaskTimeout {
 			int to = ti.timeout == 0 ?
 							0 :
 							ti.timeout - (int) (System.currentTimeMillis() - ti.startTime);
 
 			if (to < 0)
 				throw timeoutExcp == null ?
-								(timeoutExcp = new ClusterExcp.TaskTimeout()) :
+								(timeoutExcp = new ClusterExp.TaskTimeout()) :
 								timeoutExcp;
 			return to;
 		}

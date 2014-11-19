@@ -1,6 +1,6 @@
 
-namespace java com.fsti.common.thrift
+namespace java mysh.thrift
 
 service TService1{
-	string getStr(1:string value, 2:i32 number)
+	string getStr(1:string value, 2:binary number)
 }

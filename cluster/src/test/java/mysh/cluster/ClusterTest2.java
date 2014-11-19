@@ -25,7 +25,7 @@ public class ClusterTest2 {
 	}
 
 	@Test
-	public void calcTest() throws SocketException, RemoteException, ClusterExcp.TaskTimeout, InterruptedException, ClusterExcp.Unready {
+	public void calcTest() throws SocketException, RemoteException, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.Unready {
 		ClusterClient c = new ClusterClient(cmdPort);
 
 		Random r = new Random();
@@ -39,7 +39,7 @@ public class ClusterTest2 {
 		while (true) {
 			Thread.sleep(3000);
 			long start = System.nanoTime();
-			assertEquals(new Integer(a.length), c.runTask(sumUser, a, 0, 0));
+			assertEquals(new Integer(a.length), c.runTask(sumUser, a, 10000, 0));
 			System.out.println("cost time: " + (System.nanoTime() - start) / 1000_000);
 		}
 	}

@@ -18,7 +18,7 @@ public class ClusterMgrTest1 {
 	}
 
 	@Test
-	public void t1() throws SocketException, RemoteException, ClusterExcp.Unready, InterruptedException, ClusterExcp.TaskTimeout {
+	public void t1() throws SocketException, RemoteException, ClusterExp.Unready, InterruptedException, ClusterExp.TaskTimeout {
 		ClusterClient c = new ClusterClient(cmdPort);
 		while (true) {
 			System.out.println(c.getWorkerStates(WorkerState.class, 1000, 1000));

@@ -10,7 +10,7 @@
 			      p:serverHost="localhost" p:serverPort="19090"
 			      p:clientSocketTimeout="5000"
 			      p:iface="mysh.thrift.TService1$Iface"
-			      p:tclient="mysh.thrift.TService1$Client"
+			      p:TClientClass="mysh.thrift.TService1$Client"
 			      p:useTLS="true"
 			      p:trustKeyStore="classpath:mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456"
 			      p:requireClientAuth="true"
@@ -18,6 +18,6 @@
 							/>
 		</constructor-arg>
 	</bean>
-	<bean id="client2" factory-bean="_client2Fact" factory-method="build"/>
+	<bean id="client2" factory-bean="_client2Fact" factory-method="buildPooled"/>
 
 </beans>

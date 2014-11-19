@@ -26,7 +26,6 @@ class Cmd implements Serializable {
 	final String ipAddr;
 	final short ipMask;
 	final int masterPort;
-
 	final int workerPort;
 
 	Cmd(Action action, String id, long startTime, String ipAddr, short ipMask, int masterPort, int workerPort) {

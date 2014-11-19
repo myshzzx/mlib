@@ -1,6 +1,5 @@
 package mysh.cluster;
 
-import java.rmi.RemoteException;
 import java.util.Map;
 
 /**
@@ -13,20 +12,19 @@ public interface IMaster extends IClusterService {
 	 * tell the master one sub-task complete, no matter the execution succeed or failed.
 	 *
 	 * @param result non-Throwable obj represent to successful result, while Throwable means failed.
-	 *               And if result is instanceof {@link ClusterExcp.TaskTimeout},
+	 *               And if result is instanceof {@link ClusterExp.TaskTimeout},
 	 *               the subTask need not to be re-executed.
-	 * @throws java.rmi.RemoteException
 	 */
 	void subTaskComplete(int taskId, int subTaskId, Object result,
-	                     String workerId, WorkerState workerState) throws RemoteException;
+	                     String workerId, WorkerState workerState);
 
 	/**
 	 * get current workers state.
 	 */
-	<WS extends WorkerState> Map<String, WS> getWorkerStates() throws RemoteException;
+	<WS extends WorkerState> Map<String, WS> getWorkerStates();
 
 	/**
 	 * close master.
 	 */
-	void closeMaster() throws RemoteException;
+	void closeMaster();
 }

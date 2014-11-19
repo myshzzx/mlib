@@ -1,6 +1,8 @@
 package mysh.cluster;
 
 import mysh.cluster.mgr.GetWorkerStates;
+import mysh.cluster.rpc.IfaceHolder;
+import mysh.cluster.rpc.thrift.ThriftUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +31,7 @@ public final class ClusterClient {
 	 * network interface addresses with broadcast address.
 	 */
 	private final Set<InterfaceAddress> bcAdds = new HashSet<>();
-	private volatile IClusterService service;
+	private volatile IfaceHolder<IClusterService> service;
 
 
 	/**
@@ -64,45 +66,45 @@ public final class ClusterClient {
 	 * @param timeout        task execution timeout(milli-second).
 	 *                       <code>0</code> represent for never timeout, even waiting for cluster getting ready.
 	 *                       <code>negative</code> represent for never timeout for task execution,
-	 *                       but throwing {@link ClusterExcp.Unready} immediately if cluster is not ready.
+	 *                       but throwing {@link ClusterExp.Unready} immediately if cluster is not ready.
 	 * @param subTaskTimeout suggested subTask execution timeout,
 	 *                       obeying it or not depends on the implementation of cUser.
-	 * @throws ClusterExcp.Unready IClusterService is not ready until timeout.
+	 * @throws ClusterExp.Unready IClusterService is not ready until timeout.
 	 */
 	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
 	                                final int timeout, final int subTaskTimeout)
-					throws RemoteException, ClusterExcp.Unready, ClusterExcp.TaskTimeout, InterruptedException {
+					throws RemoteException, ClusterExp.Unready, ClusterExp.TaskTimeout, InterruptedException {
 
 		if (this.service == null && timeout < 0) {
 			this.prepareClusterService();
-			throw new ClusterExcp.Unready();
+			throw new ClusterExp.Unready();
 		}
 
 		long startTime = System.currentTimeMillis();
 		int leftTime;
 
-		IClusterService cs = this.service;
+		IfaceHolder<IClusterService> cs = this.service;
 		while (true) {
 			if (timeout == 0) leftTime = 0;
 			else {
 				leftTime = timeout - (int) (System.currentTimeMillis() - startTime);
-				if (leftTime <= 0) throw new ClusterExcp.Unready();
+				if (leftTime <= 0) throw new ClusterExp.Unready();
 			}
 
 			if (cs == null) cs = this.waitForClusterPreparing(startTime, leftTime);
 
 			try {
-				return cs.runTask(cUser, task, leftTime, subTaskTimeout);
+				return cs.getClient().runTask(cUser, task, leftTime, subTaskTimeout);
 			} catch (Exception e) {
 				log.error("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
 					cs = this.service = null;
 					this.prepareClusterService();
-					if (timeout < 0) throw new ClusterExcp.Unready(e);
+					if (timeout < 0) throw new ClusterExp.Unready(e);
 				} else if (e instanceof RemoteException) {
 					throw (RemoteException) e;
-				} else if (e instanceof ClusterExcp.TaskTimeout) {
-					throw (ClusterExcp.TaskTimeout) e;
+				} else if (e instanceof ClusterExp.TaskTimeout) {
+					throw (ClusterExp.TaskTimeout) e;
 				} else
 					throw new RuntimeException("unknown exception: " + e, e);
 			}
@@ -112,8 +114,13 @@ public final class ClusterClient {
 	/**
 	 * todo: close the client.
 	 */
-	private void close(){
+	private void close() {
 		this.cmdSock.close();
+		if (this.service != null)
+			try {
+				this.service.close();
+			} catch (IOException e) {
+			}
 		// check while(true)
 		// close rmi connection
 		// close thread
@@ -125,7 +132,7 @@ public final class ClusterClient {
 	 * see {@link #runTask}
 	 */
 	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
-					throws RemoteException, ClusterExcp.TaskTimeout, InterruptedException, ClusterExcp.Unready {
+					throws RemoteException, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.Unready {
 		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
 	}
 
@@ -154,8 +161,7 @@ public final class ClusterClient {
 					log.debug("receive cmd: " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
-							service = ClusterNode.getRMIService(cmd.ipAddr, cmd.masterPort,
-											ClusterNode.MASTER_RMI_NAME, null);
+							service = ThriftUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0);
 						} catch (Exception e) {
 							log.error("connect to master service error.", e);
 						}
@@ -191,18 +197,18 @@ public final class ClusterClient {
 	 * @param startTime task submit time.
 	 * @param timeout   waiting for cluster ready timeout(milli-second).
 	 *                  <code>0</code> represent for never timeout.
-	 *                  <code>negative</code> throws {@link ClusterExcp.Unready} immediately .
+	 *                  <code>negative</code> throws {@link ClusterExp.Unready} immediately .
 	 */
-	private IClusterService waitForClusterPreparing(final long startTime, final int timeout)
-					throws ClusterExcp.Unready, InterruptedException {
-		if (timeout < 0) throw new ClusterExcp.Unready();
+	private IfaceHolder<IClusterService> waitForClusterPreparing(
+					final long startTime, final int timeout) throws ClusterExp.Unready, InterruptedException {
+		if (timeout < 0) throw new ClusterExp.Unready();
 
-		IClusterService cs;
+		IfaceHolder<IClusterService> cs;
 		while ((cs = this.service) == null) {
 			this.prepareClusterService();
 			Thread.sleep(10);
 			if (timeout > 0 && timeout <= System.currentTimeMillis() - startTime)
-				throw new ClusterExcp.Unready();
+				throw new ClusterExp.Unready();
 		}
 
 		return cs;
@@ -210,8 +216,8 @@ public final class ClusterClient {
 
 	private static boolean isClusterUnready(Exception e) {
 		return ClusterNode.isNodeUnavailable(e)
-						|| e instanceof ClusterExcp.NotMaster
-						|| e instanceof ClusterExcp.NoWorkers
+						|| e instanceof ClusterExp.NotMaster
+						|| e instanceof ClusterExp.NoWorkers
 						|| e instanceof InterruptedException
 						;
 	}

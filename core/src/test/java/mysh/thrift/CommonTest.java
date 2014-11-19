@@ -42,7 +42,7 @@ public class CommonTest {
 
 			while (true) {
 				try {
-					System.out.println(client.getStr("mysh", 234));
+					System.out.println(client.getStr("mysh", null));
 					Thread.sleep(1000);
 				} catch (Exception e) {
 

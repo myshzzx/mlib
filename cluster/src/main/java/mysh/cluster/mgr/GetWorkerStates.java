@@ -5,8 +5,8 @@ import mysh.cluster.WorkerState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.rmi.RemoteException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Mysh
@@ -30,7 +30,7 @@ public class GetWorkerStates<WS extends WorkerState>
 
 		try {
 			workerStates = master.getWorkerStates();
-		} catch (RemoteException e) {
+		} catch (Exception e) {
 			log.error("master.getWorkerStates error.", e);
 		}
 		return pack(new Object[0], null);

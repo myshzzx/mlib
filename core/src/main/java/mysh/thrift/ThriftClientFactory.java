@@ -25,6 +25,7 @@ import java.net.SocketException;
 public class ThriftClientFactory<T> {
 
 	private class ThriftClient implements Closeable {
+		private volatile boolean isClosed = false;
 		private volatile T client;
 		private volatile TTransport transport;
 
@@ -32,10 +33,14 @@ public class ThriftClientFactory<T> {
 			rebuildClient();
 		}
 
-		private void rebuildClient() throws TTransportException, NoSuchMethodException,
-						IllegalAccessException, InvocationTargetException, InstantiationException, IOException {
+		private void rebuildClient() throws TTransportException, IOException, NoSuchMethodException,
+						IllegalAccessException, InvocationTargetException, InstantiationException {
 
-			this.close();
+			if (isClosed)
+				throw new RuntimeException("thrift client has been closed.");
+
+			if (transport != null)
+				transport.close();
 
 			if (conf.useTLS) {
 				TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
@@ -53,11 +58,12 @@ public class ThriftClientFactory<T> {
 			}
 
 			TProtocol protocol = new TCompactProtocol(transport);
-			client = conf.tclient.getConstructor(TProtocol.class).newInstance(protocol);
+			client = conf.tClientClass.getConstructor(TProtocol.class).newInstance(protocol);
 		}
 
 		@Override
 		public void close() {
+			this.isClosed = true;
 			if (transport != null)
 				transport.close();
 		}
@@ -66,6 +72,9 @@ public class ThriftClientFactory<T> {
 
 		public Object invokeThriftClient(Method method, Object[] args) throws Exception {
 			lastInvokeTime = System.currentTimeMillis();
+
+			if (isClosed)
+				throw new RuntimeException("thrift client has been closed.");
 
 			try {
 				return method.invoke(client, args);
@@ -112,7 +121,7 @@ public class ThriftClientFactory<T> {
 	public static class Config<T> {
 
 		private Class<T> iface;
-		private Class<? extends T> tclient;
+		private Class<? extends T> tClientClass;
 		private String serverHost;
 		private int serverPort;
 		private int clientSocketTimeout;
@@ -134,8 +143,8 @@ public class ThriftClientFactory<T> {
 		/**
 		 * thrift client class.
 		 */
-		public void setTclient(Class<? extends T> tclient) {
-			this.tclient = tclient;
+		public void setTClientClass(Class<? extends T> tClientClass) {
+			this.tClientClass = tClientClass;
 		}
 
 		/**
@@ -202,6 +211,28 @@ public class ThriftClientFactory<T> {
 		}
 	}
 
+	/**
+	 * closeable client encapsulation.
+	 */
+	public static class ClientHolder<T> implements Closeable {
+		private T client;
+		private Closeable c;
+
+		private ClientHolder(T client, Closeable c) {
+			this.client = client;
+			this.c = c;
+		}
+
+		public T getClient() {
+			return client;
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (c != null) c.close();
+		}
+	}
+
 	private static long POOL_IDLE_OBJ_TIMEOUT = 61000;
 	private Config<T> conf;
 
@@ -209,8 +240,13 @@ public class ThriftClientFactory<T> {
 		this.conf = conf;
 	}
 
+	/**
+	 * build pooled(auto close connections) and thread-safe (unblocking) client.
+	 * <br/>
+	 * WARNING: the holder needs to be closed after using.
+	 */
 	@SuppressWarnings("unchecked")
-	public T build() {
+	public ClientHolder<T> buildPooled() {
 		GenericObjectPoolConfig poolConf = new GenericObjectPoolConfig();
 		poolConf.setMinIdle(0);
 		poolConf.setMaxTotal(Integer.MAX_VALUE);
@@ -220,7 +256,7 @@ public class ThriftClientFactory<T> {
 
 		GenericObjectPool<ThriftClient> pool = new GenericObjectPool(new PoolObjMaker(), poolConf);
 
-		return (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{conf.iface},
+		T client = (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{conf.iface},
 						(obj, method, args) -> {
 							ThriftClient tc = pool.borrowObject();
 							try {
@@ -229,6 +265,7 @@ public class ThriftClientFactory<T> {
 								pool.returnObject(tc);
 							}
 						});
+		return new ClientHolder<>(client, pool::close);
 	}
 
 }
