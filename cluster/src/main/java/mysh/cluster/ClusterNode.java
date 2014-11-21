@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.rmi.UnmarshalException;
 import java.util.HashSet;
@@ -16,6 +17,7 @@ import java.util.concurrent.*;
 
 /**
  * self-organized and decentralized Master-Worker cluster network keeper.<br/>
+ * designed for small scale(hundreds nodes) and heavy communication cluster.
  * <p>
  * WARNING: <br/>
  * 1. need ipv4<br/>
@@ -51,7 +53,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	/**
 	 * network timeout(milli-second).
 	 */
-	public static final int NETWORK_TIMEOUT = 6000;
+	public static final int NETWORK_TIMEOUT = 5000;
 	public static final int NODES_SCALE = 1024;
 	/**
 	 * UDP command sock.
@@ -60,7 +62,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	/**
 	 * network interface addresses with broadcast address.
 	 */
-	private final Set<InterfaceAddress> bcAdds = new HashSet<>();
+	private volatile Set<InterfaceAddress> bcAdds = new HashSet<>();
 	/**
 	 * received cmds.
 	 */
@@ -76,31 +78,25 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	private BlockingQueue<Closeable> thriftConns = new LinkedBlockingQueue<>();
 
 	/**
-	 * @param cmdPort   cmd port. UDP(cmdPort) will be used in broadcast communication,
-	 *                  while TCP(cmdPort) in services dispatching,
-	 *                  TCP(cmdPort+1) in Master-Node service and TCP(cmdPort+2) in Worker-Node service.
-	 * @param initState initial state of the worker, which can be updated and sent to master node automatically.
-	 *                  can be <code>null</code>.
+	 * @param cmdPort        cmd port. UDP(cmdPort) will be used in broadcast communication,
+	 *                       while TCP(cmdPort) in services dispatching,
+	 *                       TCP(cmdPort+1) in Master-Node service and TCP(cmdPort+2) in Worker-Node service.
+	 * @param initState      initial state of the worker, which can be updated and sent to master node automatically.
+	 *                       can be <code>null</code>.
+	 * @param serverPoolSize rpc server pool size.
+	 *                       see {@link mysh.thrift.ThriftServerFactory#setServerPoolSize}
 	 * @throws Exception fail to bind UDP port, or no available network interface.
 	 */
-	public ClusterNode(int cmdPort, WorkerState initState) throws Exception {
+	public ClusterNode(int cmdPort, WorkerState initState, int serverPoolSize) throws Exception {
 
 		cmdSock = new DatagramSocket(cmdPort);
 		cmdSock.setReceiveBufferSize(15 * 1024 * 1024);
 		cmdSock.setSendBufferSize(1024 * 1024);
 
 		// prepare all network interface addresses with broadcast address.
-		SockUtil.iterateNetworkIF(nif -> {
-			nif.getInterfaceAddresses().stream()
-							.filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
-							.forEach(addr -> {
-								if (bcAdds.add(addr)) {
-									if (id == null)
-										id = "cn_" + addr.getAddress().toString() + "_" + System.currentTimeMillis();
-									log.info("add addr with broadcast: " + addr);
-								}
-							});
-		});
+		renewNetworkIf();
+		if (id == null && bcAdds.size() > 0)
+			id = "cn_" + bcAdds.iterator().next().getAddress().toString() + "_" + System.currentTimeMillis();
 
 		if (bcAdds.size() < 1)
 			throw new RuntimeException("no available network interface that support broadcast.");
@@ -108,11 +104,11 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		this.cmdPort = cmdPort;
 
 		master = new Master(id, this);
-		tMasterServer = ThriftUtil.exportTServer(IMaster.class, master, this.cmdPort + 1, null);
+		tMasterServer = ThriftUtil.exportTServer(IMaster.class, master, this.cmdPort + 1, null, serverPoolSize);
 		ThriftUtil.startTServer(tMasterServer);
 
 		worker = new Worker(id, this, initState);
-		tWorkerServer = ThriftUtil.exportTServer(IWorker.class, worker, this.cmdPort + 2, null);
+		tWorkerServer = ThriftUtil.exportTServer(IWorker.class, worker, this.cmdPort + 2, null, serverPoolSize);
 		ThriftUtil.startTServer(tWorkerServer);
 
 		startTime = System.currentTimeMillis();
@@ -154,7 +150,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 			while (!this.isInterrupted()) {
 				try {
 					Cmd cmd = cmds.take();
-					log.debug("receive cmd: " + cmd);
+					log.debug("rec cmd <<< " + cmd);
 					if (cmd.action == Cmd.Action.I_AM_THE_MASTER
 									|| cmd.action == Cmd.Action.I_AM_A_WORKER
 									|| cmd.action == Cmd.Action.WHO_IS_THE_MASTER_BY_WORKER)
@@ -286,21 +282,40 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	}
 
 	/**
-	 * whether the exception throw by remote invoking means node unavailable.
+	 * whether the exception throw by remote invoking means node unavailable.<br/>
+	 * in conditions below: <br/>
+	 * unknown host, ip unreachable, no service on the port,
+	 * response timeout in remote invoking
+	 * network cut when connected, fire wall block when connected,
 	 *
 	 * @param e remote invoke exception.
 	 */
 	static boolean isNodeUnavailable(Exception e) {
+		Throwable et;
+		return (e instanceof UndeclaredThrowableException
+						&& e.getCause() != null
+						&& (et = e.getCause().getCause()) != null
+						&& (
+						et instanceof UnknownHostException
+										|| et instanceof ConnectException
+										|| et instanceof SocketTimeoutException
+										|| et instanceof SocketException // communication blocked by fire wall
+										|| et.getCause() instanceof SocketTimeoutException // remote call timeout
+		)
+		);
+	}
+
+	@Deprecated
+	private static boolean isNodeUnavailableRMI(Exception e) {
 		return e instanceof java.rmi.ConnectException // re-connect to remote ipAddr failed
 						|| e instanceof java.rmi.ConnectIOException // can't connect to remote ipAddr
 						|| e instanceof java.rmi.NoSuchObjectException
 						|| e instanceof java.rmi.ServerError
 						|| e instanceof java.rmi.UnknownHostException
 						|| (
-						e instanceof java.rmi.UnmarshalException // remote ipAddr response timeout
+						e instanceof UnmarshalException // remote ipAddr response timeout
 										&& (((UnmarshalException) e).detail instanceof SocketTimeoutException
-										|| ((UnmarshalException) e).detail instanceof SocketException))
-						;
+										|| ((UnmarshalException) e).detail instanceof SocketException));
 	}
 
 	private void prepareMasterCandidate(Cmd cmd) {
@@ -362,7 +377,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 								worker != null ? this.cmdPort + 2 : 0);
 				try {
 					SockUtil.sendCmd(this.cmdSock, cmdForClient, InetAddress.getByName(clientCmd.ipAddr), clientCmd.masterPort);
-					log.debug("reply client: " + cmdForClient);
+					log.debug("reply client >>> " + cmdForClient);
 				} catch (Exception e) {
 					log.error("reply client error.", e);
 				}
@@ -379,11 +394,33 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 							worker != null ? this.cmdPort + 2 : 0);
 			try {
 				SockUtil.sendCmd(cmdSock, c, ifa.getBroadcast(), cmdSock.getLocalPort());
-				log.debug("broadcast cmd: " + c);
+				log.debug("bc cmd >>> " + c);
 			} catch (Exception e) {
 				log.error("broadcast cmd error, interface:" + ifa.toString(), e);
+				try {
+					renewNetworkIf();
+				} catch (SocketException ex) {
+					log.error("renew network error.", ex);
+					return;
+				}
+				broadcastCmd(action);
+				return;
 			}
 		}
+	}
+
+	private void renewNetworkIf() throws SocketException {
+		Set<InterfaceAddress> tBcAdds = new HashSet<>();
+		SockUtil.iterateNetworkIF(nif -> {
+			nif.getInterfaceAddresses().stream()
+							.filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
+							.forEach(addr -> {
+								if (tBcAdds.add(addr)) {
+									log.info("add addr with broadcast: " + addr);
+								}
+							});
+		});
+		bcAdds = tBcAdds;
 	}
 
 	@Override

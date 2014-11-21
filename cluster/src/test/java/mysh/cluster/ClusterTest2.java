@@ -2,6 +2,8 @@ package mysh.cluster;
 
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.SocketException;
 import java.rmi.RemoteException;
@@ -15,13 +17,21 @@ import static org.junit.Assert.assertEquals;
  */
 @Ignore
 public class ClusterTest2 {
+	private static final Logger log = LoggerFactory.getLogger(ClusterTest2.class);
 
 	private static final int cmdPort = 8030;
 
+	public static void main(String[] args) throws Exception {
+		new ClusterNode(cmdPort, null, 0);
+		Thread.sleep(100000000);
+	}
+
 	@Test
-	public void singleTest() throws Exception {
-		new ClusterNode(cmdPort, null);
-		this.calcTest();
+	public void startCluster() throws Exception {
+		ClusterNode c = new ClusterNode(cmdPort, null, 0);
+//		Thread.sleep(60000);
+//		c.shutdownNode();
+		Thread.sleep(100000000);
 	}
 
 	@Test
@@ -39,7 +49,7 @@ public class ClusterTest2 {
 		while (true) {
 			Thread.sleep(3000);
 			long start = System.nanoTime();
-			assertEquals(new Integer(a.length), c.runTask(sumUser, a, 10000, 0));
+			assertEquals(new Integer(a.length), c.runTask(sumUser, a, 30000, 0));
 			System.out.println("cost time: " + (System.nanoTime() - start) / 1000_000);
 		}
 	}
@@ -50,11 +60,11 @@ public class ClusterTest2 {
 
 						@Override
 						public SubTasksPack<float[][]> fork(float[][] task, int workerNodeCount) {
-							System.out.println("==begin to fork sumUser task.==");
+							log.info("begin to fork sumUser task.==");
 
 							float[][][] r = split(task, workerNodeCount);
 
-							System.out.println("==fork sumUser task end.==");
+							log.info("fork sumUser task end.==");
 							return pack(r, null);
 						}
 
@@ -65,9 +75,9 @@ public class ClusterTest2 {
 
 						@Override
 						public Integer procSubTask(float[][] subTask, int timeout) throws InterruptedException {
-							System.out.println("--begin to process sumUser subTask.--");
-							Thread.sleep(20000);
-							System.out.println("--process sumUser subTask end.--");
+							log.info("begin to process sumUser subTask.--");
+							Thread.sleep(2000);
+							log.info("process sumUser subTask end.--");
 							return subTask.length;
 						}
 

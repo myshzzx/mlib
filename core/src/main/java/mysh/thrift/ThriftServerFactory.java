@@ -13,18 +13,22 @@ import org.springframework.core.io.Resource;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * a TLS-supported and non-blocking thrift-server maker.
+ * a TLS-supported and non-blocking thrift-server maker.<br/>
+ * DO NOT support async mode, because async mode focus on thread-reuse(for large scale c/s),
+ * but this implementation focus on connection-reuse(for small scale and heavy communication).
  */
 public class ThriftServerFactory {
 
-	// 客户端不超时（允许长连接）
+	// client never timeout, for long connection
 	private final int clientTimeout = 0;
 	private String serverHost;
 	private int serverPort;
 	private TProcessor processor;
+	private int serverPoolSize;
 
 	private boolean useTLS;
 	private Resource selfKeyStore;
@@ -35,12 +39,27 @@ public class ThriftServerFactory {
 
 	private TServerEventHandler serverEventHandler;
 
+	private static final AtomicInteger serverTPI = new AtomicInteger(1);
+
 	/**
 	 * @return build but not start server.
 	 * @throws Exception
 	 */
 	public TServer build() throws Exception {
 		final TServer server;
+
+		int poolSize = Runtime.getRuntime().availableProcessors() * 2;
+		poolSize = Math.max(poolSize, this.serverPoolSize);
+		AtomicInteger tpi = new AtomicInteger(1);
+		ThreadPoolExecutor tPool = new ThreadPoolExecutor(poolSize, poolSize, 60L, TimeUnit.SECONDS,
+						new LinkedBlockingQueue<>(),
+						r -> {
+							Thread t = new Thread(r, "tServer-" + serverTPI.getAndIncrement() + "-" + tpi.getAndIncrement());
+							t.setDaemon(true);
+							return t;
+						});
+		tPool.allowCoreThreadTimeOut(true);
+
 		if (useTLS) { // TLS server
 			TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
 			transportParams.setKeyStore(this.selfKeyStore.getFile().getAbsolutePath(), this.selfKeyStorePw);
@@ -54,7 +73,7 @@ public class ThriftServerFactory {
 							new TThreadPoolServer.Args(serverTransport)
 											.processor(this.processor)
 											.protocolFactory(new TCompactProtocol.Factory())
-											.executorService(Executors.newCachedThreadPool()));
+											.executorService(tPool));
 		} else { // Non security Server
 			TNonblockingServerSocket serverTransport = new TNonblockingServerSocket(
 							new InetSocketAddress(this.serverHost, this.serverPort), this.clientTimeout);
@@ -62,7 +81,8 @@ public class ThriftServerFactory {
 			server = new THsHaServer(
 							new THsHaServer.Args(serverTransport)
 											.processor(this.processor)
-											.protocolFactory(new TCompactProtocol.Factory()));
+											.protocolFactory(new TCompactProtocol.Factory())
+											.executorService(tPool));
 		}
 
 		if (this.serverEventHandler != null) {
@@ -91,6 +111,20 @@ public class ThriftServerFactory {
 	 */
 	public void setProcessor(TProcessor processor) {
 		this.processor = processor;
+	}
+
+	/**
+	 * server handler thread pool size.<br/>
+	 * this value should be larger than possible client connection number,
+	 * but not to large, in case of heavy cost on thread context switch.
+	 * <p>
+	 * WARNING: number of client connections will not exceed this pool size,
+	 * because client connection will hold a thread till client-task completes,
+	 * if there's no more thread to handle subTask-complete invoking,
+	 * the client-task will never end (or timeout if the parameter is not zero).
+	 */
+	public void setServerPoolSize(int serverPoolSize) {
+		this.serverPoolSize = serverPoolSize;
 	}
 
 	/**

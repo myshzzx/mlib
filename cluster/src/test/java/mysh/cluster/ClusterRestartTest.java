@@ -16,7 +16,7 @@ public class ClusterRestartTest {
 	public static void main(String[] args) {
 		log.info("start.");
 		try {
-			ClusterNode node = new ClusterNode(8030, null);
+			ClusterNode node = new ClusterNode(8030, null,0);
 			Thread.sleep(10000);
 			node.shutdownNode();
 			OSUtil.restart();

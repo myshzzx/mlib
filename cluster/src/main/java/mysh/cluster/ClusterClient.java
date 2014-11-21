@@ -73,7 +73,7 @@ public final class ClusterClient {
 	 */
 	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
 	                                final int timeout, final int subTaskTimeout)
-					throws RemoteException, ClusterExp.Unready, ClusterExp.TaskTimeout, InterruptedException {
+					throws ClusterExp.Unready, ClusterExp.TaskTimeout, InterruptedException {
 
 		if (this.service == null && timeout < 0) {
 			this.prepareClusterService();
@@ -101,12 +101,12 @@ public final class ClusterClient {
 					cs = this.service = null;
 					this.prepareClusterService();
 					if (timeout < 0) throw new ClusterExp.Unready(e);
-				} else if (e instanceof RemoteException) {
-					throw (RemoteException) e;
 				} else if (e instanceof ClusterExp.TaskTimeout) {
 					throw (ClusterExp.TaskTimeout) e;
-				} else
+				} else {
+					// in case of throw Exception that covers other Custom Exceptions in ClusterExp
 					throw new RuntimeException("unknown exception: " + e, e);
+				}
 			}
 		}
 	}
@@ -158,7 +158,7 @@ public final class ClusterClient {
 				// in case of multi-responses, so end the loop until sock.receive timeout exception throw.
 				while (true) {
 					Cmd cmd = SockUtil.receiveCmd(cmdSock, CMD_SOCK_BUF);
-					log.debug("receive cmd: " + cmd);
+					log.debug("rec cmd <<< " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
 							service = ThriftUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0);
@@ -185,7 +185,7 @@ public final class ClusterClient {
 									addr.getAddress().getHostAddress(), addr.getNetworkPrefixLength(),
 									cmdSock.getLocalPort(), 0);
 					SockUtil.sendCmd(cmdSock, cmd, addr.getBroadcast(), cmdPort);
-					log.debug("broadcast cmd: " + cmd);
+					log.debug("bc cmd >>> " + cmd);
 				} catch (IOException e) {
 					log.error("broadcast for master error, on interface: " + addr, e);
 				}

@@ -37,12 +37,13 @@ public class ThriftUtil {
 	}
 
 	public static <I> TServer exportTServer(
-					Class<I> svIf, I sv, int port, TServerEventHandler eventHandler) throws Exception {
+					Class<I> svIf, I sv, int port, TServerEventHandler eventHandler, int poolSize) throws Exception {
 		ThriftServerFactory f = new ThriftServerFactory();
 		f.setServerHost("0.0.0.0");
 		f.setServerPort(port);
 		f.setProcessor(new TClusterService.Processor<>(wrapService(svIf, sv)));
 		f.setServerEventHandler(eventHandler);
+		f.setServerPoolSize(poolSize);
 		return f.build();
 	}
 

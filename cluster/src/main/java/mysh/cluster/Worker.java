@@ -36,6 +36,7 @@ class Worker implements IWorker {
 		this.id = id;
 		this.listener = listener;
 		this.state = initState == null ? new WorkerState() : initState;
+		this.state.update();
 
 		tChkMaster.setDaemon(true);
 		tChkMaster.setPriority(Thread.MIN_PRIORITY);
@@ -50,7 +51,7 @@ class Worker implements IWorker {
 		tTaskComplete.start();
 	}
 
-	Thread tChkMaster = new Thread("clusterWorker:check-master") {
+	Thread tChkMaster = new Thread("clusterWorker:check-master&state") {
 		@Override
 		public void run() {
 			int timeout = ClusterNode.NETWORK_TIMEOUT * 2;
@@ -60,11 +61,13 @@ class Worker implements IWorker {
 					Thread.sleep(timeout);
 					if (listener != null && lastMasterAction < System.currentTimeMillis() - timeout)
 						listener.masterTimeout();
+
+					Worker.this.state.update();
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
 				} catch (Exception e) {
-					log.error("notify listener failed.", e);
+					log.error("worker checker failed.", e);
 				}
 			}
 		}
@@ -191,7 +194,6 @@ class Worker implements IWorker {
 
 	private WorkerState updateState() {
 		this.state.setTaskQueueSize(this.subTasks.size());
-		this.state.update();
 		return this.state;
 	}
 

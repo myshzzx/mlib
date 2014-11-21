@@ -8,6 +8,8 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 
 import java.io.Closeable;
@@ -18,15 +20,18 @@ import java.lang.reflect.Proxy;
 import java.net.SocketException;
 
 /**
- * a connection-pooled, TLS-supported and thread-safe thrift-client maker.
+ * a connection-pooled, TLS-supported and thread-safe thrift-client maker.<br/>
+ * DO NOT support async mode, because async mode focus on thread-reuse(for large scale c/s),
+ * but this implementation focus on connection-reuse(for small scale and heavy communication).
  *
- * @param <T> thrift server interface.
+ * @param <TI> thrift server interface.
  */
-public class ThriftClientFactory<T> {
+public class ThriftClientFactory<TI> {
+	private static final Logger log = LoggerFactory.getLogger(ThriftClientFactory.class);
 
 	private class ThriftClient implements Closeable {
 		private volatile boolean isClosed = false;
-		private volatile T client;
+		private volatile TI client;
 		private volatile TTransport transport;
 
 		public ThriftClient() throws Exception {
@@ -77,14 +82,18 @@ public class ThriftClientFactory<T> {
 				throw new RuntimeException("thrift client has been closed.");
 
 			try {
-				return method.invoke(client, args);
+				Object result = method.invoke(client, args);
+				return result;
 			} catch (Exception e) {
 				this.rebuildClient();
+
 				if (e.getCause() != null) {
 					if (e.getCause().getCause() instanceof SocketException
 									|| e.getCause().getMessage().equals("Cannot write to null outputStream")
-									) // connection problem that can be restore, then re-invoke
+									) { // connection problem that can be restore, then re-invoke
+						log.debug("thrift client invoke failed, but has reconnected and prepared for re-invoking", e);
 						return method.invoke(client, args);
+					}
 				}
 				throw e;
 			}
@@ -120,11 +129,12 @@ public class ThriftClientFactory<T> {
 
 	public static class Config<T> {
 
-		private Class<T> iface;
-		private Class<? extends T> tClientClass;
 		private String serverHost;
 		private int serverPort;
 		private int clientSocketTimeout;
+		private boolean useAsync;
+		private Class<T> iface;
+		private Class<? extends T> tClientClass;
 
 		private boolean useTLS;
 		private Resource trustKeyStore;
@@ -234,9 +244,9 @@ public class ThriftClientFactory<T> {
 	}
 
 	private static long POOL_IDLE_OBJ_TIMEOUT = 61000;
-	private Config<T> conf;
+	private Config<TI> conf;
 
-	public ThriftClientFactory(Config<T> conf) {
+	public ThriftClientFactory(Config<TI> conf) {
 		this.conf = conf;
 	}
 
@@ -246,7 +256,7 @@ public class ThriftClientFactory<T> {
 	 * WARNING: the holder needs to be closed after using.
 	 */
 	@SuppressWarnings("unchecked")
-	public ClientHolder<T> buildPooled() {
+	public ClientHolder<TI> buildPooled() {
 		GenericObjectPoolConfig poolConf = new GenericObjectPoolConfig();
 		poolConf.setMinIdle(0);
 		poolConf.setMaxTotal(Integer.MAX_VALUE);
@@ -256,7 +266,7 @@ public class ThriftClientFactory<T> {
 
 		GenericObjectPool<ThriftClient> pool = new GenericObjectPool(new PoolObjMaker(), poolConf);
 
-		T client = (T) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{conf.iface},
+		TI client = (TI) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{conf.iface},
 						(obj, method, args) -> {
 							ThriftClient tc = pool.borrowObject();
 							try {

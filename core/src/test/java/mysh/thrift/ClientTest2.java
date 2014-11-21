@@ -20,9 +20,10 @@ import java.util.Date;
 public class ClientTest2 {
 	private static final Logger log = LoggerFactory.getLogger(ClientTest2.class);
 
+
 	@Autowired
-	@Qualifier("client2")
-	private ThriftClientFactory.ClientHolder<TService1.Iface> client;
+	@Qualifier("client1")
+	private ThriftClientFactory.ClientHolder<TService1.Iface> c1;
 
 	@Test
 	public void test1() throws Exception {
@@ -35,7 +36,7 @@ public class ClientTest2 {
 				public void run() {
 					try {
 						System.out.println(new Date() + " - " + this.getName() + ": "
-										+ client.getClient().getStr("mysh", ByteBuffer.wrap(b)));
+										+ c1.getClient().getStr("mysh", ByteBuffer.wrap(b)));
 					} catch (Throwable t) {
 						log.error(Thread.currentThread().getName(), t);
 					}
@@ -51,7 +52,7 @@ public class ClientTest2 {
 				public void run() {
 					try {
 						System.out.println(new Date() + " - " + this.getName() + ": " +
-										client.getClient().getStr("xxxx", ByteBuffer.wrap(b)));
+										c1.getClient().getStr("xxxx", ByteBuffer.wrap(b)));
 					} catch (Throwable t) {
 						log.error(Thread.currentThread().getName(), t);
 					}
@@ -62,10 +63,12 @@ public class ClientTest2 {
 	}
 
 	@Test
-	public void test2() throws Exception {
+	public void test12() throws Exception {
 		while (true) {
 			this.test1();
 			Thread.sleep(15000);
 		}
 	}
+
+
 }
