@@ -15,6 +15,7 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.nio.ByteBuffer;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -101,25 +102,31 @@ public class ThriftUtil {
 	}
 
 	private static ByteBuffer wrapExp(Exception e) {
+		return serialize(e);
+	}
+
+	private static ByteBuffer serialize(Serializable obj) {
+		if (obj == null) return null;
+
 		try {
-			return serialize(e);
-		} catch (IOException ex) {
-			log.error("serialize exception error.", ex);
-			return null;
+			return ByteBuffer.wrap(SerializeUtil.serialize(obj));
+		} catch (IOException e) {
+			log.error("serialize obj error:" + obj, e);
+			throw new RuntimeException(e);
 		}
 	}
 
-	private static ByteBuffer serialize(Serializable obj) throws IOException {
-		if (obj == null) return null;
-
-		return ByteBuffer.wrap(SerializeUtil.serialize(obj));
-	}
-
-	private static <T extends Serializable> T unSerialize(ByteBuffer buf)
-					throws IOException, ClassNotFoundException {
+	private static <T extends Serializable> T unSerialize(ByteBuffer buf) {
 		if (buf == null) return null;
 
-		return SerializeUtil.unSerialize(buf.array(), buf.position(), buf.capacity() - buf.position());
+		try {
+			return SerializeUtil.unSerialize(buf.array(), buf.position(), buf.capacity() - buf.position());
+		} catch (Exception e) {
+			byte[] b = new byte[buf.capacity() - buf.position()];
+			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
+			log.error("unSerialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);
+			throw new RuntimeException(e);
+		}
 	}
 
 }

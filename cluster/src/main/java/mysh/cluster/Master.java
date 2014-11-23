@@ -5,11 +5,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Array;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static mysh.cluster.ClusterNode.isNodeUnavailable;
 
 /**
  * Task map-reduce, who
@@ -21,9 +21,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 class Master implements IMaster {
 	private static final Logger log = LoggerFactory.getLogger(Master.class);
 
-	private ClusterExp.NotMaster notMasterExcp;
-	private ClusterExp.NoWorkers noWorkersExcp;
-	private ClusterExp.TaskTimeout taskTimeoutExcp;
+	private ClusterExp.NotMaster notMasterExp;
+	private ClusterExp.NoWorkers noWorkersExp;
+	private ClusterExp.TaskTimeout taskTimeoutExp;
+	private ClusterExp.TaskCanceled taskCanceledExp;
 
 	private String id;
 	private volatile Listener listener;
@@ -39,6 +40,12 @@ class Master implements IMaster {
 	private final AtomicInteger taskIdGen = new AtomicInteger(0);
 	private final Map<Integer, TaskInfo> taskInfoTable = new ConcurrentHashMap<>();
 	private final BlockingQueue<SubTask> subTasks = new LinkedBlockingQueue<>();
+	/**
+	 * [nodeId,taskId]
+	 */
+	private final BlockingQueue<Object[]> cancelTasks = new LinkedBlockingQueue<>();
+
+	private final List<Thread> mThreads = new ArrayList<>();
 
 	Master(String id, Listener listener) {
 		Objects.requireNonNull(id, "need master id.");
@@ -47,16 +54,32 @@ class Master implements IMaster {
 		this.id = id;
 		this.listener = listener;
 
-		tWorkersHeartBeat.setDaemon(true);
-		tWorkersHeartBeat.setPriority(Thread.NORM_PRIORITY);
-		tWorkersHeartBeat.start();
+		Thread t;
 
-		tSubTaskDispatcher.setDaemon(true);
-		tSubTaskDispatcher.setPriority(Thread.NORM_PRIORITY + 1);
-		tSubTaskDispatcher.start();
+		t = new WorkersHeartBeat(true, Thread.NORM_PRIORITY);
+		t.start();
+		mThreads.add(t);
+
+		for (int i = 0; i < 2; i++) {
+			t = new SubTaskDispatcher(true, Thread.NORM_PRIORITY + 1);
+			t.start();
+			mThreads.add(t);
+		}
+
+		for (int i = 0; i < 2; i++) {
+			t = new SubTaskCanceller(true, Thread.NORM_PRIORITY + 1);
+			t.start();
+			mThreads.add(t);
+		}
 	}
 
-	Thread tWorkersHeartBeat = new Thread("clusterMaster:workers-heart-beat") {
+	private class WorkersHeartBeat extends Thread {
+		public WorkersHeartBeat(boolean isDaemon, int priority) {
+			super("cMaster:heart-beat");
+			setDaemon(isDaemon);
+			setPriority(priority);
+		}
+
 		@Override
 		public void run() {
 
@@ -77,16 +100,15 @@ class Master implements IMaster {
 							listener.broadcastIAmTheMaster();
 						}
 
-						for (Map.Entry<String, WorkerNode> worker : workersCache.entrySet()) {
+						for (Map.Entry<String, WorkerNode> workerEntry : workersCache.entrySet()) {
 							try {
-								WorkerState state = worker.getValue().workerService.masterHeartBeat();
-								updateWorkerState(worker.getKey(), state);
+								WorkerState state = workerEntry.getValue().workerService.masterHeartBeat();
+								updateWorkerState(workerEntry.getKey(), state);
 							} catch (Exception e) {
-								if (ClusterNode.isNodeUnavailable(e)) {
-									workerUnavailable(worker.getValue());
-									log.error("worker is unavailable: " + worker.getValue().id, e);
-								} else
-									log.error("heart beat error, worker id: " + worker.getValue(), e);
+								if (isNodeUnavailable(e))
+									workerUnavailable(workerEntry.getValue(), e);
+								else
+									log.error("heart beat error, worker id: " + workerEntry.getValue(), e);
 							}
 						}
 					}
@@ -97,10 +119,17 @@ class Master implements IMaster {
 				}
 			}
 		}
-	};
+	}
 
-	Thread tSubTaskDispatcher = new Thread("clusterMaster:subTask-dispatcher") {
+	private class SubTaskDispatcher extends Thread {
+		public SubTaskDispatcher(boolean isDaemon, int priority) {
+			super("cMaster:subTask-dispatcher");
+			setDaemon(isDaemon);
+			setPriority(priority);
+		}
+
 		@Override
+		@SuppressWarnings("unchecked")
 		public void run() {
 			while (!this.isInterrupted()) {
 				SubTask subTask = null;
@@ -108,8 +137,11 @@ class Master implements IMaster {
 
 				try {
 					subTask = subTasks.take();
-					// ignore the subTask if its main-task removed.
-					if (!taskInfoTable.containsKey(subTask.ti.taskId)) continue;
+					TaskInfo ti = subTask.ti;
+					// ignore the subTask if its main-task is removed or timeout
+					if (ti.completeLatch.getCount() == 0
+									|| (ti.timeout > 0 && System.currentTimeMillis() - ti.startTime > ti.timeout))
+						continue;
 
 					String referredNodeId = subTask.getReferredWorkerNode();
 					if (referredNodeId != null) {
@@ -117,26 +149,27 @@ class Master implements IMaster {
 						if (node != null) {
 							workersDispatchQueue.remove(node);
 						} else { // ignore subTask because of unavailable node
-							subTask.ti.subTaskComplete(subTask.subTaskIdx, null, null);
+							ti.subTaskComplete(subTask.subTaskIdx, null, null);
 							continue;
 						}
 					} else {
 						node = workersDispatchQueue.take();
 					}
 
-					int taskTimeout = 0;
+					int taskTimeout;
 					try {
 						taskTimeout = subTask.taskTimeout();
 					} catch (ClusterExp.TaskTimeout e) {
-						subTask.ti.completeLatch.countDown();
+						ti.completeLatch.countDown();
+						workersDispatchQueue.offer(node);
 						continue;
 					}
 
 					@SuppressWarnings("unchecked")
 					WorkerState state = node.workerService.runSubTask(
-									Master.this.id, subTask.ti.taskId, subTask.subTaskIdx,
-									subTask.ti.cUser, subTask.getSubTask(),
-									taskTimeout, subTask.ti.subTaskTimeout);
+									Master.this.id, ti.taskId, subTask.subTaskIdx,
+									ti.cUser, subTask.getSubTask(),
+									taskTimeout, ti.subTaskTimeout);
 
 					subTask.workerAssigned(node.id);
 					updateWorkerState(node.id, state);
@@ -146,40 +179,67 @@ class Master implements IMaster {
 				} catch (Exception e) {
 					log.error("subTask dispatch error.", e);
 
-					if (subTask != null) subTasks.add(subTask);
-
-					if (node != null) {
-						updateWorkerState(node.id, node.workerState);
-
-						if (ClusterNode.isNodeUnavailable(e)) {
-							workerUnavailable(node);
-							log.error("worker is unavailable: " + node.id);
+					try {
+						if (node != null) {
+							if (isNodeUnavailable(e))
+								workerUnavailable(node, e);
+							else
+								updateWorkerState(node.id, node.workerState);
 						}
+					} catch (Exception ex) {
+						log.error("handle sub-task dispatch error failed.", ex);
 					}
+
+					if (subTask != null) subTasks.add(subTask);
 				}
 			}
 		}
-	};
+	}
+
+	private class SubTaskCanceller extends Thread {
+		public SubTaskCanceller(boolean isDaemon, int priority) {
+			super("cMaster:subTask-canceller");
+			setDaemon(isDaemon);
+			setPriority(priority);
+		}
+
+		@Override
+		public void run() {
+			while (!this.isInterrupted()) {
+				try {
+					Object[] ct = cancelTasks.take();
+					String nodeId = (String) ct[0];
+					int taskId = (int) ct[1];
+					WorkerNode node = workersCache.get(nodeId);
+					if (node != null) {
+						try {
+							node.workerService.cancelTask(taskId);
+						} catch (Exception e) {
+							if (isNodeUnavailable(e))
+								workerUnavailable(node, e);
+						}
+					}
+				} catch (InterruptedException e) {
+					return;
+				} catch (Exception e) {
+					log.error("cancel sub task error.", e);
+				}
+			}
+		}
+	}
 
 	@Override
 	public void closeMaster() {
 		log.debug("closing master.");
 
-		try {
-			log.debug("closing master.tWorkersHeartBeat.");
-			tWorkersHeartBeat.interrupt();
-			tWorkersHeartBeat.join();
-		} catch (Exception e) {
-			log.error("master.tWorkersHeartBeat stop error.", e);
-		}
-
-		try {
-			log.debug("closing master.tSubTaskDispatcher.");
-			tSubTaskDispatcher.interrupt();
-			tSubTaskDispatcher.join();
-		} catch (Exception e) {
-			log.error("master.tSubTaskDispatcher stop error.", e);
-		}
+		for (Thread thread : mThreads)
+			try {
+				log.debug("closing " + thread.getName());
+				thread.interrupt();
+				thread.join();
+			} catch (Exception e) {
+				log.error(thread.getName() + " stop error.", e);
+			}
 
 		log.debug("master closed.");
 	}
@@ -204,9 +264,11 @@ class Master implements IMaster {
 		}
 	}
 
-	private void workerUnavailable(WorkerNode workerNode) {
+	private void workerUnavailable(WorkerNode workerNode, Exception e) {
+		log.info("worker is unavailable: " + workerNode.id, e);
 		removeWorker(workerNode.id);
-		this.listener.workerUnavailable(workerNode.id);
+		if (this.listener != null)
+			this.listener.workerUnavailable(workerNode.id);
 	}
 
 	/**
@@ -249,7 +311,8 @@ class Master implements IMaster {
 		TaskInfo ti = this.taskInfoTable.get(taskId);
 		if (ti != null) {
 			ti.subTaskComplete(subTaskId, result, workerNodeId);
-			if ((result instanceof Throwable) && !(result instanceof ClusterExp.TaskTimeout))
+			if ((result instanceof Throwable)
+							&& !(result instanceof ClusterExp.TaskTimeout) && !(result instanceof InterruptedException))
 				subTasks.add(new SubTask(ti, subTaskId));
 		}
 
@@ -258,15 +321,15 @@ class Master implements IMaster {
 
 	@Override
 	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws ClusterExp.NotMaster, ClusterExp.NoWorkers, ClusterExp.TaskTimeout, InterruptedException {
+					throws ClusterExp.NotMaster, ClusterExp.NoWorkers, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.TaskCanceled {
 		if (!isMaster)
-			throw notMasterExcp == null ?
-							(notMasterExcp = new ClusterExp.NotMaster()) : notMasterExcp;
+			throw notMasterExp == null ?
+							(notMasterExp = new ClusterExp.NotMaster()) : notMasterExp;
 
 		int workerCount = workersCache.size();
 		if (workerCount < 1)
-			throw noWorkersExcp == null ?
-							(noWorkersExcp = new ClusterExp.NoWorkers()) : noWorkersExcp;
+			throw noWorkersExp == null ?
+							(noWorkersExp = new ClusterExp.NoWorkers()) : noWorkersExp;
 
 		runTaskFlagForBC = true;
 
@@ -290,12 +353,38 @@ class Master implements IMaster {
 
 		if (timeout <= 0)
 			ti.completeLatch.await();
-		else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS) || ti.unfinishedTask.get() > 0)
-			throw taskTimeoutExcp == null ?
-							(taskTimeoutExcp = new ClusterExp.TaskTimeout()) : taskTimeoutExcp;
+		else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS)) { // timeout
+			cancelTask(ti.taskId);
+			throw taskTimeoutExp == null ?
+							(taskTimeoutExp = new ClusterExp.TaskTimeout()) : taskTimeoutExp;
+		}
 
 		this.taskInfoTable.remove(taskId);
+
+		if (ti.unfinishedTask.get() > 0) // check if task is canceled
+			throw taskCanceledExp == null ?
+							(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
+
 		return cUser.join(ti.results, ti.assignedNodeIds);
+	}
+
+	@Override
+	public void cancelTask(int taskId) {
+		log.info("preparing to cancel task, taskId=" + taskId);
+		TaskInfo ti = this.taskInfoTable.remove(taskId);
+		if (ti != null) {
+			ti.completeLatch.countDown();
+			Set<String> assignedNodes = new HashSet<>();
+			for (int i = 0; i < ti.assignedNodeIds.length; i++) {
+				// the sub-tasks those are assigned but not returned
+				if (ti.assignedNodeIds[i] != null &&
+								(ti.results[i] == null || ti.results[i] instanceof Exception))
+					assignedNodes.add(ti.assignedNodeIds[i]);
+			}
+			for (String nodeId : assignedNodes) {
+				this.cancelTasks.offer(new Object[]{nodeId, taskId});
+			}
+		}
 	}
 
 	public static interface Listener {
@@ -307,6 +396,7 @@ class Master implements IMaster {
 	}
 
 	@Override
+	@SuppressWarnings("unchecked")
 	public <WS extends WorkerState> Map<String, WS> getWorkerStates() {
 		Map<String, WorkerState> ws = new HashMap<>();
 		workersCache.forEach((id, node) -> ws.put(id, node.workerState));
@@ -327,9 +417,6 @@ class Master implements IMaster {
 		private final AtomicInteger unfinishedTask;
 		private final CountDownLatch completeLatch;
 
-		/**
-		 * @param referredNodeIds
-		 */
 		@SuppressWarnings("unchecked")
 		public TaskInfo(int taskId, IClusterUser<T, ST, SR, R> cUser, ST[] subTasks,
 		                long startTime, int timeout, int subTaskTimeout,
@@ -363,7 +450,7 @@ class Master implements IMaster {
 	}
 
 	private static class SubTask {
-		private static ClusterExp.TaskTimeout timeoutExcp;
+		private static ClusterExp.TaskTimeout timeoutExp;
 
 		private final TaskInfo ti;
 		private final int subTaskIdx;
@@ -371,6 +458,8 @@ class Master implements IMaster {
 		private SubTask(TaskInfo ti, int subTaskIdx) {
 			this.ti = ti;
 			this.subTaskIdx = subTaskIdx;
+			// sub-task executed with exception and not timeout will be reassigned
+			this.ti.assignedNodeIds[subTaskIdx] = null;
 		}
 
 		private Object getSubTask() {
@@ -390,9 +479,9 @@ class Master implements IMaster {
 							ti.timeout - (int) (System.currentTimeMillis() - ti.startTime);
 
 			if (to < 0)
-				throw timeoutExcp == null ?
-								(timeoutExcp = new ClusterExp.TaskTimeout()) :
-								timeoutExcp;
+				throw timeoutExp == null ?
+								(timeoutExp = new ClusterExp.TaskTimeout()) :
+								timeoutExp;
 			return to;
 		}
 
@@ -424,6 +513,16 @@ class Master implements IMaster {
 		@Override
 		public String toString() {
 			return id;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return obj instanceof WorkerNode && this.id.equals(((WorkerNode) obj).id);
+		}
+
+		@Override
+		public int hashCode() {
+			return this.id.hashCode();
 		}
 	}
 

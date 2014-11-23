@@ -1,5 +1,8 @@
 package mysh.cluster;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -13,6 +16,7 @@ import java.lang.management.ThreadMXBean;
  * @since 2014/10/11 20:36
  */
 public class WorkerState implements Serializable {
+	private static final Logger log = LoggerFactory.getLogger(WorkerState.class);
 	private static final long serialVersionUID = 7594565289428608227L;
 
 	private int taskQueueSize;
@@ -25,28 +29,49 @@ public class WorkerState implements Serializable {
 		this.taskQueueSize = taskQueueSize;
 	}
 
-	private long memHeap;
-	private long memNonHeap;
-	private long threadCount;
-	private long procCpu = -1;
-	private long sysCpu = -1;
+	/**
+	 * heap memory usage (MB).
+	 */
+	volatile long memHeap;
+	/**
+	 * non heap memory usage (MB).
+	 */
+	volatile long memNonHeap;
+	volatile long threadCount;
+	/**
+	 * cpu usage percentage(0 - 100) of current process.
+	 * negative value represent for failing to get the number.
+	 */
+	volatile int procCpu = -1;
+	/**
+	 * cpu usage percentage(0 - 100) of system.
+	 * negative value represent for failing to get the number.
+	 */
+	volatile int sysCpu = -1;
 
 	private transient MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 	private transient ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-	private transient OperatingSystemMXBean opBean = ManagementFactory.getOperatingSystemMXBean();
+	private transient com.sun.management.OperatingSystemMXBean opBean;
+
+	public WorkerState() {
+		OperatingSystemMXBean t = ManagementFactory.getOperatingSystemMXBean();
+		if (t instanceof com.sun.management.OperatingSystemMXBean) {
+			opBean = (com.sun.management.OperatingSystemMXBean) t;
+		}
+	}
 
 	/**
 	 * the update method will be invoked periodically.
 	 */
 	public void update() {
-		memHeap = memoryMXBean.getHeapMemoryUsage().getUsed();
-		memNonHeap = memoryMXBean.getNonHeapMemoryUsage().getUsed();
+		memHeap = memoryMXBean.getHeapMemoryUsage().getUsed() / 1000_000;
+		memNonHeap = memoryMXBean.getNonHeapMemoryUsage().getUsed() / 1000_000;
 
 		threadCount = threadMXBean.getThreadCount();
 
-		if (opBean instanceof com.sun.management.OperatingSystemMXBean) {
-			procCpu = (long) (((com.sun.management.OperatingSystemMXBean) opBean).getProcessCpuLoad() * 10000);
-			sysCpu = (long) (((com.sun.management.OperatingSystemMXBean) opBean).getSystemCpuLoad() * 10000);
+		if (opBean != null) {
+			procCpu = (int) (opBean.getProcessCpuLoad() * 100);
+			sysCpu = (int) (opBean.getSystemCpuLoad() * 100);
 		}
 	}
 
@@ -57,8 +82,9 @@ public class WorkerState implements Serializable {
 						", memHeap=" + memHeap +
 						", memNonHeap=" + memNonHeap +
 						", threadCount=" + threadCount +
-						", procCpu=" + (procCpu / 100.0) +
-						", sysCpu=" + (sysCpu / 100.0) +
+						", procCpu=" + procCpu +
+						", sysCpu=" + sysCpu +
 						'}';
 	}
+
 }

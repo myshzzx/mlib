@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.SocketException;
-import java.rmi.RemoteException;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
@@ -35,7 +34,7 @@ public class ClusterTest2 {
 	}
 
 	@Test
-	public void calcTest() throws SocketException, RemoteException, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.Unready {
+	public void calcTest() throws SocketException, InterruptedException, ClusterExp {
 		ClusterClient c = new ClusterClient(cmdPort);
 
 		Random r = new Random();
@@ -76,7 +75,7 @@ public class ClusterTest2 {
 						@Override
 						public Integer procSubTask(float[][] subTask, int timeout) throws InterruptedException {
 							log.info("begin to process sumUser subTask.--");
-							Thread.sleep(2000);
+							Thread.sleep(20000);
 							log.info("process sumUser subTask end.--");
 							return subTask.length;
 						}

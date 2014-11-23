@@ -20,6 +20,9 @@ public class IfaceHolder<I> implements Closeable {
 		return client;
 	}
 
+	/**
+	 * close of thrift transport will never throws exceptions.
+	 */
 	@Override
 	public void close() throws IOException {
 		if (c != null) c.close();

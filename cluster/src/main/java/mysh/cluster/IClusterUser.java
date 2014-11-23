@@ -25,11 +25,11 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	/**
 	 * subTask encapsulation.
 	 */
-	public static interface SubTasksPack<ST> {
+	public static interface SubTasksPack<ST> extends Serializable {
 		public ST[] getSubTasks();
 
 		/**
-		 * @return refers subTasks to the specified workerNodes by nodeIds, can be null.
+		 * @return refers subTasks to the specified workerNodes by nodeIds, can be null.<br/>
 		 * if the nodeId is null, a proper workerNode will be assigned.
 		 * if the workerNode is unavailable, the subTask will be ignored.
 		 */
@@ -51,12 +51,15 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	Class<SR> getSubResultType();
 
 	/**
-	 * process sub-task.
+	 * process sub-task.<br/>
+	 * it's recommended to return a non-null object even if nothing to return rather than return null.
+	 * for example, a blank string.
 	 *
 	 * @param subTask sub-task-description.
 	 * @param timeout sub-task-execution timeout(milli-second).
-	 *                it's a timeout suggestion, not request.
-	 *                but if the implementation not obey it, the following tasks may be effected.
+	 *                it's a suggestion from the client who submits the task, not compulsory.
+	 *                but if the implementation doesn't obey it, the cpu resource may be wasted,
+	 *                and the following tasks may be affected.
 	 * @return sub-task result.
 	 */
 	SR procSubTask(ST subTask, int timeout) throws InterruptedException;
@@ -65,14 +68,16 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * join sub-tasks results.
 	 *
 	 * @param subResults      sub-tasks results.
-	 * @param assignedNodeIds nodes who are assigned the subTasks,and then submit results.
+	 * @param assignedNodeIds nodes who are assigned the subTasks, and then submit results.
 	 *                        nodeId may be null, which means the subTask is ignored.
 	 * @return task result.
 	 */
 	R join(SR[] subResults, String[] assignedNodeIds);
 
-	default <ST> SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
+	default SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
 		return new SubTasksPack<ST>() {
+			private static final long serialVersionUID = 5545201296636690353L;
+
 			@Override
 			public ST[] getSubTasks() {
 				return subTasks;
@@ -93,7 +98,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @return parts array.
 	 */
 	default <OT> OT[][] split(OT[] entire, int splitCount) {
-		Objects.requireNonNull(entire,"entire obj should not be null");
+		Objects.requireNonNull(entire, "entire obj should not be null");
 		if (entire.length < splitCount || entire.length < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
 							"can't split " + entire.length + "-ele-array into " + splitCount + " parts.");

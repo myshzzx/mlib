@@ -8,6 +8,6 @@ import java.lang.annotation.Target;
  *
  * @author ZhangZhx
  */
-@Target({ElementType.TYPE, ElementType.METHOD})
+@Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD})
 public @interface NotThreadSafe {
 }

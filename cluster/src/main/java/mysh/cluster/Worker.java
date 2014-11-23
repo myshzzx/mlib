@@ -3,12 +3,10 @@ package mysh.cluster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.*;
 
 /**
  * SubTasks processor, who offers a task-process-service.
@@ -18,6 +16,10 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 class Worker implements IWorker {
 	private static final Logger log = LoggerFactory.getLogger(Worker.class);
+	/**
+	 * executors number limit.
+	 */
+	private static final int ST_EXEC_LIMIT = Runtime.getRuntime().availableProcessors() * 5;
 
 	private volatile String id;
 	private volatile Listener listener;
@@ -25,7 +27,7 @@ class Worker implements IWorker {
 	private final Map<String, IMaster> mastersCache = new ConcurrentHashMap<>();
 	private volatile long lastMasterAction = System.currentTimeMillis();
 
-	private final BlockingQueue<SubTask> subTasks = new LinkedBlockingDeque<>();
+	private final BlockingDeque<SubTask> subTasks = new LinkedBlockingDeque<>();
 	private final BlockingQueue<SubTask> completedSubTasks = new LinkedBlockingQueue<>();
 	private final WorkerState state;
 
@@ -42,16 +44,18 @@ class Worker implements IWorker {
 		tChkMaster.setPriority(Thread.MIN_PRIORITY);
 		tChkMaster.start();
 
-		tTaskExec.setDaemon(true);
-		tTaskExec.setPriority(Thread.NORM_PRIORITY);
-		tTaskExec.start();
+		tSTExecScheduler.setDaemon(true);
+		tSTExecScheduler.setPriority(Thread.NORM_PRIORITY + 1);
+		tSTExecScheduler.start();
 
 		tTaskComplete.setDaemon(true);
 		tTaskComplete.setPriority(Thread.NORM_PRIORITY + 1);
 		tTaskComplete.start();
+
+		notifySTExecScheduler();
 	}
 
-	Thread tChkMaster = new Thread("clusterWorker:check-master&state") {
+	private Thread tChkMaster = new Thread("cWorker:check-master") {
 		@Override
 		public void run() {
 			int timeout = ClusterNode.NETWORK_TIMEOUT * 2;
@@ -61,8 +65,6 @@ class Worker implements IWorker {
 					Thread.sleep(timeout);
 					if (listener != null && lastMasterAction < System.currentTimeMillis() - timeout)
 						listener.masterTimeout();
-
-					Worker.this.state.update();
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
@@ -73,27 +75,106 @@ class Worker implements IWorker {
 		}
 	};
 
-	Thread tTaskExec = new Thread("clusterWorker:task-exec") {
+	private class SubTaskExecutor extends Thread {
+		private volatile boolean keepRunning = true;
+		private volatile SubTask currSubTask;
+
 		@Override
 		public void run() {
-			SubTask sTask = null;
+			try {
+				while (keepRunning && !isInterrupted()) {
+					try {
+						currSubTask = null;
+						currSubTask = subTasks.takeFirst();
+						if (!keepRunning) {
+							subTasks.offerFirst(currSubTask);
+							return;
+						}
+						currSubTask.execute();
+						completedSubTasks.add(currSubTask);
+					} catch (InterruptedException e) {
+						// end thread if interrupted
+						return;
+					} catch (Exception e) {
+						log.error("run subTask error. " + currSubTask, e);
+					}
+				}
+			} finally {
+				stExecutors.remove(this);
+				notifySTExecScheduler();
+			}
+		}
+	}
 
-			while (!this.isInterrupted()) {
+	/**
+	 * notify tSTExecScheduler to check executors
+	 */
+	private void notifySTExecScheduler() {
+		synchronized (tSTExecScheduler){
+			tSTExecScheduler.notify();
+		}
+	}
+
+	/**
+	 * subTask executors.
+	 */
+	private final Map<SubTaskExecutor, SubTaskExecutor> stExecutors = new ConcurrentHashMap<>();
+
+	/**
+	 * optimize cpu usage by adjusting number of subTask executors.
+	 */
+	private final Thread tSTExecScheduler = new Thread("cWorker:task-scheduler") {
+
+		@Override
+		public void run() {
+			Thread currThread = Thread.currentThread();
+			while (!currThread.isInterrupted()) {
 				try {
-					sTask = subTasks.take();
-					sTask.execute();
-					completedSubTasks.add(sTask);
+					synchronized (this){
+						this.wait(ClusterNode.NETWORK_TIMEOUT);
+					}
+					Worker.this.state.update();
+
+					if (stExecutors.size() == 0) {
+						addSubTaskExecutor();
+					} else if (state.sysCpu >= 0) {
+						if (state.sysCpu < 80 && subTasks.size() > 0 && stExecutors.size() < ST_EXEC_LIMIT)
+							addSubTaskExecutor();
+						else if (state.sysCpu > 95 && stExecutors.size() > 1) {
+							Iterator<SubTaskExecutor> it = stExecutors.keySet().iterator();
+							if (it.hasNext())
+								stExecutors.remove(it.next()).keepRunning = false;
+						}
+					} else {
+						log.warn("failed to get system cpu usage.");
+					}
 				} catch (InterruptedException e) {
-					// end thread if interrupted
+					// end thread and kill all task-executors if interrupted
+					for (Map.Entry<SubTaskExecutor, SubTaskExecutor> steEntry : stExecutors.entrySet()) {
+						steEntry.getKey().interrupt();
+					}
+					stExecutors.clear();
 					return;
 				} catch (Exception e) {
-					log.error("run subTask error. " + sTask, e);
+					log.error("task scheduler error.", e);
 				}
 			}
 		}
+
+		/**
+		 * add one subTask executor.
+		 */
+		private void addSubTaskExecutor() {
+			SubTaskExecutor t = new SubTaskExecutor();
+			t.setName("cWorker:executor");
+			t.setDaemon(true);
+			t.setPriority(Thread.NORM_PRIORITY - 1);
+			t.start();
+			stExecutors.put(t, t);
+		}
 	};
 
-	Thread tTaskComplete = new Thread("clusterWorker:task-complete") {
+	private Thread tTaskComplete = new Thread("cWorker:task-complete") {
 		@Override
 		public void run() {
 			SubTask task = new SubTask<>(null, 0, 0, null, null, 0, 0);
@@ -134,11 +215,11 @@ class Worker implements IWorker {
 			log.error("worker.tChkMaster close error.", e);
 		}
 		try {
-			log.debug("closing worker.tTaskExec");
-			tTaskExec.interrupt();
-			tTaskExec.join();
+			log.debug("closing worker.tSTExecScheduler");
+			tSTExecScheduler.interrupt();
+			tSTExecScheduler.join();
 		} catch (Exception e) {
-			log.error("worker.tTaskExec close error.", e);
+			log.error("worker.tSTExecScheduler close error.", e);
 		}
 		try {
 			log.debug("closing worker.tTaskComplete");
@@ -187,9 +268,25 @@ class Worker implements IWorker {
 					String masterId, int taskId, int subTaskId, IClusterUser<T, ST, SR, R> cUser, ST subTask,
 					int timeout, int subTaskTimeout) {
 		this.lastMasterAction = System.currentTimeMillis();
-		this.subTasks.add(new SubTask<>(masterId, taskId, subTaskId, cUser, subTask,
+		this.subTasks.offer(new SubTask<>(masterId, taskId, subTaskId, cUser, subTask,
 						timeout <= 0 ? Long.MAX_VALUE : this.lastMasterAction + timeout, subTaskTimeout));
 		return this.updateState();
+	}
+
+	@Override
+	public void cancelTask(int taskId) {
+		log.debug("cancel task request, taskId=" + taskId);
+		this.lastMasterAction = System.currentTimeMillis();
+		//cancel sub-tasks in waiting queue
+		for (SubTask subTask : subTasks) {
+			if (subTask.taskId == taskId) subTask.cancel();
+		}
+		// cancel sub-tasks in running (by interrupt SubTaskExecutor
+		for (Map.Entry<SubTaskExecutor, SubTaskExecutor> steEntry : stExecutors.entrySet()) {
+			if (steEntry.getKey().currSubTask != null && steEntry.getKey().currSubTask.taskId == taskId) {
+				steEntry.getKey().interrupt();
+			}
+		}
 	}
 
 	private WorkerState updateState() {
@@ -205,7 +302,7 @@ class Worker implements IWorker {
 		void masterUnavailable(String masterId);
 	}
 
-	private static final ClusterExp.TaskTimeout taskTimeoutExcp = new ClusterExp.TaskTimeout();
+	private static final ClusterExp.TaskTimeout taskTimeoutExp = new ClusterExp.TaskTimeout();
 
 	private class SubTask<T, ST, SR, R> {
 
@@ -214,7 +311,7 @@ class Worker implements IWorker {
 		private final int subTaskId;
 		private final IClusterUser<T, ST, SR, R> cUser;
 		private final ST subTask;
-		private final long execBefore;
+		private volatile long execBefore;
 		private final int timeout;
 
 		private Object result;
@@ -233,8 +330,11 @@ class Worker implements IWorker {
 		public void execute() {
 			try {
 				if (System.currentTimeMillis() > this.execBefore) {
-					result = taskTimeoutExcp;
-					log.error("task exec timeout. " + this);
+					result = taskTimeoutExp;
+					if (this.execBefore == 0)
+						log.info("subTask canceled. " + this);
+					else
+						log.info("subTask exec timeout. " + this);
 				} else {
 					if (cUser instanceof IClusterMgr) {
 						((IClusterMgr) cUser).worker = Worker.this;
@@ -245,6 +345,10 @@ class Worker implements IWorker {
 				result = e;
 				log.error("task exec error.", e);
 			}
+		}
+
+		public void cancel() {
+			this.execBefore = 0;
 		}
 
 		@Override

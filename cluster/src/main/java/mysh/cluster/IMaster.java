@@ -19,6 +19,11 @@ public interface IMaster extends IClusterService {
 	                     String workerId, WorkerState workerState);
 
 	/**
+	 * cancel task by taskId.
+	 */
+	void cancelTask(int taskId);
+
+	/**
 	 * get current workers state.
 	 */
 	<WS extends WorkerState> Map<String, WS> getWorkerStates();

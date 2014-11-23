@@ -7,12 +7,6 @@ package mysh.cluster;
 public abstract class ClusterExp extends Exception {
 	private static final long serialVersionUID = -6255937741558729033L;
 
-	public static final ClusterExp NOT_MASTER = new NotMaster();
-	public static final ClusterExp NO_WORKERS = new NoWorkers();
-	public static final ClusterExp TASK_TIMEOUT = new TaskTimeout();
-	public static final ClusterExp SUB_TASK_TIMEOUT = new SubTaskTimeout();
-	public static final ClusterExp UNREADY = new Unready();
-
 	public static class NotMaster extends ClusterExp {
 		private static final long serialVersionUID = 5349958936229970716L;
 	}
@@ -25,10 +19,13 @@ public abstract class ClusterExp extends Exception {
 		private static final long serialVersionUID = -2345536210553087650L;
 	}
 
-	public static class SubTaskTimeout extends ClusterExp {
+	public static class TaskCanceled extends ClusterExp {
 		private static final long serialVersionUID = -4952342026375713608L;
 	}
 
+	/**
+	 * IClusterService is not ready until timeout.
+	 */
 	public static class Unready extends ClusterExp {
 		private static final long serialVersionUID = -400165691256459950L;
 

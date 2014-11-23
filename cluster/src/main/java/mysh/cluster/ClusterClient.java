@@ -7,11 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.DatagramSocket;
 import java.net.InterfaceAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.rmi.RemoteException;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -69,11 +69,10 @@ public final class ClusterClient {
 	 *                       but throwing {@link ClusterExp.Unready} immediately if cluster is not ready.
 	 * @param subTaskTimeout suggested subTask execution timeout,
 	 *                       obeying it or not depends on the implementation of cUser.
-	 * @throws ClusterExp.Unready IClusterService is not ready until timeout.
 	 */
 	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
 	                                final int timeout, final int subTaskTimeout)
-					throws ClusterExp.Unready, ClusterExp.TaskTimeout, InterruptedException {
+					throws ClusterExp, InterruptedException {
 
 		if (this.service == null && timeout < 0) {
 			this.prepareClusterService();
@@ -91,18 +90,28 @@ public final class ClusterClient {
 				if (leftTime <= 0) throw new ClusterExp.Unready();
 			}
 
-			if (cs == null) cs = this.waitForClusterPreparing(startTime, leftTime);
+			if (cs == null)
+				cs = this.waitForClusterPreparing(startTime, leftTime);
 
 			try {
 				return cs.getClient().runTask(cUser, task, leftTime, subTaskTimeout);
 			} catch (Exception e) {
 				log.error("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
+					if (this.service != null)
+						try {
+							this.service.close();
+						} catch (IOException ex) {
+						}
 					cs = this.service = null;
 					this.prepareClusterService();
 					if (timeout < 0) throw new ClusterExp.Unready(e);
-				} else if (e instanceof ClusterExp.TaskTimeout) {
-					throw (ClusterExp.TaskTimeout) e;
+				} else if (e instanceof UndeclaredThrowableException && e.getCause() != null) {
+					Throwable cc = e.getCause().getCause();
+					if (cc instanceof ClusterExp.TaskTimeout || cc instanceof ClusterExp.TaskCanceled)
+						throw (ClusterExp) cc;
+					else
+						throw new RuntimeException("unknown exception: " + e, e);
 				} else {
 					// in case of throw Exception that covers other Custom Exceptions in ClusterExp
 					throw new RuntimeException("unknown exception: " + e, e);
@@ -132,7 +141,7 @@ public final class ClusterClient {
 	 * see {@link #runTask}
 	 */
 	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
-					throws RemoteException, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.Unready {
+					throws ClusterExp, InterruptedException {
 		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
 	}
 
