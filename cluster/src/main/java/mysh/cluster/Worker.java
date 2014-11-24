@@ -110,7 +110,7 @@ class Worker implements IWorker {
 	 * notify tSTExecScheduler to check executors
 	 */
 	private void notifySTExecScheduler() {
-		synchronized (tSTExecScheduler){
+		synchronized (tSTExecScheduler) {
 			tSTExecScheduler.notify();
 		}
 	}
@@ -130,7 +130,7 @@ class Worker implements IWorker {
 			Thread currThread = Thread.currentThread();
 			while (!currThread.isInterrupted()) {
 				try {
-					synchronized (this){
+					synchronized (this) {
 						this.wait(ClusterNode.NETWORK_TIMEOUT);
 					}
 					Worker.this.state.update();
@@ -274,17 +274,22 @@ class Worker implements IWorker {
 	}
 
 	@Override
-	public void cancelTask(int taskId) {
-		log.debug("cancel task request, taskId=" + taskId);
+	public void cancelTask(int taskId, int subTaskId) {
+		log.debug("cancel task request, taskId=" + taskId + ", subTaskId=" + subTaskId);
 		this.lastMasterAction = System.currentTimeMillis();
 		//cancel sub-tasks in waiting queue
 		for (SubTask subTask : subTasks) {
-			if (subTask.taskId == taskId) subTask.cancel();
+			if (subTask.taskId == taskId
+							&& (subTaskId < 0 || subTask.subTaskId == subTaskId))
+				subTask.cancel();
 		}
 		// cancel sub-tasks in running (by interrupt SubTaskExecutor
 		for (Map.Entry<SubTaskExecutor, SubTaskExecutor> steEntry : stExecutors.entrySet()) {
-			if (steEntry.getKey().currSubTask != null && steEntry.getKey().currSubTask.taskId == taskId) {
-				steEntry.getKey().interrupt();
+			final SubTaskExecutor ste = steEntry.getKey();
+			if (ste.currSubTask != null
+							&& ste.currSubTask.taskId == taskId
+							&& (subTaskId < 0 || ste.currSubTask.subTaskId == subTaskId)) {
+				ste.interrupt();
 			}
 		}
 	}
@@ -343,7 +348,10 @@ class Worker implements IWorker {
 				}
 			} catch (Exception e) {
 				result = e;
-				log.error("task exec error.", e);
+				if (e instanceof InterruptedException)
+					log.info("sub-task interrupted: " + this.toString());
+				else
+					log.error("sub-task exec error:" + this.toString(), e);
 			}
 		}
 

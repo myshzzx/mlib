@@ -1,8 +1,10 @@
 package mysh.cluster;
 
+import mysh.cluster.mgr.CancelTask;
 import mysh.cluster.mgr.GetWorkerStates;
 import mysh.cluster.rpc.IfaceHolder;
 import mysh.cluster.rpc.thrift.ThriftUtil;
+import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,9 +108,9 @@ public final class ClusterClient {
 					cs = this.service = null;
 					this.prepareClusterService();
 					if (timeout < 0) throw new ClusterExp.Unready(e);
-				} else if (e instanceof UndeclaredThrowableException && e.getCause() != null) {
-					Throwable cc = e.getCause().getCause();
-					if (cc instanceof ClusterExp.TaskTimeout || cc instanceof ClusterExp.TaskCanceled)
+				} else if (e instanceof UndeclaredThrowableException) {
+					Throwable cc = ExpUtil.isCausedBy(e, ClusterExp.TaskTimeout.class, ClusterExp.TaskCanceled.class);
+					if (cc != null)
 						throw (ClusterExp) cc;
 					else
 						throw new RuntimeException("unknown exception: " + e, e);
@@ -143,6 +145,16 @@ public final class ClusterClient {
 	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
 					throws ClusterExp, InterruptedException {
 		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
+	}
+
+	private CancelTask cancelTaskUser;
+
+	/**
+	 * request cancel task by taskId.
+	 */
+	public void cancelTask(int taskId) throws InterruptedException, ClusterExp {
+		if (cancelTaskUser == null) cancelTaskUser = new CancelTask();
+		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
 	private final AtomicBoolean isPreparingClusterService = new AtomicBoolean(false);
@@ -225,9 +237,9 @@ public final class ClusterClient {
 
 	private static boolean isClusterUnready(Exception e) {
 		return ClusterNode.isNodeUnavailable(e)
-						|| e instanceof ClusterExp.NotMaster
-						|| e instanceof ClusterExp.NoWorkers
-						|| e instanceof InterruptedException
+						||
+						ExpUtil.isCausedBy(e, ClusterExp.NotMaster.class, ClusterExp.NoWorkers.class,
+										InterruptedException.class) != null
 						;
 	}
 }

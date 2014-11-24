@@ -23,9 +23,11 @@ public interface IWorker {
 	                                      int timeout, int subTaskTimeout);
 
 	/**
-	 * Invoked by master, cancel task by id.
+	 * Invoked by master, cancel task/subTask by id.
+	 *
+	 * @param subTaskId ignored if negative.
 	 */
-	void cancelTask(int taskId);
+	void cancelTask(int taskId, int subTaskId);
 
 	/**
 	 * close worker .

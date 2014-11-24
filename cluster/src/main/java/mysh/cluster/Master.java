@@ -213,7 +213,7 @@ class Master implements IMaster {
 					WorkerNode node = workersCache.get(nodeId);
 					if (node != null) {
 						try {
-							node.workerService.cancelTask(taskId);
+							node.workerService.cancelTask(taskId,-1);
 						} catch (Exception e) {
 							if (isNodeUnavailable(e))
 								workerUnavailable(node, e);

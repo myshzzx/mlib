@@ -3,7 +3,7 @@ package mysh.cluster.rpc.thrift;
 import mysh.cluster.rpc.IfaceHolder;
 import mysh.thrift.ThriftClientFactory;
 import mysh.thrift.ThriftServerFactory;
-import mysh.util.SerializeUtil;
+import mysh.util.Serializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TServerEventHandler;
@@ -25,6 +25,7 @@ import java.util.Map;
  */
 public class ThriftUtil {
 	private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
+	private static final Serializer s = Serializer.fst;
 
 	public static void startTServer(TServer s) {
 		Thread t = new Thread("thrift-server-holder") {
@@ -109,8 +110,8 @@ public class ThriftUtil {
 		if (obj == null) return null;
 
 		try {
-			return ByteBuffer.wrap(SerializeUtil.serialize(obj));
-		} catch (IOException e) {
+			return ByteBuffer.wrap(s.serialize(obj));
+		} catch (Exception e) {
 			log.error("serialize obj error:" + obj, e);
 			throw new RuntimeException(e);
 		}
@@ -120,7 +121,7 @@ public class ThriftUtil {
 		if (buf == null) return null;
 
 		try {
-			return SerializeUtil.unSerialize(buf.array(), buf.position(), buf.capacity() - buf.position());
+			return s.unSerialize(buf.array(), buf.position(), buf.limit() - buf.position());
 		} catch (Exception e) {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);

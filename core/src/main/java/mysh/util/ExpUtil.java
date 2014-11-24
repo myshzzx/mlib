@@ -12,7 +12,7 @@ import java.io.StringWriter;
  * 关于异常的工具类.
  * 
  */
-public class ExceptionUtil {
+public class ExpUtil {
 
 	/**
 	 * 将CheckedException转换为UncheckedException.
@@ -35,18 +35,19 @@ public class ExceptionUtil {
 	}
 
 	/**
-	 * 判断异常是否由某些底层的异常引起.
+	 * 判断异常是否由某些底层的异常(含本层)引起. 是则返回异常, 否返回 null.
 	 */
-	public static boolean isCausedBy(Exception ex, Class<? extends Exception>... causeExceptionClasses) {
-		Throwable cause = ex.getCause();
+	@SafeVarargs
+	public static Throwable isCausedBy(Exception ex, Class<? extends Exception>... causeExceptionClasses) {
+		Throwable cause = ex;
 		while (cause != null) {
 			for (Class<? extends Exception> causeClass : causeExceptionClasses) {
 				if (causeClass.isInstance(cause)) {
-					return true;
+					return cause;
 				}
 			}
 			cause = cause.getCause();
 		}
-		return false;
+		return null;
 	}
 }

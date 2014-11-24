@@ -26,14 +26,6 @@ public class ClusterTest2 {
 	}
 
 	@Test
-	public void startCluster() throws Exception {
-		ClusterNode c = new ClusterNode(cmdPort, null, 0);
-//		Thread.sleep(60000);
-//		c.shutdownNode();
-		Thread.sleep(100000000);
-	}
-
-	@Test
 	public void calcTest() throws SocketException, InterruptedException, ClusterExp {
 		ClusterClient c = new ClusterClient(cmdPort);
 
@@ -52,6 +44,7 @@ public class ClusterTest2 {
 			System.out.println("cost time: " + (System.nanoTime() - start) / 1000_000);
 		}
 	}
+
 
 	private static IClusterUser<float[][], float[][], Integer, Integer> sumUser =
 					new IClusterUser<float[][], float[][], Integer, Integer>() {
@@ -87,4 +80,6 @@ public class ClusterTest2 {
 							return sum;
 						}
 					};
+
+
 }

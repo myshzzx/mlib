@@ -28,7 +28,7 @@ public class RSAUtilTest {
 	@Before
 	public void init() throws IOException, NoSuchAlgorithmException, BadPaddingException, NoSuchPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
 		KPair kp = genKeyPair(1034);
-		kPairByte = SerializeUtil.serialize(kp);
+		kPairByte = Serializer.buildIn.serialize(kp);
 
 		assertEquals(kp.getRSAPubKey().getModulus(), trans(kp.getPubKey()).getModulus());
 		assertEquals(kp.getRSAPubKey().getPublicExponent(), trans(kp.getPubKey()).getPublicExponent());
@@ -43,7 +43,7 @@ public class RSAUtilTest {
 	}
 
 	private KPair getKPair() throws IOException, ClassNotFoundException {
-		return SerializeUtil.unSerialize(kPairByte);
+		return Serializer.buildIn.unSerialize(kPairByte);
 	}
 
 	@Test

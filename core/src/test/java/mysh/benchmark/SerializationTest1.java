@@ -1,7 +1,7 @@
 package mysh.benchmark;
 
 import com.alibaba.fastjson.JSON;
-import mysh.util.SerializeUtil;
+import mysh.util.Serializer;
 import org.junit.Assert;
 import org.junit.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
@@ -52,42 +52,24 @@ public class SerializationTest1 {
 		test(new FST(), f);
 	}
 
+
 	@Test
 	public void fstTest() throws IOException, ClassNotFoundException {
 		TC tt = new TC();
 		tt.name = "test";
 
 		// common test
-		byte[] bb = SerializeUtil.serializeFST(tt);
-		TC ftt = SerializeUtil.unSerializeFST(bb);
+		byte[] bb = Serializer.fst.serialize(tt);
+		TC ftt = Serializer.fst.unSerialize (bb);
 		Assert.assertEquals(tt.name, ftt.name);
 
 		// lambda test
 		String msg = "ok";
 		Serializable r = (Runnable & Serializable) () -> System.out.println(msg);
-		bb = SerializeUtil.serializeFST(r);
-		Runnable ft = SerializeUtil.unSerializeFST(bb);
+		bb = Serializer.fst.serialize (r);
+		Runnable ft = Serializer.fst.unSerialize (bb);
 		ft.run();
-	}
-
-	@Test
-	public void fstTest2() throws IOException, ClassNotFoundException {
-		byte[] decode = Base64.getDecoder().decode("giEBDmludm9rZVN2TWV0aG9kGApydW5TdWJUYXNrGIAB+yYH" +
-						"/B9jbl8vMTkyLjE2OC4xMjIuMV8xNDE2NzU5MTI2OTU39wL3AAABK2phdmEubGFuZy5yZWZsZWN0Lkludm9jYXRpb25UYXJnZXRFeGNlcHRpb24AAR5teXNoLmNsdXN0ZXIuQ2x1c3Rlck1nclRlc3QxJDE3/QAA//cA9wAA");
-		Serializable s = SerializeUtil.unSerialize(decode);
-		System.out.println(s);
-		DefaultCoder coder = new DefaultCoder();
-		Object o = coder.toObject(decode);
-		System.out.println(o);
-	}
-
-	@Test
-	public void fstTest3(){
-		Exception e= new Exception();
-		DefaultCoder coder = new DefaultCoder();
-		byte[] bytes = coder.toByteArray(e);
-		Object o = coder.toObject(bytes);
-		System.out.println(o);
+		System.out.println(Base64.getEncoder().encodeToString(bb));
 	}
 
 	public void test(TI ti, Serializable o) throws Exception {
@@ -112,12 +94,12 @@ public class SerializationTest1 {
 
 		public void s(Serializable o, int times) throws Exception {
 			while (times-- > 0)
-				tb = SerializeUtil.serialize(o);
+				tb = Serializer.buildIn.serialize(o);
 		}
 
 		public void us(Serializable o, int times) throws Exception {
 			while (times-- > 0)
-				o = SerializeUtil.unSerialize(tb);
+				o = Serializer.buildIn.unSerialize(tb);
 		}
 
 	}

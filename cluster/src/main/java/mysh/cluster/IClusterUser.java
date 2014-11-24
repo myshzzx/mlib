@@ -74,7 +74,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 */
 	R join(SR[] subResults, String[] assignedNodeIds);
 
-	default SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
+	 default SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
 		return new SubTasksPack<ST>() {
 			private static final long serialVersionUID = 5545201296636690353L;
 

@@ -2,13 +2,13 @@ package mysh.cluster;
 
 import mysh.cluster.rpc.IfaceHolder;
 import mysh.cluster.rpc.thrift.ThriftUtil;
+import mysh.util.ExpUtil;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.lang.reflect.UndeclaredThrowableException;
 import java.net.*;
 import java.rmi.UnmarshalException;
 import java.util.HashSet;
@@ -291,18 +291,8 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	 * @param e remote invoke exception.
 	 */
 	static boolean isNodeUnavailable(Exception e) {
-		Throwable et;
-		return (e instanceof UndeclaredThrowableException
-						&& e.getCause() != null
-						&& (et = e.getCause().getCause()) != null
-						&& (
-						et instanceof UnknownHostException
-										|| et instanceof ConnectException
-										|| et instanceof SocketTimeoutException
-										|| et instanceof SocketException // communication blocked by fire wall
-										|| et.getCause() instanceof SocketTimeoutException // remote call timeout
-		)
-		);
+		return ExpUtil.isCausedBy(e, UnknownHostException.class, ConnectException.class,
+						SocketTimeoutException.class, SocketException.class) != null;
 	}
 
 	@Deprecated
