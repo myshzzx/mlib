@@ -7,11 +7,11 @@ import java.io.IOException;
  * @author Mysh
  * @since 2014/11/19 17:33
  */
-public class IfaceHolder<I> implements Closeable {
+public class IFaceHolder<I> implements Closeable {
 	private I client;
 	private Closeable c;
 
-	public IfaceHolder(I client, Closeable c) {
+	public IFaceHolder(I client, Closeable c) {
 		this.client = client;
 		this.c = c;
 	}

@@ -7,7 +7,7 @@ package mysh.cluster;
  * @author Mysh
  * @since 2014/10/11 21:57
  */
-public abstract class IClusterMgr<T, ST, SR, R> implements IClusterUser<T, ST, SR, R> {
+public abstract class IClusterMgr<T, ST, SR, R> extends IClusterUser<T, ST, SR, R> {
 
 	private static final long serialVersionUID = -3160966940111585903L;
 

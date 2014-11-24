@@ -29,8 +29,4 @@ public interface IWorker {
 	 */
 	void cancelTask(int taskId, int subTaskId);
 
-	/**
-	 * close worker .
-	 */
-	void closeWorker();
 }

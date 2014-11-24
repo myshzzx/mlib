@@ -2,7 +2,7 @@ package mysh.cluster;
 
 import mysh.cluster.mgr.CancelTask;
 import mysh.cluster.mgr.GetWorkerStates;
-import mysh.cluster.rpc.IfaceHolder;
+import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.ThriftUtil;
 import mysh.util.ExpUtil;
 import org.slf4j.Logger;
@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.DatagramSocket;
 import java.net.InterfaceAddress;
@@ -28,13 +29,14 @@ public final class ClusterClient implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(ClusterClient.class);
 	private static final int CMD_SOCK_BUF = 1024 * 1024;
 
+	private volatile boolean running = true;
 	private final int cmdPort;
 	private final DatagramSocket cmdSock;
 	/**
 	 * network interface addresses with broadcast address.
 	 */
 	private final Set<InterfaceAddress> bcAdds = new HashSet<>();
-	private volatile IfaceHolder<IClusterService> service;
+	private volatile IFaceHolder<IClusterService> service;
 
 
 	/**
@@ -72,10 +74,13 @@ public final class ClusterClient implements Closeable {
 	 *                       but throwing {@link ClusterExp.Unready} immediately if cluster is not ready.
 	 * @param subTaskTimeout suggested subTask execution timeout,
 	 *                       obeying it or not depends on the implementation of cUser.
+	 * @throws mysh.cluster.ClusterExp        exceptions from cluster, generally about cluster
+	 *                                        status and task status.
+	 * @throws java.lang.InterruptedException current thread interrupted.
+	 * @throws java.lang.Exception            other exceptions.
 	 */
 	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
-	                                final int timeout, final int subTaskTimeout)
-					throws ClusterExp, InterruptedException {
+	                                final int timeout, final int subTaskTimeout) throws Exception {
 
 		if (this.service == null && timeout < 0) {
 			this.prepareClusterService();
@@ -85,8 +90,8 @@ public final class ClusterClient implements Closeable {
 		long startTime = System.currentTimeMillis();
 		int leftTime;
 
-		IfaceHolder<IClusterService> cs = this.service;
-		while (true) {
+		IFaceHolder<IClusterService> cs = this.service;
+		while (this.running) {
 			if (timeout == 0) leftTime = 0;
 			else {
 				leftTime = timeout - (int) (System.currentTimeMillis() - startTime);
@@ -95,47 +100,55 @@ public final class ClusterClient implements Closeable {
 
 			if (cs == null)
 				cs = this.waitForClusterPreparing(startTime, leftTime);
+			if (!this.running)
+				break;
 
 			try {
 				return cs.getClient().runTask(cUser, task, leftTime, subTaskTimeout);
 			} catch (Exception e) {
-				log.error("client run cluster task error.", e);
+				log.debug("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
 					if (this.service != null)
 						try {
 							this.service.close();
-						} catch (IOException ex) {
+						} catch (Exception ex) {
 						}
 					cs = this.service = null;
 					this.prepareClusterService();
 					if (timeout < 0) throw new ClusterExp.Unready(e);
-				} else if (e instanceof UndeclaredThrowableException) {
-					Throwable cc = ExpUtil.isCausedBy(e, ClusterExp.TaskTimeout.class, ClusterExp.TaskCanceled.class);
-					if (cc != null)
-						throw (ClusterExp) cc;
-					else
-						throw new RuntimeException("unknown exception: " + e, e);
 				} else {
-					// in case of throw Exception that covers other Custom Exceptions in ClusterExp
-					throw new RuntimeException("unknown exception: " + e, e);
+					Exception et;
+					if (e instanceof UndeclaredThrowableException && (et = (Exception) e.getCause()) != null)
+						e = et;
+					if (e instanceof InvocationTargetException && (et = (Exception) e.getCause()) != null)
+						e = et;
+					throw e;
 				}
 			}
 		}
+		throw new ClusterExp.ClientClosed();
 	}
 
 	/**
-	 * todo: close the client.
+	 * close the client.
 	 */
 	public void close() {
+		this.running = false;
 		this.cmdSock.close();
+
+		if (this.tPrepareClusterService != null) {
+			this.tPrepareClusterService.interrupt();
+			try {
+				this.tPrepareClusterService.join();
+			} catch (Exception e) {
+			}
+		}
+
 		if (this.service != null)
 			try {
 				this.service.close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 			}
-		// check while(true)
-		// close rmi connection
-		// close thread
 	}
 
 	/**
@@ -144,7 +157,7 @@ public final class ClusterClient implements Closeable {
 	 * see {@link #runTask}
 	 */
 	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
-					throws ClusterExp, InterruptedException {
+					throws Exception {
 		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
 	}
 
@@ -153,7 +166,7 @@ public final class ClusterClient implements Closeable {
 	/**
 	 * request cancel task by taskId.
 	 */
-	public void cancelTask(int taskId) throws InterruptedException, ClusterExp {
+	public void cancelTask(int taskId) throws Exception {
 		if (cancelTaskUser == null) cancelTaskUser = new CancelTask();
 		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
@@ -162,13 +175,14 @@ public final class ClusterClient implements Closeable {
 
 	private void prepareClusterService() {
 		if (isPreparingClusterService.compareAndSet(false, true)) {
-			Thread t = new Thread(this.rPrepareClusterService,
+			tPrepareClusterService = new Thread(this.rPrepareClusterService,
 							"clusterClient:prepare-cluster-service" + System.currentTimeMillis());
-			t.setDaemon(true);
-			t.start();
+			tPrepareClusterService.setDaemon(true);
+			tPrepareClusterService.start();
 		}
 	}
 
+	private volatile Thread tPrepareClusterService;
 	private final Runnable rPrepareClusterService = new Runnable() {
 		@Override
 		public void run() {
@@ -178,7 +192,7 @@ public final class ClusterClient implements Closeable {
 				bcForMaster();
 
 				// in case of multi-responses, so end the loop until sock.receive timeout exception throw.
-				while (true) {
+				while (ClusterClient.this.running) {
 					Cmd cmd = SockUtil.receiveCmd(cmdSock, CMD_SOCK_BUF);
 					log.debug("rec cmd <<< " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
@@ -221,12 +235,12 @@ public final class ClusterClient implements Closeable {
 	 *                  <code>0</code> represent for never timeout.
 	 *                  <code>negative</code> throws {@link ClusterExp.Unready} immediately .
 	 */
-	private IfaceHolder<IClusterService> waitForClusterPreparing(
+	private IFaceHolder<IClusterService> waitForClusterPreparing(
 					final long startTime, final int timeout) throws ClusterExp.Unready, InterruptedException {
 		if (timeout < 0) throw new ClusterExp.Unready();
 
-		IfaceHolder<IClusterService> cs;
-		while ((cs = this.service) == null) {
+		IFaceHolder<IClusterService> cs = null;
+		while (this.running && (cs = this.service) == null) {
 			this.prepareClusterService();
 			Thread.sleep(10);
 			if (timeout > 0 && timeout <= System.currentTimeMillis() - startTime)

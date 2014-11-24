@@ -23,6 +23,10 @@ public abstract class ClusterExp extends Exception {
 		private static final long serialVersionUID = -4952342026375713608L;
 	}
 
+	public static class ClientClosed extends ClusterExp {
+		private static final long serialVersionUID = 4484131585021346755L;
+	}
+
 	/**
 	 * IClusterService is not ready until timeout.
 	 */

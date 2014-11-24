@@ -1,6 +1,6 @@
 package mysh.cluster.rpc.thrift;
 
-import mysh.cluster.rpc.IfaceHolder;
+import mysh.cluster.rpc.IFaceHolder;
 import mysh.thrift.ThriftClientFactory;
 import mysh.thrift.ThriftServerFactory;
 import mysh.util.Serializer;
@@ -75,7 +75,7 @@ public class ThriftUtil {
 	/**
 	 * @param <I> client interface type.
 	 */
-	public static <I> IfaceHolder<I> getClient(
+	public static <I> IFaceHolder<I> getClient(
 					Class<I> svIf, String svHost, int svPort, int soTimeout) throws Exception {
 		ThriftClientFactory.Config<TClusterService.Iface> conf = new ThriftClientFactory.Config<>();
 		conf.setServerHost(svHost);
@@ -89,9 +89,9 @@ public class ThriftUtil {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static <I> IfaceHolder<I> wrapSyncClient(
+	private static <I> IFaceHolder<I> wrapSyncClient(
 					Class<I> svIf, ThriftClientFactory.ClientHolder<TClusterService.Iface> ch) {
-		return new IfaceHolder<>(
+		return new IFaceHolder<>(
 						(I) Proxy.newProxyInstance(svIf.getClassLoader(), new Class[]{svIf},
 										(obj, method, args) -> {
 											ByteBuffer result = ch.getClient().invokeSvMethod(method.getName(), serialize(args));

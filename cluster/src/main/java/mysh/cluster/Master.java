@@ -8,6 +8,7 @@ import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static mysh.cluster.ClusterNode.isNodeUnavailable;
 
@@ -228,8 +229,7 @@ class Master implements IMaster {
 		}
 	}
 
-	@Override
-	public void closeMaster() {
+	void closeMaster() {
 		log.debug("closing master.");
 
 		for (Thread thread : mThreads)
@@ -308,20 +308,21 @@ class Master implements IMaster {
 	@SuppressWarnings("unchecked")
 	public void subTaskComplete(int taskId, int subTaskId, Object result,
 	                            String workerNodeId, WorkerState workerState) {
+		this.updateWorkerState(workerNodeId, workerState);
+
 		TaskInfo ti = this.taskInfoTable.get(taskId);
 		if (ti != null) {
-			ti.subTaskComplete(subTaskId, result, workerNodeId);
-			if ((result instanceof Throwable)
-							&& !(result instanceof ClusterExp.TaskTimeout) && !(result instanceof InterruptedException))
-				subTasks.add(new SubTask(ti, subTaskId));
+			// cancel task if a subTask throws exception
+			if (result instanceof Throwable) {
+				cancelTask(taskId, (Exception) result);
+			} else
+				ti.subTaskComplete(subTaskId, result, workerNodeId);
 		}
-
-		this.updateWorkerState(workerNodeId, workerState);
 	}
 
 	@Override
 	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws ClusterExp.NotMaster, ClusterExp.NoWorkers, ClusterExp.TaskTimeout, InterruptedException, ClusterExp.TaskCanceled {
+					throws Exception {
 		if (!isMaster)
 			throw notMasterExp == null ?
 							(notMasterExp = new ClusterExp.NotMaster()) : notMasterExp;
@@ -355,16 +356,19 @@ class Master implements IMaster {
 		if (timeout <= 0)
 			ti.completeLatch.await();
 		else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS)) { // timeout
-			cancelTask(ti.taskId);
+			cancelTask(ti.taskId, null);
 			throw taskTimeoutExp == null ?
 							(taskTimeoutExp = new ClusterExp.TaskTimeout()) : taskTimeoutExp;
 		}
 
 		this.taskInfoTable.remove(taskId);
 
-		if (ti.unfinishedTask.get() > 0) // check if task is canceled
+		if (ti.unfinishedTask.get() > 0) {// check if task is canceled or sub-task throws exp
+			if (ti.exp.get() != null)
+				throw ti.exp.get();
 			throw taskCanceledExp == null ?
 							(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
+		}
 
 		final R taskResult = cUser.join(ti.results, ti.assignedNodeIds);
 		if (cUser.userThreads != null) // terminate user threads
@@ -376,10 +380,12 @@ class Master implements IMaster {
 	}
 
 	@Override
-	public void cancelTask(int taskId) {
+	@SuppressWarnings("unchecked")
+	public void cancelTask(int taskId, Exception exp) {
 		log.info("preparing to cancel task, taskId=" + taskId);
 		TaskInfo ti = this.taskInfoTable.remove(taskId);
 		if (ti != null) {
+			ti.exp.compareAndSet(null, exp);
 			ti.completeLatch.countDown();
 			Set<String> assignedNodes = new HashSet<>();
 			for (int i = 0; i < ti.assignedNodeIds.length; i++) {
@@ -423,6 +429,7 @@ class Master implements IMaster {
 
 		private final AtomicInteger unfinishedTask;
 		private final CountDownLatch completeLatch;
+		private final AtomicReference<Exception> exp;
 
 		@SuppressWarnings("unchecked")
 		public TaskInfo(int taskId, IClusterUser<T, ST, SR, R> cUser, ST[] subTasks,
@@ -444,13 +451,14 @@ class Master implements IMaster {
 			results = (SR[]) Array.newInstance(cUser.getSubResultType(), taskCount);
 			unfinishedTask = new AtomicInteger(taskCount);
 			completeLatch = new CountDownLatch(taskCount > 0 ? 1 : 0);
+			exp = new AtomicReference<>(null);
 		}
 
 		private void subTaskComplete(int index, SR result, String workerNodeId) {
 			if (index > -1 && index < results.length) {
 				results[index] = result;
 				assignedNodeIds[index] = workerNodeId;
-				if (!(result instanceof Throwable) && unfinishedTask.decrementAndGet() == 0)
+				if (unfinishedTask.decrementAndGet() == 0)
 					completeLatch.countDown();
 			}
 		}

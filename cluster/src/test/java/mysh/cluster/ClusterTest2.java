@@ -5,7 +5,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.SocketException;
 import java.util.Random;
 
 import static org.junit.Assert.assertEquals;
@@ -26,7 +25,7 @@ public class ClusterTest2 {
 	}
 
 	@Test
-	public void calcTest() throws SocketException, InterruptedException, ClusterExp {
+	public void calcTest() throws Exception {
 		ClusterClient c = new ClusterClient(cmdPort);
 
 		Random r = new Random();

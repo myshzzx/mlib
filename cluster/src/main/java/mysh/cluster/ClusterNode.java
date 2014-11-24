@@ -1,6 +1,6 @@
 package mysh.cluster;
 
-import mysh.cluster.rpc.IfaceHolder;
+import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.ThriftUtil;
 import mysh.util.ExpUtil;
 import org.apache.thrift.server.TServer;
@@ -210,14 +210,14 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 	@Override
 	public IWorker getWorkerService(String host, int port) throws Exception {
-		IfaceHolder<IWorker> ch = ThriftUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT);
+		IFaceHolder<IWorker> ch = ThriftUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}
 
 	@Override
 	public IMaster getMasterService(String host, int port) throws Exception {
-		IfaceHolder<IMaster> ch = ThriftUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT);
+		IFaceHolder<IMaster> ch = ThriftUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}

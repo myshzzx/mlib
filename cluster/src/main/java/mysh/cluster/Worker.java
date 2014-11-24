@@ -203,8 +203,7 @@ class Worker implements IWorker {
 		}
 	};
 
-	@Override
-	public void closeWorker() {
+	void closeWorker() {
 		log.debug("closing worker.");
 
 		try {
