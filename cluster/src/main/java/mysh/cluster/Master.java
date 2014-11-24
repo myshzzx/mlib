@@ -88,7 +88,7 @@ class Master implements IMaster {
 			int bcFact = 0;
 			while (!this.isInterrupted()) {
 				try {
-					Thread.sleep(ClusterNode.NETWORK_TIMEOUT / 2);
+					Thread.sleep(ClusterNode.NETWORK_TIMEOUT);
 
 					tTime = System.currentTimeMillis();
 					if (isMaster && tTime - lastHBTime > ClusterNode.NETWORK_TIMEOUT) {
@@ -213,7 +213,7 @@ class Master implements IMaster {
 					WorkerNode node = workersCache.get(nodeId);
 					if (node != null) {
 						try {
-							node.workerService.cancelTask(taskId,-1);
+							node.workerService.cancelTask(taskId, -1);
 						} catch (Exception e) {
 							if (isNodeUnavailable(e))
 								workerUnavailable(node, e);
@@ -333,15 +333,16 @@ class Master implements IMaster {
 
 		runTaskFlagForBC = true;
 
+		final Integer taskId = taskIdGen.incrementAndGet();
+		if (taskId > Integer.MAX_VALUE / 2) taskIdGen.compareAndSet(taskId, 0);
+		log.info("task add, id=" + taskId + ", cUser=" + cUser + ", task=" + task);
+
 		if (cUser instanceof IClusterMgr) {
 			((IClusterMgr) cUser).master = this;
 		}
 
 		IClusterUser.SubTasksPack<ST> sTasks = cUser.fork(task, workerCount);
 		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
-
-		Integer taskId = taskIdGen.incrementAndGet();
-		if (taskId > Integer.MAX_VALUE / 2) taskIdGen.compareAndSet(taskId, 0);
 
 		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
 						System.currentTimeMillis(), timeout, subTaskTimeout, sTasks.getReferredNodeIds());
@@ -365,7 +366,13 @@ class Master implements IMaster {
 			throw taskCanceledExp == null ?
 							(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
 
-		return cUser.join(ti.results, ti.assignedNodeIds);
+		final R taskResult = cUser.join(ti.results, ti.assignedNodeIds);
+		if (cUser.userThreads != null) // terminate user threads
+			for (Thread t : cUser.userThreads)
+				t.interrupt();
+
+		log.info("task return, id=" + taskId);
+		return taskResult;
 	}
 
 	@Override

@@ -2,10 +2,10 @@ package mysh.benchmark;
 
 import mysh.util.Serializer;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 
+import java.io.Serializable;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
@@ -14,8 +14,22 @@ import java.util.concurrent.CountDownLatch;
  * @since 2014/11/24 11:14
  */
 public class FstTest {
+	private static class T implements Serializable {
+		transient int a;
+		int b;
+	}
+
 	@Test
-	@Ignore
+	public void fstTest1() {
+		T t = new T();
+		t.a = 10;
+		t.b = 20;
+		final byte[] buf = Serializer.fst.serialize(t);
+		final T tt = Serializer.fst.unSerialize(buf);
+		Assert.assertEquals(0, tt.a);
+		Assert.assertEquals(20, tt.b);
+	}
+
 	public void fstTest3() throws InterruptedException {
 		DefaultCoder c = new DefaultCoder();
 		Random r = new Random();

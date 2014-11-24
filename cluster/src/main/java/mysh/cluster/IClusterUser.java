@@ -1,6 +1,8 @@
 package mysh.cluster;
 
 
+import mysh.annotation.GuardedBy;
+
 import java.io.Serializable;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -9,9 +11,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Cluster user.
- * WARNING: the implementation should not contain "heavy state" because
- * it will be serialized several times during cluster calculation.
+ * Cluster user.<p>
+ * WARNING: <br/>
+ * 1. the implementation should not contain "heavy state" because
+ * it will be serialized several times during cluster calculation.<br/>
+ * 2. user created thread should be registered using {@link #regUserThread(Thread)},
+ * and react for interruption, or you have to terminate them by yourself.
  *
  * @param <T>  Task Type. should be Serializable.
  * @param <ST> SubTask Type. should be Serializable.
@@ -20,7 +25,9 @@ import java.util.Objects;
  * @author Mysh
  * @since 14-1-28 下午11:23
  */
-public interface IClusterUser<T, ST, SR, R> extends Serializable {
+public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
+
+	private static final long serialVersionUID = -4362703651327770255L;
 
 	/**
 	 * subTask encapsulation.
@@ -43,12 +50,12 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @param workerNodeCount available worker nodes (>0).
 	 * @return sub-task-descriptions. can't be NULL.
 	 */
-	SubTasksPack<ST> fork(T task, int workerNodeCount);
+	public abstract SubTasksPack<ST> fork(T task, int workerNodeCount);
 
 	/**
 	 * get SubResult type. will be invoked only once when creating result array.
 	 */
-	Class<SR> getSubResultType();
+	public abstract Class<SR> getSubResultType();
 
 	/**
 	 * process sub-task.<br/>
@@ -62,7 +69,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 *                and the following tasks may be affected.
 	 * @return sub-task result.
 	 */
-	SR procSubTask(ST subTask, int timeout) throws InterruptedException;
+	public abstract SR procSubTask(ST subTask, int timeout) throws InterruptedException;
 
 	/**
 	 * join sub-tasks results.
@@ -72,9 +79,9 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 *                        nodeId may be null, which means the subTask is ignored.
 	 * @return task result.
 	 */
-	R join(SR[] subResults, String[] assignedNodeIds);
+	public abstract R join(SR[] subResults, String[] assignedNodeIds);
 
-	 default SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
+	protected SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
 		return new SubTasksPack<ST>() {
 			private static final long serialVersionUID = 5545201296636690353L;
 
@@ -97,7 +104,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @param splitCount parts count.
 	 * @return parts array.
 	 */
-	default <OT> OT[][] split(OT[] entire, int splitCount) {
+	protected <OT> OT[][] split(OT[] entire, int splitCount) {
 		Objects.requireNonNull(entire, "entire obj should not be null");
 		if (entire.length < splitCount || entire.length < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
@@ -127,7 +134,7 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 	 * @param splitCount parts count.
 	 * @return parts array.
 	 */
-	default <OT> List<OT>[] split(List<OT> entire, int splitCount) {
+	protected <OT> List<OT>[] split(List<OT> entire, int splitCount) {
 		Objects.requireNonNull(entire, "entire obj should not be null");
 		if (entire.size() < splitCount || entire.size() < 1 || splitCount < 1)
 			throw new IllegalArgumentException(
@@ -151,5 +158,20 @@ public interface IClusterUser<T, ST, SR, R> extends Serializable {
 		}
 
 		return s;
+	}
+
+	/**
+	 * user created threads.
+	 */
+	@GuardedBy("this")
+	transient List<Thread> userThreads;
+
+	/**
+	 * register user created threads so that they can be interrupted when task is being canceled.<br/>
+	 * WARNING: the thread should react when interrupted so that they can be terminated graciously.
+	 */
+	protected synchronized void regUserThread(Thread t) {
+		if (userThreads == null) userThreads = new ArrayList<>();
+		userThreads.add(t);
 	}
 }

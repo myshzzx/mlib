@@ -8,6 +8,7 @@ import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.DatagramSocket;
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author Mysh
  * @since 14-2-23 下午2:21
  */
-public final class ClusterClient {
+public final class ClusterClient implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(ClusterClient.class);
 	private static final int CMD_SOCK_BUF = 1024 * 1024;
 
@@ -125,7 +126,7 @@ public final class ClusterClient {
 	/**
 	 * todo: close the client.
 	 */
-	private void close() {
+	public void close() {
 		this.cmdSock.close();
 		if (this.service != null)
 			try {

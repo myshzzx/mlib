@@ -352,10 +352,17 @@ class Worker implements IWorker {
 					log.info("sub-task interrupted: " + this.toString());
 				else
 					log.error("sub-task exec error:" + this.toString(), e);
+			} finally {
+				// terminate user threads
+				if (cUser.userThreads != null)
+					for (Thread t : cUser.userThreads) {
+						t.interrupt();
+					}
 			}
 		}
 
 		public void cancel() {
+			log.info("subTask canceled: " + this);
 			this.execBefore = 0;
 		}
 

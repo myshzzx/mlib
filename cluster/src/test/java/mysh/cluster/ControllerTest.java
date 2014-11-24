@@ -2,6 +2,7 @@ package mysh.cluster;
 
 import org.junit.Ignore;
 
+import java.util.Map;
 import java.util.Scanner;
 
 /**
@@ -12,10 +13,29 @@ import java.util.Scanner;
 public class ControllerTest {
 
 	public static void main(String[] args) throws Exception {
-		new ClusterNode(8030, null,0);
-		Scanner s = new Scanner(System.in);
-		s.next();
-		System.exit(0);
+		ClusterClient c = new ClusterClient(8030);
+		Scanner sc = new Scanner(System.in);
+		while (true) {
+			try {
+				final String line = sc.nextLine().trim();
+				final String[] s = line.split("\\s");
+				switch (s[0]) {
+					case "e":
+						return;
+					case "ws":
+						for (Map.Entry<String, WorkerState> e : c.getWorkerStates(WorkerState.class, 5000, 0).entrySet()) {
+							System.out.println(e.getKey() + "-> " + e.getValue());
+						}
+						break;
+					case "c":
+						c.cancelTask(Integer.parseInt(s[1]));
+						System.out.println("done");
+						break;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 }
