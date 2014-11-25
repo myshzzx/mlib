@@ -23,7 +23,7 @@ public class ControllerTest {
 					case "e":
 						return;
 					case "ws":
-						for (Map.Entry<String, WorkerState> e : c.getWorkerStates(WorkerState.class, 5000, 0).entrySet()) {
+						for (Map.Entry<String, WorkerState> e : c.getWorkerStates(null, 5000, 0).entrySet()) {
 							System.out.println(e.getKey() + "-> " + e.getValue());
 						}
 						break;

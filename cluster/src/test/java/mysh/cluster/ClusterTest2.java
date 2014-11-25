@@ -20,6 +20,9 @@ public class ClusterTest2 {
 	private static final int cmdPort = 8030;
 
 	public static void main(String[] args) throws Exception {
+		final String name = ClusterTest2.class.getClassLoader().getClass().getName();
+		System.out.println(name);
+
 		new ClusterNode(cmdPort, null, 0);
 		Thread.sleep(100000000);
 	}

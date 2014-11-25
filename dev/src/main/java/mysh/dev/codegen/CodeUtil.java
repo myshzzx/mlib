@@ -17,7 +17,7 @@ public class CodeUtil {
 	 */
 	public static String underline2hump(String underline) {
 		StringBuilder hump = new StringBuilder();
-		String[] words = underline.toLowerCase().split("_");
+		String[] words = underline.trim().toLowerCase().split("_");
 		for (String word : words) {
 			hump.append(toUpperCase(word.charAt(0)));
 			hump.append(word.substring(1));
@@ -30,7 +30,7 @@ public class CodeUtil {
 	 */
 	public static String hump2underline(String hump) {
 		StringBuilder underline = new StringBuilder();
-		char[] chars = hump.toCharArray();
+		char[] chars = hump.trim().toCharArray();
 
 		for (int i = 0; i < chars.length; i++) {
 			if (i == 0 || i == chars.length - 1)
