@@ -52,7 +52,6 @@
 		</dependency>
 	</dependencies>
 
-
 	<build>
 		<finalName>mlib-cluster</finalName>
 		<plugins>

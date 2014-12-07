@@ -25,7 +25,7 @@ public class FstTest {
 		t.a = 10;
 		t.b = 20;
 		final byte[] buf = Serializer.fst.serialize(t);
-		final T tt = Serializer.fst.unSerialize(buf);
+		final T tt = Serializer.fst.unSerialize(buf, null);
 		Assert.assertEquals(0, tt.a);
 		Assert.assertEquals(20, tt.b);
 	}

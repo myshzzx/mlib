@@ -60,14 +60,14 @@ public class SerializationTest1 {
 
 		// common test
 		byte[] bb = Serializer.fst.serialize(tt);
-		TC ftt = Serializer.fst.unSerialize (bb);
+		TC ftt = Serializer.fst.unSerialize(bb);
 		Assert.assertEquals(tt.name, ftt.name);
 
 		// lambda test
 		String msg = "ok";
 		Serializable r = (Runnable & Serializable) () -> System.out.println(msg);
-		bb = Serializer.fst.serialize (r);
-		Runnable ft = Serializer.fst.unSerialize (bb);
+		bb = Serializer.fst.serialize(r);
+		Runnable ft = Serializer.fst.unSerialize(bb);
 		ft.run();
 		System.out.println(Base64.getEncoder().encodeToString(bb));
 	}
@@ -114,8 +114,10 @@ public class SerializationTest1 {
 
 		@Override
 		public void us(Serializable o, int times) {
-			while (times-- > 0)
-				o = JSON.parseObject(new String(tb), o.getClass());
+			final Class<? extends Serializable> clazz = o.getClass();
+			while (times-- > 0) {
+				o = JSON.parseObject(new String(tb), clazz);
+			}
 		}
 
 	}

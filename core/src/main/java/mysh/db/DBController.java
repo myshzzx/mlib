@@ -138,9 +138,9 @@ public final class DBController {
 			} catch (SQLException e) {
 				log.error("创建数据库连接失败", e);
 				throw new InterruptedException();
-			} catch (InterruptedException e1) {
+			} catch (InterruptedException e) {
 				this.stopSQLQueueAndLog();
-				throw e1;
+				throw e;
 			}
 		}
 
@@ -288,8 +288,6 @@ public final class DBController {
 								@Override
 								public Object invoke(Object proxy, Method method,
 								                     Object[] args) throws Throwable {
-
-									// Thread.sleep(1000);
 
 									Object result = null;
 									try {

@@ -1,5 +1,6 @@
 package mysh.util;
 
+import mysh.annotation.Nullable;
 import mysh.annotation.ThreadSafe;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.slf4j.Logger;
@@ -15,20 +16,36 @@ import java.util.Objects;
 public abstract class Serializer {
 	static final Logger log = LoggerFactory.getLogger(Serializer.class);
 
+	public static interface ClassLoaderFetcher {
+		ClassLoader get();
+	}
+
 	/**
 	 * serialize object to byte array.
 	 */
 	public abstract byte[] serialize(Serializable obj);
 
-	/**
-	 * unSerialize obj from buf.
-	 */
-	public abstract <T extends Serializable> T unSerialize(byte[] buf);
+	public final <T extends Serializable> T unSerialize(byte[] buf) {
+		return unSerialize(buf, 0, buf.length, null);
+	}
 
 	/**
 	 * unSerialize obj from buf.
+	 *
+	 * @param clFetcher nullable
 	 */
-	public abstract <T extends Serializable> T unSerialize(byte[] buf, int offset, int length);
+	public final <T extends Serializable> T unSerialize(byte[] buf,
+	                                                    @Nullable ClassLoaderFetcher clFetcher) {
+		return unSerialize(buf, 0, buf.length, clFetcher);
+	}
+
+	/**
+	 * unSerialize obj from buf.
+	 *
+	 * @param clFetcher nullable
+	 */
+	public abstract <T extends Serializable> T unSerialize(byte[] buf, int offset, int length,
+	                                                       @Nullable ClassLoaderFetcher clFetcher);
 
 	/**
 	 * java build-in serializer.
@@ -47,23 +64,35 @@ public abstract class Serializer {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] buf) {
-
-			return unSerialize(buf, 0, buf.length);
-		}
-
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] buf, int offset, int length) {
+		public <T extends Serializable> T unSerialize(byte[] buf, int offset, int length, ClassLoaderFetcher clFetcher) {
 
 			Objects.requireNonNull(buf);
 
-			try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(buf, offset, length))) {
+			try (CustObjIS in = new CustObjIS(new ByteArrayInputStream(buf, offset, length), clFetcher)) {
 				return (T) in.readObject();
 			} catch (Exception e) {
 				throw ExpUtil.unchecked(e);
 			}
 		}
+
 	};
+
+	private static class CustObjIS extends ObjectInputStream {
+
+		private ClassLoaderFetcher clFetcher;
+
+		public CustObjIS(InputStream in, ClassLoaderFetcher clFetcher) throws IOException {
+			super(in);
+			this.clFetcher = clFetcher;
+		}
+
+		@Override
+		protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+			return clFetcher == null ?
+							super.resolveClass(desc) :
+							Class.forName(desc.getName(), false, clFetcher.get());
+		}
+	}
 
 	/**
 	 * fast-serialization.
@@ -83,13 +112,11 @@ public abstract class Serializer {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] b) {
-			return (T) getCoder().toObject(b, 0, b.length);
-		}
-
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length) {
-			return (T) getCoder().toObject(b, offset, length);
+		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length, ClassLoaderFetcher clFetcher) {
+			final DefaultCoder c = getCoder();
+			if (clFetcher != null)
+				c.getConf().setClassLoader(clFetcher.get());
+			return (T) c.toObject(b, offset, length);
 		}
 	};
 }

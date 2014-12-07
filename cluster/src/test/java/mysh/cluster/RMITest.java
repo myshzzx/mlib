@@ -112,8 +112,6 @@ public class RMITest implements Serializable {
 			};
 			while (true) {
 				exec.execute(task);
-				exec.execute(task);
-				exec.execute(task);
 				Thread.sleep(10000);
 			}
 		} catch (Exception e) {
@@ -124,7 +122,7 @@ public class RMITest implements Serializable {
 	@Test
 	public void clientPureObj() throws RemoteException, NotBoundException {
 		int port = 8030;
-		Registry registry = LocateRegistry.getRegistry("192.168.1.100", port);
+		Registry registry = LocateRegistry.getRegistry("l", port);
 		PureObj po = (PureObj) registry.lookup("po");
 
 		while (true) {

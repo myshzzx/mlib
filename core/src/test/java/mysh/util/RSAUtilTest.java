@@ -43,7 +43,7 @@ public class RSAUtilTest {
 	}
 
 	private KPair getKPair() throws IOException, ClassNotFoundException {
-		return Serializer.buildIn.unSerialize(kPairByte);
+		return Serializer.buildIn.unSerialize(kPairByte, null);
 	}
 
 	@Test

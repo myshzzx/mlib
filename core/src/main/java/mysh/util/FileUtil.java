@@ -52,7 +52,7 @@ public class FileUtil {
 	@SuppressWarnings("unchecked")
 	public static <T> T getObjectFromFileWithBuf(String filepath) throws IOException, ClassNotFoundException {
 		byte[] buf = Files.readAllBytes(Paths.get(filepath));
-		T obj = Serializer.buildIn.unSerialize(buf);
+		T obj = Serializer.buildIn.unSerialize(buf, null);
 		log.debug("load object from file: " + filepath);
 		return obj;
 	}

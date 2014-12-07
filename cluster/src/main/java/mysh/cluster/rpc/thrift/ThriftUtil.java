@@ -121,7 +121,8 @@ public class ThriftUtil {
 		if (buf == null) return null;
 
 		try {
-			return s.unSerialize(buf.array(), buf.position(), buf.limit() - buf.position());
+			// todo use custom classloader fetch
+			return s.unSerialize(buf.array(), buf.position(), buf.limit() - buf.position(), null);
 		} catch (Exception e) {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
