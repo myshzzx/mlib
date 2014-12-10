@@ -58,7 +58,8 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	public abstract Class<SR> getSubResultType();
 
 	/**
-	 * process sub-task.<br/>
+	 * process sub-task. <br/>
+	 * should react for thread interruption, so the subTask can be terminated graciously.<br/>
 	 * it's recommended to return a non-null object even if nothing to return rather than return null.
 	 * for example, a blank string.
 	 *

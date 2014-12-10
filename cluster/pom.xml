@@ -24,16 +24,16 @@
 			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-annotations</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.eclipse.jetty</groupId>
-			<artifactId>jetty-jsp</artifactId>
-			<version>${jetty.version}</version>
-		</dependency>
+		<!--<dependency>-->
+			<!--<groupId>org.eclipse.jetty</groupId>-->
+			<!--<artifactId>jetty-annotations</artifactId>-->
+			<!--<version>${jetty.version}</version>-->
+		<!--</dependency>-->
+		<!--<dependency>-->
+			<!--<groupId>org.eclipse.jetty</groupId>-->
+			<!--<artifactId>jetty-jsp</artifactId>-->
+			<!--<version>${jetty.version}</version>-->
+		<!--</dependency>-->
 
 		<dependency>
 			<groupId>org.apache.thrift</groupId>

@@ -10,5 +10,8 @@
 </head>
 <body>
 mysh cluster
+<p>
+    ${param.v}
+</p>
 </body>
 </html>

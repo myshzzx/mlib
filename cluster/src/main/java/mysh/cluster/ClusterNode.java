@@ -2,6 +2,7 @@ package mysh.cluster;
 
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.ThriftUtil;
+import mysh.cluster.update.FilesMgr;
 import mysh.util.ExpUtil;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
@@ -70,6 +71,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	private volatile Cmd masterCandidate;
 	private volatile ClusterState clusterState;
 
+	private final FilesMgr filesMgr = new FilesMgr();
 	private Master master;
 	private Worker worker;
 
@@ -103,12 +105,14 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 		this.cmdPort = cmdPort;
 
-		master = new Master(id, this);
-		tMasterServer = ThriftUtil.exportTServer(IMaster.class, master, this.cmdPort + 1, null, serverPoolSize);
+		master = new Master(id, this, filesMgr);
+		tMasterServer = ThriftUtil.exportTServer(
+						IMaster.class, master, this.cmdPort + 1, null, serverPoolSize, filesMgr.clFetcher);
 		ThriftUtil.startTServer(tMasterServer);
 
-		worker = new Worker(id, this, initState);
-		tWorkerServer = ThriftUtil.exportTServer(IWorker.class, worker, this.cmdPort + 2, null, serverPoolSize);
+		worker = new Worker(id, this, initState, filesMgr);
+		tWorkerServer = ThriftUtil.exportTServer(
+						IWorker.class, worker, this.cmdPort + 2, null, serverPoolSize, filesMgr.clFetcher);
 		ThriftUtil.startTServer(tWorkerServer);
 
 		startTime = System.currentTimeMillis();
@@ -210,14 +214,16 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 	@Override
 	public IWorker getWorkerService(String host, int port) throws Exception {
-		IFaceHolder<IWorker> ch = ThriftUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT);
+		IFaceHolder<IWorker> ch = ThriftUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
+						filesMgr.clFetcher);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}
 
 	@Override
 	public IMaster getMasterService(String host, int port) throws Exception {
-		IFaceHolder<IMaster> ch = ThriftUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT);
+		IFaceHolder<IMaster> ch = ThriftUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
+						filesMgr.clFetcher);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}
@@ -230,6 +236,13 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 		log.debug("closing cmdSock.");
 		cmdSock.close();
+
+		log.debug("closing files manager.");
+		try {
+			filesMgr.close();
+		} catch (IOException e) {
+			log.error("close files manager error.", e);
+		}
 
 		try {
 			log.debug("closing node.tGetCmd.");

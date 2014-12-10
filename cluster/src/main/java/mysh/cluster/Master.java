@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import mysh.cluster.update.FilesMgr;
 import mysh.util.Asserts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ class Master implements IMaster {
 	private String id;
 	private volatile Listener listener;
 	private volatile boolean isMaster = false;
+	private final FilesMgr filesMgr;
 
 	/**
 	 * run task flag used by heart-beat broadcast.
@@ -48,12 +50,13 @@ class Master implements IMaster {
 
 	private final List<Thread> mThreads = new ArrayList<>();
 
-	Master(String id, Listener listener) {
+	Master(String id, Listener listener, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need master listener.");
 
 		this.id = id;
 		this.listener = listener;
+		this.filesMgr = filesMgr;
 
 		Thread t;
 

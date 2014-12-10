@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import mysh.cluster.update.FilesMgr;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +24,7 @@ class Worker implements IWorker {
 
 	private volatile String id;
 	private volatile Listener listener;
+	private final FilesMgr filesMgr;
 
 	private final Map<String, IMaster> mastersCache = new ConcurrentHashMap<>();
 	private volatile long lastMasterAction = System.currentTimeMillis();
@@ -31,7 +33,7 @@ class Worker implements IWorker {
 	private final BlockingQueue<SubTask> completedSubTasks = new LinkedBlockingQueue<>();
 	private final WorkerState state;
 
-	Worker(String id, Listener listener, WorkerState initState) {
+	Worker(String id, Listener listener, WorkerState initState, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need worker listener.");
 
@@ -39,6 +41,7 @@ class Worker implements IWorker {
 		this.listener = listener;
 		this.state = initState == null ? new WorkerState() : initState;
 		this.state.update();
+		this.filesMgr = filesMgr;
 
 		tChkMaster.setDaemon(true);
 		tChkMaster.setPriority(Thread.MIN_PRIORITY);
@@ -152,6 +155,10 @@ class Worker implements IWorker {
 					// end thread and kill all task-executors if interrupted
 					for (Map.Entry<SubTaskExecutor, SubTaskExecutor> steEntry : stExecutors.entrySet()) {
 						steEntry.getKey().interrupt();
+						try {
+							steEntry.getKey().join();
+						} catch (InterruptedException ex) {
+						}
 					}
 					stExecutors.clear();
 					return;

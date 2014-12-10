@@ -197,7 +197,7 @@ public final class ClusterClient implements Closeable {
 					log.debug("rec cmd <<< " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
-							service = ThriftUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0);
+							service = ThriftUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0, null);
 						} catch (Exception e) {
 							log.error("connect to master service error.", e);
 						}
