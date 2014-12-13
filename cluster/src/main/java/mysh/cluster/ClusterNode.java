@@ -1,7 +1,7 @@
 package mysh.cluster;
 
 import mysh.cluster.rpc.IFaceHolder;
-import mysh.cluster.rpc.thrift.ThriftUtil;
+import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.cluster.update.FilesMgr;
 import mysh.util.ExpUtil;
 import org.apache.thrift.server.TServer;
@@ -80,16 +80,11 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 	private BlockingQueue<Closeable> thriftConns = new LinkedBlockingQueue<>();
 
 	/**
-	 * @param cmdPort        cmd port. UDP(cmdPort) will be used in broadcast communication,
-	 *                       while TCP(cmdPort) in services dispatching,
-	 *                       TCP(cmdPort+1) in Master-Node service and TCP(cmdPort+2) in Worker-Node service.
-	 * @param initState      initial state of the worker, which can be updated and sent to master node automatically.
-	 *                       can be <code>null</code>.
-	 * @param serverPoolSize rpc server pool size.
-	 *                       see {@link mysh.thrift.ThriftServerFactory#setServerPoolSize}
 	 * @throws Exception fail to bind UDP port, or no available network interface.
 	 */
-	public ClusterNode(int cmdPort, WorkerState initState, int serverPoolSize) throws Exception {
+	public ClusterNode(ClusterConf conf) throws Exception {
+		this.id = conf.id;
+		this.cmdPort = conf.cmdPort;
 
 		cmdSock = new DatagramSocket(cmdPort);
 		cmdSock.setReceiveBufferSize(15 * 1024 * 1024);
@@ -97,25 +92,25 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 		// prepare all network interface addresses with broadcast address.
 		renewNetworkIf();
-		if (id == null && bcAdds.size() > 0)
-			id = "cn_" + bcAdds.iterator().next().getAddress().toString() + "_" + System.currentTimeMillis();
+		if ((this.id == null || this.id.length() == 0) && bcAdds.size() > 0) {
+			this.id = "cn_" + bcAdds.iterator().next().getAddress().toString() + "_" + System.currentTimeMillis();
+			conf.id = this.id;
+		}
 
 		if (bcAdds.size() < 1)
 			throw new RuntimeException("no available network interface that support broadcast.");
 
-		this.cmdPort = cmdPort;
+		master = new Master(id, this, conf.heartBeatTime, filesMgr);
+		tMasterServer = RpcUtil.exportTServer(
+						IMaster.class, master, this.cmdPort + 1, null, conf.serverPoolSize, filesMgr.clFetcher);
+		RpcUtil.startTServer(tMasterServer);
 
-		master = new Master(id, this, filesMgr);
-		tMasterServer = ThriftUtil.exportTServer(
-						IMaster.class, master, this.cmdPort + 1, null, serverPoolSize, filesMgr.clFetcher);
-		ThriftUtil.startTServer(tMasterServer);
+		worker = new Worker(id, this, conf.initState, conf.heartBeatTime, filesMgr);
+		tWorkerServer = RpcUtil.exportTServer(
+						IWorker.class, worker, this.cmdPort + 2, null, conf.serverPoolSize, filesMgr.clFetcher);
+		RpcUtil.startTServer(tWorkerServer);
 
-		worker = new Worker(id, this, initState, filesMgr);
-		tWorkerServer = ThriftUtil.exportTServer(
-						IWorker.class, worker, this.cmdPort + 2, null, serverPoolSize, filesMgr.clFetcher);
-		ThriftUtil.startTServer(tWorkerServer);
-
-		startTime = System.currentTimeMillis();
+		startTime = conf.startTime;
 
 		tGetCmd.setDaemon(true);
 		tGetCmd.setPriority(Thread.MAX_PRIORITY);
@@ -125,6 +120,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		tProcCmd.setPriority(Thread.MAX_PRIORITY);
 		tProcCmd.start();
 
+		conf.save();
 		changeState(ClusterState.INIT);
 	}
 
@@ -214,7 +210,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 	@Override
 	public IWorker getWorkerService(String host, int port) throws Exception {
-		IFaceHolder<IWorker> ch = ThriftUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
+		IFaceHolder<IWorker> ch = RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
 						filesMgr.clFetcher);
 		this.thriftConns.add(ch);
 		return ch.getClient();
@@ -222,7 +218,7 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 	@Override
 	public IMaster getMasterService(String host, int port) throws Exception {
-		IFaceHolder<IMaster> ch = ThriftUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
+		IFaceHolder<IMaster> ch = RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
 						filesMgr.clFetcher);
 		this.thriftConns.add(ch);
 		return ch.getClient();

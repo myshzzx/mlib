@@ -24,8 +24,8 @@ import java.util.Map;
  * @author Mysh
  * @since 2014/11/19 11:02
  */
-public class ThriftUtil {
-	private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
+public class RpcUtil {
+	private static final Logger log = LoggerFactory.getLogger(RpcUtil.class);
 	public static final Serializer s = Serializer.fst;
 
 	public static void startTServer(TServer s) {

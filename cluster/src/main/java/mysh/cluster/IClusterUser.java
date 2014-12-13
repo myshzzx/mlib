@@ -5,10 +5,7 @@ import mysh.annotation.GuardedBy;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Cluster user.<p>
@@ -44,13 +41,13 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	}
 
 	/**
-	 * generate sub-tasks.
+	 * generate sub-tasks. can't be NULL.
 	 *
 	 * @param task            task description.
-	 * @param workerNodeCount available worker nodes (>0).
-	 * @return sub-task-descriptions. can't be NULL.
+	 * @param workerNodes available worker nodes (>0).
+	 * @return sub-task-descriptions.
 	 */
-	public abstract SubTasksPack<ST> fork(T task, int workerNodeCount);
+	public abstract SubTasksPack<ST> fork(T task, Set<String> workerNodes);
 
 	/**
 	 * get SubResult type. will be invoked only once when creating result array.

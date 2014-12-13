@@ -3,16 +3,18 @@ package mysh.cluster.mgr;
 import mysh.annotation.ThreadSafe;
 import mysh.cluster.IClusterMgr;
 
+import java.util.Set;
+
 /**
  * @author Mysh
  * @since 2014/11/24 15:21
  */
 @ThreadSafe
-public class CancelTask extends IClusterMgr<Integer, Object, Object, Object> {
+public final class CancelTask extends IClusterMgr<Integer, Object, Object, Object> {
 	private static final long serialVersionUID = 4261257711443667489L;
 
 	@Override
-	public SubTasksPack<Object> fork(Integer taskId, int workerNodeCount) {
+	public SubTasksPack<Object> fork(Integer taskId, Set<String> workerNodes) {
 		master.cancelTask(taskId, null);
 		return pack(new Object[0], null);
 	}

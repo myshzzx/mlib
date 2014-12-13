@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Random;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -23,7 +24,7 @@ public class ClusterTest2 {
 		final String name = ClusterTest2.class.getClassLoader().getClass().getName();
 		System.out.println(name);
 
-		new ClusterNode(cmdPort, null, 0);
+		new ClusterNode(ClusterConf.readConf());
 		Thread.sleep(100000000);
 	}
 
@@ -53,10 +54,10 @@ public class ClusterTest2 {
 						private static final long serialVersionUID = -6500480014655019875L;
 
 						@Override
-						public SubTasksPack<float[][]> fork(float[][] task, int workerNodeCount) {
+						public SubTasksPack<float[][]> fork(float[][] task, Set<String> workerNodes) {
 							log.info("begin to fork sumUser task.==");
 
-							float[][][] r = split(task, workerNodeCount);
+							float[][][] r = split(task, workerNodes.size());
 
 							log.info("fork sumUser task end.==");
 							return pack(r, null);

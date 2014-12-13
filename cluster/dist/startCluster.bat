@@ -1,0 +1,1 @@
+main\core\startCluster0.bat %~1

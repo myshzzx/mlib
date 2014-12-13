@@ -1,5 +1,8 @@
 package mysh.cluster;
 
+import mysh.cluster.update.FilesMgr;
+import mysh.cluster.update.IUpdateListener;
+
 /**
  * without any master-heart-beat/invoke-call in NETWORK_TIMEOUT*2,
  * the worker node will be considered as out of master-worker network,
@@ -8,12 +11,15 @@ package mysh.cluster;
  * @author Mysh
  * @since 14-1-28 下午6:07
  */
-public interface IWorker {
+public interface IWorker extends IUpdateListener {
 
 	/**
 	 * master-heart-beat at a fixed rate of {@link ClusterNode#NETWORK_TIMEOUT}.
+	 *
+	 * @param masterId              master node id
+	 * @param masterFilesThumbStamp master files thumbStamp
 	 */
-	WorkerState masterHeartBeat();
+	WorkerState masterHeartBeat(String masterId, String masterFilesThumbStamp);
 
 	/**
 	 * Invoked by master, subTask execution.

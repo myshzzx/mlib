@@ -8,10 +8,9 @@ import org.junit.Ignore;
  */
 @Ignore
 public class ClusterTest {
-	private static final int cmdPort = 8030;
 
 	public static void main(String[] args) throws Exception {
-		new ClusterNode(cmdPort, null, 0);
+		new ClusterNode(ClusterConf.readConf());
 		Thread.sleep(1000000000);
 	}
 

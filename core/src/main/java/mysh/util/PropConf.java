@@ -4,9 +4,7 @@ package mysh.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Properties;
 
 /**
@@ -19,38 +17,29 @@ public class PropConf {
 	private static final Logger log = LoggerFactory.getLogger(PropConf.class);
 	private Properties props;
 
+	public PropConf() {
+		this.props = new Properties();
+	}
+
 	/**
-	 * 取默认配置进行初始化: myshlib.properties.
+	 * 取配置进行初始化.
 	 *
-	 * @param filename 配置文件名. 为空则使用默认.
+	 * @param filePath 配置文件.
+	 * @throws java.io.IOException 文件不存在或不可读.
 	 */
-	public PropConf(String filename) {
+	public PropConf(String filePath) throws IOException {
+		this();
 
-		Properties props = new Properties();
-		// InputStream conf = new FileInputStream(DBConnPool.class.getClassLoader()
-		// .getResource("mycrawler.properties").getPath());
-		InputStream conf = null;
-		try {
-			filename = (filename == null) ? "myshlib.properties" : filename;
-			conf = new FileInputStream(filename);
-			props.load(conf);
-			this.props = props;
-		} catch (Exception e) {
-			log.error("取默认配置异常, 使用空配置. " + e);
-			this.props = new Properties();
-		} finally {
-			if (conf != null)
-				try {
-					conf.close();
-				} catch (IOException e) {
-				}
+		File file = new File(filePath);
+		if (file.exists() && file.isFile()) {
+			try (Reader i = new FileReader(file)) {
+				props.load(i);
+			}
 		}
-
 	}
 
 	/**
 	 * 用给定配置初始化.
-	 *
 	 */
 	public PropConf(Properties props) {
 
@@ -58,9 +47,27 @@ public class PropConf {
 	}
 
 	/**
-	 * 取配置属性（不返回 null 值），若属性未定义，写日志.
+	 * save properties to file.
 	 *
-	 * @param propName 属性名
+	 * @throws java.io.IOException file write error.
+	 */
+	public void save2File(String filePath) throws IOException {
+		try (Writer o = new FileWriter(filePath)) {
+			props.store(o, null);
+		}
+	}
+
+	/**
+	 * put prop value.
+	 */
+	public void putProp(String propName, Object value) {
+		this.props.put(propName, value == null ? "" : value.toString());
+	}
+
+	/**
+	 * 取配置property（不返回 null 值），若property未定义，写日志.
+	 *
+	 * @param propName property名
 	 */
 	public String getPropString(String propName) {
 
@@ -68,64 +75,69 @@ public class PropConf {
 	}
 
 	/**
-	 * 取配置属性（不返回 null 值），若属性未定义，写日志.
+	 * 取配置property（不返回 null 值），若property未定义，写日志.
 	 *
-	 * @param propName     属性名
+	 * @param propName     property名
 	 * @param defaultValue 默认值，为 null 无效
 	 */
 	public String getPropString(String propName, String defaultValue) {
 
 		String value = this.props.getProperty(propName);
 		if (value == null) {
-			log.info("属性 [" + propName + "] 未定义，使用默认值");
-			return defaultValue == null ? "" : defaultValue;
+			defaultValue = defaultValue == null ? "" : defaultValue;
+			log.info("property [" + propName + "] undefined, use default value: " + defaultValue);
+			return defaultValue;
 		}
 		return value;
 	}
 
 	/**
-	 * 取配置属性的整型值. 若属性未定义，写日志, 返回默认值 0.
+	 * 取配置property的整型值. 若property未定义，写日志, 返回默认值 0.
 	 *
-	 * @param propName 属性名
+	 * @param propName property名
 	 */
 	public int getPropInt(String propName) {
 
-		try {
-			return Integer.parseInt(this.getPropString(propName));
-		} catch (Exception e) {
-			log.info("属性 [" + propName + "] 定义异常，使用默认值");
-			return 0;
-		}
+		return getPropInt(propName, 0);
 	}
 
 	/**
-	 * 取配置属性的整型值. 若属性未定义，写日志, 返回默认值.
+	 * 取配置property的整型值. 若property未定义，返回默认值.
 	 *
-	 * @param propName     属性名
+	 * @param propName     property名
 	 * @param defaultValue 默认值
 	 */
 	public int getPropInt(String propName, int defaultValue) {
 
 		try {
-			return Integer.parseInt(this.getPropString(propName));
+			final String p = this.getPropString(propName);
+			if (p.length() == 0) return defaultValue;
+			else return Integer.parseInt(p);
 		} catch (Exception e) {
-			log.info("属性 [" + propName + "] 定义异常，使用默认值");
+			log.info("property [" + propName + "] defined error, use default value: " + defaultValue, e);
 			return defaultValue;
 		}
 	}
 
 	/**
-	 * 取配置属性的长整型值，若属性未定义，写日志.
+	 * 取配置property的长整型值，若property未定义，写日志, 返回默认值 0.
 	 *
-	 * @param propName 属性名
+	 * @param propName property名
 	 */
 	public long getPropLong(String propName) {
 
+		return getPropLong(propName, 0);
+	}
+
+	public long getPropLong(String propName, long defaultValue) {
+
 		try {
-			return Long.parseLong(this.getPropString(propName));
+			final String p = this.getPropString(propName);
+			if (p.length() == 0) return defaultValue;
+			else return Long.parseLong(p);
 		} catch (Exception e) {
-			log.info("属性 [" + propName + "] 定义异常，使用默认值");
-			return 0L;
+			log.info("property [" + propName + "] defined error, use default value: " + defaultValue, e);
+			return defaultValue;
 		}
 	}
 }

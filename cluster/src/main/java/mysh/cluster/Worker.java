@@ -1,6 +1,8 @@
 package mysh.cluster;
 
+import mysh.cluster.update.FilesInfo;
 import mysh.cluster.update.FilesMgr;
+import mysh.cluster.update.FilesMgr.FileType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,6 +10,10 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static mysh.cluster.update.FilesMgr.FileType.CORE;
+import static mysh.cluster.update.FilesMgr.FileType.USER;
 
 /**
  * SubTasks processor, who offers a task-process-service.
@@ -32,8 +38,9 @@ class Worker implements IWorker {
 	private final BlockingDeque<SubTask> subTasks = new LinkedBlockingDeque<>();
 	private final BlockingQueue<SubTask> completedSubTasks = new LinkedBlockingQueue<>();
 	private final WorkerState state;
+	private final int heartBeatTime;
 
-	Worker(String id, Listener listener, WorkerState initState, FilesMgr filesMgr) {
+	Worker(String id, Listener listener, WorkerState initState, int heartBeatTime, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need worker listener.");
 
@@ -41,6 +48,7 @@ class Worker implements IWorker {
 		this.listener = listener;
 		this.state = initState == null ? new WorkerState() : initState;
 		this.state.update();
+		this.heartBeatTime = heartBeatTime;
 		this.filesMgr = filesMgr;
 
 		tChkMaster.setDaemon(true);
@@ -61,7 +69,7 @@ class Worker implements IWorker {
 	private Thread tChkMaster = new Thread("cWorker:check-master") {
 		@Override
 		public void run() {
-			int timeout = ClusterNode.NETWORK_TIMEOUT * 2;
+			int timeout = heartBeatTime * 2;
 
 			while (!this.isInterrupted()) {
 				try {
@@ -213,26 +221,15 @@ class Worker implements IWorker {
 	void closeWorker() {
 		log.debug("closing worker.");
 
-		try {
-			log.debug("closing worker.tChkMaster");
-			tChkMaster.interrupt();
-			tChkMaster.join();
-		} catch (Exception e) {
-			log.error("worker.tChkMaster close error.", e);
-		}
-		try {
-			log.debug("closing worker.tSTExecScheduler");
-			tSTExecScheduler.interrupt();
-			tSTExecScheduler.join();
-		} catch (Exception e) {
-			log.error("worker.tSTExecScheduler close error.", e);
-		}
-		try {
-			log.debug("closing worker.tTaskComplete");
-			tTaskComplete.interrupt();
-			tTaskComplete.join();
-		} catch (Exception e) {
-			log.error("worker.tTaskComplete close error.", e);
+		for (Thread t : new Thread[]{tChkMaster, tSTExecScheduler, tTaskComplete, tFileUpdater}) {
+			if (t == null) continue;
+			try {
+				log.debug("closing " + t.getName());
+				t.interrupt();
+				t.join();
+			} catch (Exception e) {
+				log.error(t.getName() + " close error.", e);
+			}
 		}
 
 		log.debug("worker closed.");
@@ -264,8 +261,9 @@ class Worker implements IWorker {
 	}
 
 	@Override
-	public WorkerState masterHeartBeat() {
+	public WorkerState masterHeartBeat(String masterId, String masterFilesThumbStamp) {
 		this.lastMasterAction = System.currentTimeMillis();
+		updateFiles(masterId, masterFilesThumbStamp);
 		return this.updateState();
 	}
 
@@ -383,4 +381,76 @@ class Worker implements IWorker {
 		}
 	}
 
+	/**
+	 * use <b>AtomicBoolean</b> but not <b>volatile boolean</b> here to make sure only one thread started.
+	 */
+	private final AtomicBoolean updateFilesRunning = new AtomicBoolean(false);
+
+	@Override
+	public void updateFiles(String dispatcherId, String thumbStamp) {
+		final FilesInfo currFilesInfo = filesMgr.getFilesInfo();
+		if (!currFilesInfo.thumbStamp.equals(thumbStamp)) {
+			log.info("begin to update files from: " + dispatcherId + ", ts:" + thumbStamp);
+			log.info("current filesInfo: " + currFilesInfo);
+
+			if (updateFilesRunning.compareAndSet(false, true)) {
+				final IMaster master = mastersCache.get(dispatcherId);
+				if (master != null) {
+					tFileUpdater = new FileUpdater(master, currFilesInfo);
+					tFileUpdater.setDaemon(true);
+					tFileUpdater.start();
+				}
+			}
+		}
+	}
+
+	private volatile FileUpdater tFileUpdater;
+
+	/**
+	 * files check thread.
+	 */
+	private class FileUpdater extends Thread {
+		private IMaster master;
+		private FilesInfo currFilesInfo;
+		private FilesInfo masterFiles;
+
+		public FileUpdater(IMaster master, FilesInfo currFilesInfo) {
+			super("cWorker:update-files-" + System.currentTimeMillis());
+			this.master = master;
+			this.currFilesInfo = currFilesInfo;
+		}
+
+		@Override
+		public void run() {
+			try {
+				masterFiles = master.getFilesInfo();
+				for (FileType type : new FileType[]{USER, CORE}) {
+					Map<String, String> cFiles = type == CORE ? currFilesInfo.coreFiles : currFilesInfo.userFiles;
+					Map<String, String> mFiles = type == CORE ? masterFiles.coreFiles : masterFiles.userFiles;
+					for (Map.Entry<String, String> cFileEntry : cFiles.entrySet()) {
+						final String cFileName = cFileEntry.getKey();
+						String mts = mFiles.get(cFileName);
+						if (mts == null)
+							filesMgr.removeFile(type, cFileName);
+						else if (!mts.equals(cFileEntry.getValue()))
+							filesMgr.putFile(type, cFileName, master.getFile(type, cFileName));
+					}
+					for (Map.Entry<String, String> mFileEntry : mFiles.entrySet()) {
+						final String mFileName = mFileEntry.getKey();
+						if (!cFiles.containsKey(mFileName))
+							filesMgr.putFile(type, mFileName, master.getFile(type, mFileName));
+					}
+				}
+			} catch (Exception e) {
+				log.error("update files error.", e);
+			} finally {
+				updateFilesRunning.set(false);
+			}
+		}
+	}
+
+	@Override
+	public FilesMgr getFilesMgr() {
+		return filesMgr;
+	}
 }

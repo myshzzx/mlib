@@ -1,9 +1,8 @@
 package mysh.cluster;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import mysh.cluster.rpc.thrift.RpcUtil;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.*;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -14,15 +13,10 @@ import java.util.function.Consumer;
  * @since 14-2-3 下午2:37
  */
 class SockUtil {
-	private static final Logger log = LoggerFactory.getLogger(SockUtil.class);
-
 	static Cmd receiveCmd(DatagramSocket cmdSock, final DatagramPacket reusePack) throws Exception {
 		synchronized (reusePack) {
 			cmdSock.receive(reusePack);
-			try (ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(
-							reusePack.getData(), reusePack.getOffset(), reusePack.getLength()))) {
-				return (Cmd) in.readObject();
-			}
+			return RpcUtil.s.unSerialize(reusePack.getData(), reusePack.getOffset(), reusePack.getLength(), null);
 		}
 	}
 
@@ -33,14 +27,11 @@ class SockUtil {
 	}
 
 	static void sendCmd(DatagramSocket cmdSock, Cmd c, InetAddress addr, int port) throws IOException {
-		try (ByteArrayOutputStream baOut = new ByteArrayOutputStream();
-		     ObjectOutputStream out = new ObjectOutputStream(baOut)) {
-			out.writeObject(c);
-			DatagramPacket p = new DatagramPacket(baOut.toByteArray(), 0, baOut.size());
-			p.setAddress(addr);
-			p.setPort(port);
-			cmdSock.send(p);
-		}
+		final byte[] buf = RpcUtil.s.serialize(c);
+		DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
+		p.setAddress(addr);
+		p.setPort(port);
+		cmdSock.send(p);
 	}
 
 	/**

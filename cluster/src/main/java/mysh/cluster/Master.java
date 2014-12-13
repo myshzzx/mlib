@@ -1,10 +1,12 @@
 package mysh.cluster;
 
+import mysh.cluster.update.FilesInfo;
 import mysh.cluster.update.FilesMgr;
 import mysh.util.Asserts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.lang.reflect.Array;
 import java.util.*;
 import java.util.concurrent.*;
@@ -28,8 +30,9 @@ class Master implements IMaster {
 	private ClusterExp.TaskTimeout taskTimeoutExp;
 	private ClusterExp.TaskCanceled taskCanceledExp;
 
-	private String id;
+	private final String id;
 	private volatile Listener listener;
+	private final int heartBeatTime;
 	private volatile boolean isMaster = false;
 	private final FilesMgr filesMgr;
 
@@ -50,12 +53,13 @@ class Master implements IMaster {
 
 	private final List<Thread> mThreads = new ArrayList<>();
 
-	Master(String id, Listener listener, FilesMgr filesMgr) {
+	Master(String id, Listener listener, int heartBeatTime, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
 		Objects.requireNonNull(listener, "need master listener.");
 
 		this.id = id;
 		this.listener = listener;
+		this.heartBeatTime = heartBeatTime;
 		this.filesMgr = filesMgr;
 
 		Thread t;
@@ -95,7 +99,7 @@ class Master implements IMaster {
 					Thread.sleep(ClusterNode.NETWORK_TIMEOUT);
 
 					tTime = System.currentTimeMillis();
-					if (isMaster && tTime - lastHBTime > ClusterNode.NETWORK_TIMEOUT) {
+					if (isMaster && tTime - lastHBTime > heartBeatTime) {
 						lastHBTime = tTime;
 
 						// broadcast I_AM_THE_MASTER
@@ -104,9 +108,10 @@ class Master implements IMaster {
 							listener.broadcastIAmTheMaster();
 						}
 
+						final String mts = filesMgr.getFilesInfo().thumbStamp;
 						for (Map.Entry<String, WorkerNode> workerEntry : workersCache.entrySet()) {
 							try {
-								WorkerState state = workerEntry.getValue().workerService.masterHeartBeat();
+								WorkerState state = workerEntry.getValue().workerService.masterHeartBeat(id, mts);
 								updateWorkerState(workerEntry.getKey(), state);
 							} catch (Exception e) {
 								if (isNodeUnavailable(e))
@@ -345,7 +350,7 @@ class Master implements IMaster {
 			((IClusterMgr) cUser).master = this;
 		}
 
-		IClusterUser.SubTasksPack<ST> sTasks = cUser.fork(task, workerCount);
+		IClusterUser.SubTasksPack<ST> sTasks = cUser.fork(task, workersCache.keySet());
 		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
 
 		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
@@ -544,5 +549,17 @@ class Master implements IMaster {
 		}
 	}
 
+	public FilesMgr getFilesMgr() {
+		return filesMgr;
+	}
 
+	@Override
+	public byte[] getFile(FilesMgr.FileType type, String fileName) throws IOException {
+		return this.filesMgr.getFile(type, fileName);
+	}
+
+	@Override
+	public FilesInfo getFilesInfo() {
+		return this.filesMgr.getFilesInfo();
+	}
 }

@@ -3,7 +3,7 @@ package mysh.cluster;
 import mysh.cluster.mgr.CancelTask;
 import mysh.cluster.mgr.GetWorkerStates;
 import mysh.cluster.rpc.IFaceHolder;
-import mysh.cluster.rpc.thrift.ThriftUtil;
+import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -171,12 +171,16 @@ public final class ClusterClient implements Closeable {
 		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
+	/**
+	 * preparing cluster service flag.
+	 * use <b>AtomicBoolean</b> but not <b>volatile boolean</b> here to make sure only one thread started.
+	 */
 	private final AtomicBoolean isPreparingClusterService = new AtomicBoolean(false);
 
 	private void prepareClusterService() {
 		if (isPreparingClusterService.compareAndSet(false, true)) {
 			tPrepareClusterService = new Thread(this.rPrepareClusterService,
-							"clusterClient:prepare-cluster-service" + System.currentTimeMillis());
+							"clusterClient:prepare-cluster-service-" + System.currentTimeMillis());
 			tPrepareClusterService.setDaemon(true);
 			tPrepareClusterService.start();
 		}
@@ -197,7 +201,7 @@ public final class ClusterClient implements Closeable {
 					log.debug("rec cmd <<< " + cmd);
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
-							service = ThriftUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0, null);
+							service = RpcUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0, null);
 						} catch (Exception e) {
 							log.error("connect to master service error.", e);
 						}

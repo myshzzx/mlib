@@ -13,11 +13,14 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * @author Mysh
@@ -39,14 +42,10 @@ public class FilesMgr implements Closeable {
 		 */
 		USER("user");
 
-		private String dirName;
+		private String dir;
 
-		FileType(String dirName) {
-			this.dirName = dirName;
-		}
-
-		public String getDir() {
-			return this.dirName;
+		FileType(String dir) {
+			this.dir = dir;
 		}
 	}
 
@@ -65,7 +64,7 @@ public class FilesMgr implements Closeable {
 		curr.userFiles = new HashMap<>();
 
 		for (FileType type : Arrays.asList(FileType.CORE, FileType.USER))
-			Files.walk(Paths.get(mainDir, type.getDir()), 1).forEach(p -> {
+			Files.walk(Paths.get(mainDir, type.dir), 1).forEach(p -> {
 				if (!p.toFile().isFile()) return;
 				try {
 					final String fileName = p.getFileName().toString();
@@ -88,7 +87,7 @@ public class FilesMgr implements Closeable {
 
 	private void renewCl() throws IOException {
 		ArrayList<URL> urls = new ArrayList<>();
-		Files.walk(Paths.get(mainDir, FileType.USER.getDir()), 1).forEach(p -> {
+		Files.walk(Paths.get(mainDir, FileType.USER.dir), 1).forEach(p -> {
 			try {
 				final File file = p.toFile();
 				if (file.isFile() && file.getName().endsWith(".jar"))
@@ -123,48 +122,81 @@ public class FilesMgr implements Closeable {
 		return DigestUtils.md5Hex(ctx);
 	}
 
-	public synchronized void putFile(FileType type, String fileName, byte[] ctx) throws IOException {
-		if (type == FileType.CORE)
-			Files.write(Paths.get(updateDir, type.getDir(), fileName), ctx);
-		else {
-			try {
-				cl.close();
-				Files.write(Paths.get(mainDir, type.getDir(), fileName), ctx);
-			} finally {
-				renewCl();
-			}
-		}
+	private final ReentrantReadWriteLock fileLock = new ReentrantReadWriteLock();
 
-		(type == FileType.CORE ? curr.coreFiles : curr.userFiles).put(fileName, getThumbStamp(ctx));
-		refreshTS();
-		old = new FilesInfo(curr);
+	public byte[] getFile(FileType type, String fileName) throws IOException {
+		fileLock.readLock().lock();
+		try {
+			if (type == FileType.CORE) {
+				final Path updatedFile = Paths.get(updateDir, type.dir, fileName);
+				if (updatedFile.toFile().exists())
+					return Files.readAllBytes(updatedFile);
+			}
+			return Files.readAllBytes(Paths.get(mainDir, type.dir, fileName));
+		} finally {
+			fileLock.readLock().unlock();
+		}
 	}
 
-	public synchronized void removeFile(FileType type, String fileName) throws IOException {
-		if (type == FileType.CORE) {
-			String updateScriptFile, script;
-			if (OSUtil.getOS() == OSUtil.OS.Windows) {
-				updateScriptFile = "update.bat";
-				script = "del /f /q \"" + mainDir + "\\" + type.getDir() + "\\" + fileName + "\"";
+	public void putFile(FileType type, String fileName, byte[] ctx) throws IOException {
+		log.info("update file: (" + type + ") " + fileName);
+		fileLock.writeLock().lock();
+		try {
+			if (type == FileType.CORE) {
+				Files.write(Paths.get(updateDir, type.dir, fileName), ctx);
 			} else {
-				updateScriptFile = "update.sh";
-				script = "rm -f \"" + mainDir + "/" + type.getDir() + "/" + fileName + "\"";
+				try {
+					cl.close();
+					Files.write(Paths.get(mainDir, type.dir, fileName), ctx);
+				} finally {
+					renewCl();
+				}
 			}
-			script += System.lineSeparator();
-			Files.write(Paths.get(updateScriptFile), script.getBytes(StandardCharsets.US_ASCII),
-							StandardOpenOption.APPEND);
-		} else {
-			try {
-				cl.close();
-				Paths.get(mainDir, type.getDir(), fileName).toFile().delete();
-			} finally {
-				renewCl();
-			}
-		}
 
-		(type == FileType.CORE ? curr.coreFiles : curr.userFiles).remove(fileName);
-		refreshTS();
-		old = new FilesInfo(curr);
+			(type == FileType.CORE ? curr.coreFiles : curr.userFiles).put(fileName, getThumbStamp(ctx));
+			refreshTS();
+			old = new FilesInfo(curr);
+		} finally {
+			fileLock.writeLock().unlock();
+		}
+	}
+
+	public void removeFile(FileType type, String fileName) throws IOException {
+		log.info("remove file: (" + type + ") " + fileName);
+		fileLock.writeLock().lock();
+		try {
+			if (type == FileType.CORE) {
+				String updateScriptFile, script;
+				Charset charset;
+				if (OSUtil.getOS() == OSUtil.OS.Windows) {
+					updateScriptFile = "update.bat";
+					charset = StandardCharsets.US_ASCII;
+					script = "del /f /q \"" + mainDir + "\\" + type.dir + "\\" + fileName + "\"";
+				} else {
+					updateScriptFile = "update.sh";
+					charset = StandardCharsets.UTF_8;
+					script = "rm -f \"" + mainDir + "/" + type.dir + "/" + fileName + "\"";
+				}
+				script += System.lineSeparator();
+				final Path usFile = Paths.get(updateScriptFile);
+				Files.write(usFile, script.getBytes(charset),
+								StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+				usFile.toFile().setExecutable(true, false);
+			} else {
+				try {
+					cl.close();
+					Paths.get(mainDir, type.dir, fileName).toFile().delete();
+				} finally {
+					renewCl();
+				}
+			}
+
+			(type == FileType.CORE ? curr.coreFiles : curr.userFiles).remove(fileName);
+			refreshTS();
+			old = new FilesInfo(curr);
+		} finally {
+			fileLock.writeLock().unlock();
+		}
 	}
 
 	@Override
@@ -172,12 +204,4 @@ public class FilesMgr implements Closeable {
 		cl.close();
 	}
 
-	public static void main(String[] args) throws IOException {
-		String updateScriptFile = "update.bat";
-		String fileName = "abc.jar";
-		String script = "del /f /q \"" + mainDir + "\\" + FileType.CORE.getDir() + "\\" + fileName + "\"";
-		script += System.lineSeparator();
-		Files.write(Paths.get(updateScriptFile), script.getBytes(StandardCharsets.US_ASCII),
-						StandardOpenOption.APPEND, StandardOpenOption.CREATE);
-	}
 }

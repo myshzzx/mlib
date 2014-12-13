@@ -1,12 +1,14 @@
 package mysh.cluster;
 
+import mysh.cluster.update.IUpdateDispatcher;
+
 import java.util.Map;
 
 /**
  * @author Mysh
  * @since 14-1-28 下午6:07
  */
-public interface IMaster extends IClusterService {
+public interface IMaster extends IClusterService, IUpdateDispatcher {
 
 	/**
 	 * tell the master one sub-task complete, no matter the execution succeed or failed.

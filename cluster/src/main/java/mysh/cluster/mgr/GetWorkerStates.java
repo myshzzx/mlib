@@ -7,12 +7,13 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Mysh
  * @since 2014/10/12 14:23
  */
-public class GetWorkerStates<WS extends WorkerState>
+public final class GetWorkerStates<WS extends WorkerState>
 				extends IClusterMgr<List<String>, Object, WS, Map<String, WS>> {
 
 	private static final long serialVersionUID = -5307305883762804671L;
@@ -26,7 +27,7 @@ public class GetWorkerStates<WS extends WorkerState>
 	}
 
 	@Override
-	public SubTasksPack<Object> fork(List<String> task, int workerNodeCount) {
+	public SubTasksPack<Object> fork(List<String> task, Set<String> workerNodes) {
 
 		try {
 			workerStates = master.getWorkerStates();

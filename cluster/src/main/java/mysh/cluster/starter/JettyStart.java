@@ -1,4 +1,4 @@
-package mysh.cluster.webstart;
+package mysh.cluster.starter;
 
 /**
  * @author Mysh
