@@ -471,33 +471,39 @@ public class ClusterNode {
 	}
 
 	/**
-	 * shutdown and restart current node.
+	 * shutdown current node (and restart current VM).
+	 *
+	 * @param restart restart or not.
 	 */
-	void restart() {
+	void shutdownVM(boolean restart) {
 		new Thread() {
 			@Override
 			public void run() {
 				try {
-					// wait for replying master
+					// wait for replying master (if this is worker node)
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 				}
-				log.info("begin to restart cluster.");
+				log.info("begin to shutdown cluster node.");
 				shutdownNode();
-				String[] cmd = filesMgr.getRestartCmd();
-				log.debug("restart with cmd: " + Arrays.toString(cmd));
-				try {
-					ProcessBuilder pb = new ProcessBuilder(cmd);
-					pb.inheritIO();
-					pb.start();
-				} catch (IOException e) {
-					log.error("restart cluster node error, try restart process", e);
+
+				if (restart) {
+					String[] cmd = filesMgr.getRestartCmd();
+					log.debug("restartVM with cmd: " + Arrays.toString(cmd));
 					try {
-						OSUtil.restart();
-					} catch (IOException ex) {
-						log.error("restart process error, the cluster node need manual start.", ex);
+						ProcessBuilder pb = new ProcessBuilder(cmd);
+						pb.inheritIO();
+						pb.start();
+					} catch (IOException e) {
+						log.error("restartVM cluster node error, try restartVM process", e);
+						try {
+							OSUtil.restart();
+						} catch (IOException ex) {
+							log.error("restartVM process error, the cluster node need manual start.", ex);
+						}
 					}
 				}
+
 				System.exit(0);
 			}
 		}.start();

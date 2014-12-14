@@ -31,7 +31,7 @@ public class ClusterMgrTest1 {
 	@Test
 	public void restart1() throws Exception {
 		ClusterClient c = new ClusterClient(cmdPort);
-		c.mgrRestartCluster();
+		c.mgrRestartMaster();
 	}
 
 	@Test

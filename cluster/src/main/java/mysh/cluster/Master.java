@@ -81,10 +81,6 @@ class Master implements IMaster {
 		}
 	}
 
-	void restartNode() {
-		clusterNode.restart();
-	}
-
 	private class WorkersHeartBeat extends Thread {
 		public WorkersHeartBeat(boolean isDaemon, int priority) {
 			super("cMaster:heart-beat");
@@ -564,4 +560,14 @@ class Master implements IMaster {
 	public FilesInfo getFilesInfo() {
 		return this.filesMgr.getFilesInfo();
 	}
+
+	/**
+	 * shutdown current node (and restart VM).
+	 *
+	 * @param restart restart or not.
+	 */
+	void shutdownVM(boolean restart) {
+		clusterNode.shutdownVM(restart);
+	}
+
 }

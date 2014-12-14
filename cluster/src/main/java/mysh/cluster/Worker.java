@@ -86,11 +86,8 @@ class Worker implements IWorker {
 		}
 	};
 
-	void restartNode() {
-		clusterNode.restart();
-	}
-
 	private class SubTaskExecutor extends Thread {
+
 		private volatile boolean keepRunning = true;
 		private volatile SubTask currSubTask;
 
@@ -119,6 +116,7 @@ class Worker implements IWorker {
 				notifySTExecScheduler();
 			}
 		}
+
 	}
 
 	/**
@@ -312,13 +310,13 @@ class Worker implements IWorker {
 	private class SubTask<T, ST, SR, R> {
 
 		private final String masterId;
+
 		private final int taskId;
 		private final int subTaskId;
 		private final IClusterUser<T, ST, SR, R> cUser;
 		private final ST subTask;
 		private volatile long execBefore;
 		private final int timeout;
-
 		private Object result;
 
 		public SubTask(String masterId, int taskId, int subTaskId,
@@ -375,6 +373,7 @@ class Worker implements IWorker {
 							", execBefore=" + execBefore +
 							'}';
 		}
+
 	}
 
 	/**
@@ -406,6 +405,7 @@ class Worker implements IWorker {
 	 * files check thread.
 	 */
 	private class FileUpdater extends Thread {
+
 		private IMaster master;
 		private FilesInfo currFilesInfo;
 		private FilesInfo masterFiles;
@@ -443,9 +443,17 @@ class Worker implements IWorker {
 				updateFilesRunning.set(false);
 			}
 		}
+
 	}
 
 	FilesMgr getFilesMgr() {
 		return filesMgr;
+	}
+
+	/**
+	 * shutdown current node (and restart VM).
+	 */
+	void shutdownVM(boolean restart) {
+		clusterNode.shutdownVM(restart);
 	}
 }

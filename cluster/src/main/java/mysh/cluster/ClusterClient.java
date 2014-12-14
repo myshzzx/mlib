@@ -17,6 +17,7 @@ import java.net.InterfaceAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -178,13 +179,24 @@ public final class ClusterClient implements Closeable {
 		runTask(new MgrFileUpdate(updateType, fileType, fileName, ctx), null, 0, 0);
 	}
 
-	private final MgrRestartCluster restartUser = new MgrRestartCluster();
+	private final MgrRestartMaster restartUser = new MgrRestartMaster();
 
 	/**
-	 * restart the cluster.
+	 * restart the master (shutdown master nodes and restart its VM, which apply new core libs).<br/>
+	 * worker nodes will check their core libs with master, if master has applied new core libs,
+	 * worker nodes will update them and restart their VMs to apply new core libs.
 	 */
-	public void mgrRestartCluster() throws Exception {
-		runTask(restartUser, null, 20_000, 0);
+	public void mgrRestartMaster() throws Exception {
+		runTask(restartUser, null, 30_000, 0);
+	}
+
+	/**
+	 * shutdown specified nodes.
+	 *
+	 * @param nodeIds nodes to be shutdown. if <code>null</code>, shutdown entire cluster.
+	 */
+	public void mgrShutdownNodes(List<String> nodeIds) throws Exception {
+		runTask(new MgrShutdownNodes(nodeIds), null, 60_000, 0);
 	}
 
 	/**
