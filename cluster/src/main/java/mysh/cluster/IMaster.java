@@ -2,8 +2,6 @@ package mysh.cluster;
 
 import mysh.cluster.update.IUpdateDispatcher;
 
-import java.util.Map;
-
 /**
  * @author Mysh
  * @since 14-1-28 下午6:07
@@ -19,15 +17,5 @@ public interface IMaster extends IClusterService, IUpdateDispatcher {
 	 */
 	void subTaskComplete(int taskId, int subTaskId, Object result,
 	                     String workerId, WorkerState workerState);
-
-	/**
-	 * cancel task by taskId.
-	 */
-	void cancelTask(int taskId, Exception exp);
-
-	/**
-	 * get current workers state.
-	 */
-	<WS extends WorkerState> Map<String, WS> getWorkerStates();
 
 }

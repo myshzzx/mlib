@@ -47,16 +47,18 @@ public class FilesMgr implements Closeable {
 		FileType(String dir) {
 			this.dir = dir;
 		}
+
 	}
 
 	public static enum UpdateType {
-		UPDATE, DELETE
+		UPDATE, DELETE;
 	}
 
 	public final Serializer.ClassLoaderFetcher clFetcher = () -> FilesMgr.this.cl;
-	private volatile URLClassLoader cl;
 
+	private volatile URLClassLoader cl;
 	private volatile FilesInfo old;
+
 	private final FilesInfo curr = new FilesInfo();
 
 	public FilesMgr() throws IOException {
@@ -204,4 +206,15 @@ public class FilesMgr implements Closeable {
 		cl.close();
 	}
 
+	/**
+	 * get restart cmd.
+	 */
+	public String[] getRestartCmd() {
+		final String pid = String.valueOf(OSUtil.getPid());
+
+		if (OSUtil.getOS() == OSUtil.OS.Windows)
+			return new String[]{"startCluster.bat", pid};
+		else
+			return new String[]{"/bin/sh", "startCluster.sh", pid};
+	}
 }

@@ -10,8 +10,6 @@ import java.io.IOException;
  */
 public interface IUpdateDispatcher {
 
-	FilesMgr getFilesMgr();
-
 	/**
 	 * get file content. return <code>null</code> if file not exists.
 	 */

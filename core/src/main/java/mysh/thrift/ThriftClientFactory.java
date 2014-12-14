@@ -89,7 +89,7 @@ public class ThriftClientFactory<TI> {
 
 				if (e.getCause() != null) {
 					if (e.getCause().getCause() instanceof SocketException
-									|| e.getCause().getMessage().equals("Cannot write to null outputStream")
+									|| "Cannot write to null outputStream".equals(e.getCause().getMessage())
 									) { // connection problem that can be restore, then re-invoke
 						log.debug("thrift client invoke failed, but has reconnected and prepared for re-invoking", e);
 						return method.invoke(client, args);

@@ -1,9 +1,9 @@
 package mysh.cluster;
 
-import mysh.cluster.mgr.CancelTask;
-import mysh.cluster.mgr.GetWorkerStates;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
+import mysh.cluster.update.FilesMgr.FileType;
+import mysh.cluster.update.FilesMgr.UpdateType;
 import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,22 +153,38 @@ public final class ClusterClient implements Closeable {
 
 	/**
 	 * get all workers' current states.
-	 * <p>
-	 * see {@link #runTask}
+	 *
+	 * @param wsClass worker state class. if <code>null</code>, use default class.
 	 */
-	public <WS extends WorkerState> Map<String, WS> getWorkerStates(Class<WS> wsClass, int timeout, int subTaskTimeout)
-					throws Exception {
-		return runTask(new GetWorkerStates<>(wsClass), null, timeout, subTaskTimeout);
+	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Exception {
+		return runTask(new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
-	private CancelTask cancelTaskUser;
+	private final MgrCancelTask cancelTaskUser = new MgrCancelTask();
 
 	/**
 	 * request cancel task by taskId.
 	 */
-	public void cancelTask(int taskId) throws Exception {
-		if (cancelTaskUser == null) cancelTaskUser = new CancelTask();
+	public void mgrCancelTask(int taskId) throws Exception {
 		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
+	}
+
+	/**
+	 * update cluster files.
+	 *
+	 * @param ctx file content.
+	 */
+	public void mgrUpdateFile(UpdateType updateType, FileType fileType, String fileName, byte[] ctx) throws Exception {
+		runTask(new MgrFileUpdate(updateType, fileType, fileName, ctx), null, 0, 0);
+	}
+
+	private final MgrRestartCluster restartUser = new MgrRestartCluster();
+
+	/**
+	 * restart the cluster.
+	 */
+	public void mgrRestartCluster() throws Exception {
+		runTask(restartUser, null, 20_000, 0);
 	}
 
 	/**

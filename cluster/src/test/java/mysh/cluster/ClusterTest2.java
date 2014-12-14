@@ -5,8 +5,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
 import java.util.Random;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 
@@ -54,7 +54,7 @@ public class ClusterTest2 {
 						private static final long serialVersionUID = -6500480014655019875L;
 
 						@Override
-						public SubTasksPack<float[][]> fork(float[][] task, Set<String> workerNodes) {
+						public SubTasksPack<float[][]> fork(float[][] task, String masterNode, List<String> workerNodes) {
 							log.info("begin to fork sumUser task.==");
 
 							float[][][] r = split(task, workerNodes.size());
@@ -77,7 +77,7 @@ public class ClusterTest2 {
 						}
 
 						@Override
-						public Integer join(Integer[] subResult, String[] nodes) {
+						public Integer join(String masterNode, String[] nodes, Integer[] subResult) {
 							int sum = 0;
 							for (int sr : subResult) sum += sr;
 							return sum;

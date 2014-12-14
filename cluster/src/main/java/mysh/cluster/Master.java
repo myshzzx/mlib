@@ -31,7 +31,7 @@ class Master implements IMaster {
 	private ClusterExp.TaskCanceled taskCanceledExp;
 
 	private final String id;
-	private volatile Listener listener;
+	private final ClusterNode clusterNode;
 	private final int heartBeatTime;
 	private volatile boolean isMaster = false;
 	private final FilesMgr filesMgr;
@@ -53,12 +53,12 @@ class Master implements IMaster {
 
 	private final List<Thread> mThreads = new ArrayList<>();
 
-	Master(String id, Listener listener, int heartBeatTime, FilesMgr filesMgr) {
+	Master(String id, ClusterNode clusterNode, int heartBeatTime, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
-		Objects.requireNonNull(listener, "need master listener.");
+		Objects.requireNonNull(clusterNode, "need cluster node.");
 
 		this.id = id;
-		this.listener = listener;
+		this.clusterNode = clusterNode;
 		this.heartBeatTime = heartBeatTime;
 		this.filesMgr = filesMgr;
 
@@ -79,6 +79,10 @@ class Master implements IMaster {
 			t.start();
 			mThreads.add(t);
 		}
+	}
+
+	void restartNode() {
+		clusterNode.restart();
 	}
 
 	private class WorkersHeartBeat extends Thread {
@@ -103,9 +107,9 @@ class Master implements IMaster {
 						lastHBTime = tTime;
 
 						// broadcast I_AM_THE_MASTER
-						if (listener != null && (bcFact = (bcFact + 1) % 10) == 0 && runTaskFlagForBC) {
+						if ((bcFact = (bcFact + 1) % 10) == 0 && runTaskFlagForBC) {
 							runTaskFlagForBC = false;
-							listener.broadcastIAmTheMaster();
+							clusterNode.broadcastIAmTheMaster();
 						}
 
 						final String mts = filesMgr.getFilesInfo().thumbStamp;
@@ -252,7 +256,7 @@ class Master implements IMaster {
 		log.debug("master closed.");
 	}
 
-	public void setMaster(boolean isMaster) {
+	void setMaster(boolean isMaster) {
 		this.isMaster = isMaster;
 		log.info("set to be master: " + isMaster);
 	}
@@ -263,7 +267,7 @@ class Master implements IMaster {
 	void newNode(Cmd c) {
 		try {
 			if (!workersCache.containsKey(c.id)) {
-				WorkerNode node = new WorkerNode(c.id, listener.getWorkerService(c.ipAddr, c.workerPort));
+				WorkerNode node = new WorkerNode(c.id, this.clusterNode.getWorkerService(c.ipAddr, c.workerPort));
 				this.workersCache.put(node.id, node);
 				this.workersDispatchQueue.offer(node);
 			}
@@ -275,8 +279,7 @@ class Master implements IMaster {
 	private void workerUnavailable(WorkerNode workerNode, Exception e) {
 		log.info("worker is unavailable: " + workerNode.id, e);
 		removeWorker(workerNode.id);
-		if (this.listener != null)
-			this.listener.workerUnavailable(workerNode.id);
+		this.clusterNode.workerUnavailable(workerNode.id);
 	}
 
 	/**
@@ -350,7 +353,8 @@ class Master implements IMaster {
 			((IClusterMgr) cUser).master = this;
 		}
 
-		IClusterUser.SubTasksPack<ST> sTasks = cUser.fork(task, workersCache.keySet());
+		IClusterUser.SubTasksPack<ST> sTasks =
+						cUser.fork(task, this.id, new ArrayList<>(workersCache.keySet()));
 		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
 
 		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
@@ -378,7 +382,7 @@ class Master implements IMaster {
 							(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
 		}
 
-		final R taskResult = cUser.join(ti.results, ti.assignedNodeIds);
+		final R taskResult = cUser.join(this.id, ti.assignedNodeIds, ti.results);
 		if (cUser.userThreads != null) // terminate user threads
 			for (Thread t : cUser.userThreads)
 				t.interrupt();
@@ -387,9 +391,13 @@ class Master implements IMaster {
 		return taskResult;
 	}
 
-	@Override
+	/**
+	 * cancel task by taskId.
+	 *
+	 * @param exp cancel reason, can be null.
+	 */
 	@SuppressWarnings("unchecked")
-	public void cancelTask(int taskId, Exception exp) {
+	void cancelTask(int taskId, Exception exp) {
 		log.info("preparing to cancel task, taskId=" + taskId);
 		TaskInfo ti = this.taskInfoTable.remove(taskId);
 		if (ti != null) {
@@ -408,17 +416,11 @@ class Master implements IMaster {
 		}
 	}
 
-	public static interface Listener {
-		IWorker getWorkerService(String host, int port) throws Exception;
-
-		void broadcastIAmTheMaster();
-
-		void workerUnavailable(String workerId);
-	}
-
-	@Override
+	/**
+	 * get current workers state.
+	 */
 	@SuppressWarnings("unchecked")
-	public <WS extends WorkerState> Map<String, WS> getWorkerStates() {
+	<WS extends WorkerState> Map<String, WS> getWorkerStates() {
 		Map<String, WorkerState> ws = new HashMap<>();
 		workersCache.forEach((id, node) -> ws.put(id, node.workerState));
 		return (Map<String, WS>) ws;
@@ -549,7 +551,7 @@ class Master implements IMaster {
 		}
 	}
 
-	public FilesMgr getFilesMgr() {
+	FilesMgr getFilesMgr() {
 		return filesMgr;
 	}
 

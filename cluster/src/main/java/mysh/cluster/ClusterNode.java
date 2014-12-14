@@ -4,6 +4,7 @@ import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.cluster.update.FilesMgr;
 import mysh.util.ExpUtil;
+import mysh.util.OSUtil;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,9 +13,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.*;
 import java.rmi.UnmarshalException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * self-organized and decentralized Master-Worker cluster network keeper.<br/>
@@ -30,7 +33,8 @@ import java.util.concurrent.*;
  * @author Mysh
  * @since 14-1-22 上午10:19
  */
-public class ClusterNode implements Worker.Listener, Master.Listener {
+public class ClusterNode {
+
 	/**
 	 * ClusterNode state.
 	 */
@@ -122,6 +126,13 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 
 		conf.save();
 		changeState(ClusterState.INIT);
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				shutdownNode();
+			}
+		});
 	}
 
 	private final Thread tGetCmd = new Thread("clusterNode:get-cmd") {
@@ -208,26 +219,15 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		}
 	};
 
-	@Override
-	public IWorker getWorkerService(String host, int port) throws Exception {
-		IFaceHolder<IWorker> ch = RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
-						filesMgr.clFetcher);
-		this.thriftConns.add(ch);
-		return ch.getClient();
-	}
-
-	@Override
-	public IMaster getMasterService(String host, int port) throws Exception {
-		IFaceHolder<IMaster> ch = RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
-						filesMgr.clFetcher);
-		this.thriftConns.add(ch);
-		return ch.getClient();
-	}
+	private final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
 
 	/**
 	 * shutdown cluster node and release resource.
 	 */
 	public void shutdownNode() {
+		if (!shutdownFlag.compareAndSet(false, true))
+			return;
+
 		log.info("closing cluster node.");
 
 		log.debug("closing cmdSock.");
@@ -363,7 +363,6 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		log.info("state changed to " + clusterState);
 	}
 
-
 	/**
 	 * reply client that "I am the master".
 	 */
@@ -422,24 +421,85 @@ public class ClusterNode implements Worker.Listener, Master.Listener {
 		bcAdds = tBcAdds;
 	}
 
-	@Override
-	public void masterTimeout() {
-		changeState(ClusterState.INIT);
+	/**
+	 * get worker service. (by master)
+	 */
+	IWorker getWorkerService(String host, int port) throws Exception {
+		IFaceHolder<IWorker> ch = RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
+						filesMgr.clFetcher);
+		this.thriftConns.add(ch);
+		return ch.getClient();
 	}
 
-	@Override
-	public void broadcastIAmTheMaster() {
+	/**
+	 * tell current node to check whether it's master, if it is, broadcast to other nodes. (by master)
+	 */
+	void broadcastIAmTheMaster() {
 		if (this.clusterState == ClusterState.MASTER)
 			this.broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
 	}
 
-	@Override
-	public void workerUnavailable(String workerId) {
+	/**
+	 * tell current node that one worker node is unavailable. (by master)
+	 */
+	void workerUnavailable(String workerId) {
 		if (worker != null) worker.removeMaster(workerId);
 	}
 
-	@Override
-	public void masterUnavailable(String masterId) {
+	/**
+	 * get master service. (by worker)
+	 */
+	IMaster getMasterService(String host, int port) throws Exception {
+		IFaceHolder<IMaster> ch = RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
+						filesMgr.clFetcher);
+		this.thriftConns.add(ch);
+		return ch.getClient();
+	}
+
+	/**
+	 * tell node that master node heartBeat time out. (by worker)
+	 */
+	void masterTimeout() {
+		changeState(ClusterState.INIT);
+	}
+
+	/**
+	 * tell node that master node is unavailable. (by worker)
+	 */
+	void masterUnavailable(String masterId) {
 		if (master != null) master.removeWorker(masterId);
+	}
+
+	/**
+	 * shutdown and restart current node.
+	 */
+	void restart() {
+		new Thread() {
+			@Override
+			public void run() {
+				try {
+					// wait for replying master
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+				}
+				log.info("begin to restart cluster.");
+				shutdownNode();
+				String[] cmd = filesMgr.getRestartCmd();
+				log.debug("restart with cmd: " + Arrays.toString(cmd));
+				try {
+					ProcessBuilder pb = new ProcessBuilder(cmd);
+					pb.inheritIO();
+					pb.start();
+				} catch (IOException e) {
+					log.error("restart cluster node error, try restart process", e);
+					try {
+						OSUtil.restart();
+					} catch (IOException ex) {
+						log.error("restart process error, the cluster node need manual start.", ex);
+					}
+				}
+				System.exit(0);
+			}
+		}.start();
 	}
 }

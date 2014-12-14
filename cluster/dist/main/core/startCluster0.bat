@@ -13,12 +13,14 @@ mkdir main\user
 mkdir update
 mkdir update\core
 
+@echo off
+set CLUSTER_CP=.\main\core\
 for %%F in (.\main\core\*.jar) do call :cp %%F
-set CLASS_PATH=.\main\core\;%CLASS_PATH%
-java -cp %CLASS_PATH% -Dfile.encoding=UTF-8 mysh.cluster.starter.ClusterStart
+@echo on
+java -cp %CLUSTER_CP% -Dfile.encoding=UTF-8 mysh.cluster.starter.ClusterStart
 
 goto :EOF
 
 :cp
-set CLASS_PATH=%1;%CLASS_PATH%
+set CLUSTER_CP=%CLUSTER_CP%;%1
 goto :EOF

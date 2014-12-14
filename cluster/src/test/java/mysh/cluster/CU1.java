@@ -1,6 +1,6 @@
 package mysh.cluster;
 
-import java.util.Set;
+import java.util.List;
 
 /**
  * @author Mysh
@@ -8,7 +8,7 @@ import java.util.Set;
  */
 public class CU1 extends IClusterMgr<String, String, String, String> {
 	@Override
-	public SubTasksPack<String> fork(String task, Set<String> workerNodes) {
+	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
 		final String[] ss = new String[workerNodes.size()];
 		int n = 0;
 		for (String workerNode : workerNodes) {
@@ -31,7 +31,7 @@ public class CU1 extends IClusterMgr<String, String, String, String> {
 	}
 
 	@Override
-	public String join(String[] subResults, String[] assignedNodeIds) {
+	public String join(String masterNode, String[] assignedNodeIds, String[] subResults) {
 		return null;
 	}
 }

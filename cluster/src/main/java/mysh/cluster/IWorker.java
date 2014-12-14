@@ -1,6 +1,5 @@
 package mysh.cluster;
 
-import mysh.cluster.update.FilesMgr;
 import mysh.cluster.update.IUpdateListener;
 
 /**

@@ -23,12 +23,12 @@ public class ControllerTest {
 					case "e":
 						return;
 					case "ws":
-						for (Map.Entry<String, WorkerState> e : c.getWorkerStates(null, 5000, 0).entrySet()) {
+						for (Map.Entry<String, WorkerState> e : c.mgrGetWorkerStates(null).entrySet()) {
 							System.out.println(e.getKey() + "-> " + e.getValue());
 						}
 						break;
 					case "c":
-						c.cancelTask(Integer.parseInt(s[1]));
+						c.mgrCancelTask(Integer.parseInt(s[1]));
 						System.out.println("done");
 						break;
 				}

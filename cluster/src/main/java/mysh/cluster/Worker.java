@@ -29,7 +29,7 @@ class Worker implements IWorker {
 	private static final int ST_EXEC_LIMIT = Runtime.getRuntime().availableProcessors() * 5;
 
 	private volatile String id;
-	private volatile Listener listener;
+	private final ClusterNode clusterNode;
 	private final FilesMgr filesMgr;
 
 	private final Map<String, IMaster> mastersCache = new ConcurrentHashMap<>();
@@ -40,12 +40,12 @@ class Worker implements IWorker {
 	private final WorkerState state;
 	private final int heartBeatTime;
 
-	Worker(String id, Listener listener, WorkerState initState, int heartBeatTime, FilesMgr filesMgr) {
+	Worker(String id, ClusterNode clusterNode, WorkerState initState, int heartBeatTime, FilesMgr filesMgr) {
 		Objects.requireNonNull(id, "need master id.");
-		Objects.requireNonNull(listener, "need worker listener.");
+		Objects.requireNonNull(clusterNode, "need cluster node.");
 
 		this.id = id;
-		this.listener = listener;
+		this.clusterNode = clusterNode;
 		this.state = initState == null ? new WorkerState() : initState;
 		this.state.update();
 		this.heartBeatTime = heartBeatTime;
@@ -74,8 +74,8 @@ class Worker implements IWorker {
 			while (!this.isInterrupted()) {
 				try {
 					Thread.sleep(timeout);
-					if (listener != null && lastMasterAction < System.currentTimeMillis() - timeout)
-						listener.masterTimeout();
+					if (lastMasterAction < System.currentTimeMillis() - timeout)
+						clusterNode.masterTimeout();
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
@@ -85,6 +85,10 @@ class Worker implements IWorker {
 			}
 		}
 	};
+
+	void restartNode() {
+		clusterNode.restart();
+	}
 
 	private class SubTaskExecutor extends Thread {
 		private volatile boolean keepRunning = true;
@@ -237,7 +241,7 @@ class Worker implements IWorker {
 
 	private void masterUnavailable(String masterId) {
 		removeMaster(masterId);
-		this.listener.masterUnavailable(masterId);
+		this.clusterNode.masterUnavailable(masterId);
 	}
 
 	/**
@@ -254,7 +258,7 @@ class Worker implements IWorker {
 		try {
 			// this pre-check(but not putIfAbsent) can be used in multi-thread app env
 			if (!mastersCache.containsKey(c.id))
-				mastersCache.put(c.id, listener.getMasterService(c.ipAddr, c.masterPort));
+				mastersCache.put(c.id, clusterNode.getMasterService(c.ipAddr, c.masterPort));
 		} catch (Exception e) {
 			log.error("failed to connect to master. " + c, e);
 		}
@@ -301,14 +305,6 @@ class Worker implements IWorker {
 	private WorkerState updateState() {
 		this.state.setTaskQueueSize(this.subTasks.size());
 		return this.state;
-	}
-
-	public static interface Listener {
-		IMaster getMasterService(String host, int port) throws Exception;
-
-		void masterTimeout();
-
-		void masterUnavailable(String masterId);
 	}
 
 	private static final ClusterExp.TaskTimeout taskTimeoutExp = new ClusterExp.TaskTimeout();
@@ -449,8 +445,7 @@ class Worker implements IWorker {
 		}
 	}
 
-	@Override
-	public FilesMgr getFilesMgr() {
+	FilesMgr getFilesMgr() {
 		return filesMgr;
 	}
 }

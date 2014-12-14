@@ -6,8 +6,6 @@ package mysh.cluster.update;
  */
 public interface IUpdateListener {
 
-	FilesMgr getFilesMgr();
-
 	/**
 	 * notify possible files update
 	 *

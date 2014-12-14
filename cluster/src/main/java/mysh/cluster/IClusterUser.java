@@ -43,11 +43,12 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	/**
 	 * generate sub-tasks. can't be NULL.
 	 *
-	 * @param task            task description.
+	 * @param task        task description.
+	 * @param masterNode  master node id.
 	 * @param workerNodes available worker nodes (>0).
 	 * @return sub-task-descriptions.
 	 */
-	public abstract SubTasksPack<ST> fork(T task, Set<String> workerNodes);
+	public abstract SubTasksPack<ST> fork(T task, String masterNode, List<String> workerNodes);
 
 	/**
 	 * get SubResult type. will be invoked only once when creating result array.
@@ -56,7 +57,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 
 	/**
 	 * process sub-task. <br/>
-	 * should react for thread interruption, so the subTask can be terminated graciously.<br/>
+	 * WARNING: should react for thread interruption, so the subTask can be terminated graciously.<br/>
 	 * it's recommended to return a non-null object even if nothing to return rather than return null.
 	 * for example, a blank string.
 	 *
@@ -72,12 +73,13 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	/**
 	 * join sub-tasks results.
 	 *
-	 * @param subResults      sub-tasks results.
+	 * @param masterNode      master node id.
 	 * @param assignedNodeIds nodes who are assigned the subTasks, and then submit results.
 	 *                        nodeId may be null, which means the subTask is ignored.
+	 * @param subResults      sub-tasks results.
 	 * @return task result.
 	 */
-	public abstract R join(SR[] subResults, String[] assignedNodeIds);
+	public abstract R join(String masterNode, String[] assignedNodeIds, SR[] subResults);
 
 	protected SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
 		return new SubTasksPack<ST>() {
