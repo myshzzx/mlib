@@ -59,4 +59,13 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	public String join(String masterNode, String[] assignedNodeIds, String[] subResults) {
 		return null;
 	}
+
+	@Override
+	public String toString() {
+		return "MgrFileUpdate{" +
+						"updateType=" + updateType +
+						", fileType=" + fileType +
+						", fileName='" + fileName + '\'' +
+						'}';
+	}
 }

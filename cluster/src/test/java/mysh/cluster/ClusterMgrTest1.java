@@ -5,6 +5,7 @@ import org.junit.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -35,18 +36,15 @@ public class ClusterMgrTest1 {
 	}
 
 	@Test
-	public void restart2() throws Exception {
-		final String[] cmd = {"l:/t.bat"};
-		Runtime.getRuntime().exec(cmd);
-		Thread.sleep(10000);
+	public void shutdown1() throws Exception {
+		ClusterClient c = new ClusterClient(cmdPort);
+		c.mgrShutdownNodes(null);
 	}
 
 	@Test
-	public void restart3() throws Exception {
-		final String[] cmd = {"l:/t.bat"};
-		ProcessBuilder pb = new ProcessBuilder(cmd);
-		pb.inheritIO();
-		pb.start();
+	public void shutdown2() throws Exception {
+		ClusterClient c = new ClusterClient(cmdPort);
+		c.mgrShutdownNodes(Arrays.asList("cn_/192.168.80.130_1418572712444", "cn_/169.254.154.173_1418572714483"));
 	}
 
 	@Test

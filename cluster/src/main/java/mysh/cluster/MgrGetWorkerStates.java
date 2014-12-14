@@ -50,4 +50,11 @@ final class MgrGetWorkerStates<WS extends WorkerState>
 	public Map<String, WS> join(String masterNode, String[] assignedNodeIds, WS[] subResults) {
 		return workerStates;
 	}
+
+	@Override
+	public String toString() {
+		return "MgrGetWorkerStates{" +
+						"wsClass=" + wsClass +
+						'}';
+	}
 }

@@ -193,10 +193,10 @@ public final class ClusterClient implements Closeable {
 	/**
 	 * shutdown specified nodes.
 	 *
-	 * @param nodeIds nodes to be shutdown. if <code>null</code>, shutdown entire cluster.
+	 * @param nodes2Shutdown nodes to be shutdown. if <code>null</code>, shutdown entire cluster.
 	 */
-	public void mgrShutdownNodes(List<String> nodeIds) throws Exception {
-		runTask(new MgrShutdownNodes(nodeIds), null, 60_000, 0);
+	public void mgrShutdownNodes(List<String> nodes2Shutdown) throws Exception {
+		runTask(new MgrShutdownNodes(nodes2Shutdown), null, 60_000, 0);
 	}
 
 	/**
