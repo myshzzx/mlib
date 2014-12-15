@@ -75,7 +75,7 @@ class Worker implements IWorker {
 				try {
 					Thread.sleep(timeout);
 					if (lastMasterAction < System.currentTimeMillis() - timeout)
-						clusterNode.masterTimeout();
+						clusterNode.masterLost(null);
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
@@ -211,7 +211,7 @@ class Worker implements IWorker {
 					return;
 				} catch (Exception e) {
 					if (ClusterNode.isNodeUnavailable(e)) {
-						if (task.masterId != null) masterUnavailable(task.masterId);
+						if (task.masterId != null) masterServiceUnavailable(task.masterId);
 						log.error("submit task result error: master is unavailable: " + task, e);
 					} else
 						log.error("submit subTask result error. " + task, e);
@@ -237,15 +237,16 @@ class Worker implements IWorker {
 		log.debug("worker closed.");
 	}
 
-	private void masterUnavailable(String masterId) {
-		removeMaster(masterId);
-		this.clusterNode.masterUnavailable(masterId);
+	private void masterServiceUnavailable(String masterId) {
+		removeMasterFromCache(masterId);
+		clusterNode.masterLost(masterId);
 	}
 
 	/**
+	 * remove master from cache table.
 	 * provide node-control for {@link ClusterNode}.
 	 */
-	void removeMaster(String masterId) {
+	void removeMasterFromCache(String masterId) {
 		mastersCache.remove(masterId);
 	}
 

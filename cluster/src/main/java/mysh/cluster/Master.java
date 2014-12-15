@@ -279,6 +279,7 @@ class Master implements IMaster {
 	}
 
 	/**
+	 * remove worker from cache table, and rearrange unfinished tasks.
 	 * provide node-control for {@link ClusterNode}.
 	 */
 	void removeWorker(String workerId) {

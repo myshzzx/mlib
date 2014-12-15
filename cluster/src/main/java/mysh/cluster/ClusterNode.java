@@ -443,7 +443,7 @@ public class ClusterNode {
 	 * tell current node that one worker node is unavailable. (by master)
 	 */
 	void workerUnavailable(String workerId) {
-		if (worker != null) worker.removeMaster(workerId);
+		if (worker != null) worker.removeMasterFromCache(workerId);
 	}
 
 	/**
@@ -457,17 +457,15 @@ public class ClusterNode {
 	}
 
 	/**
-	 * tell node that master node heartBeat time out. (by worker)
+	 * tell node that master lost(node heartBeat time out or service unavailable). (by worker)
+	 * <br/>
+	 * current node state will be reset,
+	 * and a new {@link mysh.cluster.Cmd.Action#WHO_IS_THE_MASTER_BY_WORKER} check will be started.
 	 */
-	void masterTimeout() {
+	void masterLost(String masterId) {
+		if (master != null && masterId != null)
+			master.removeWorker(masterId);
 		changeState(ClusterState.INIT);
-	}
-
-	/**
-	 * tell node that master node is unavailable. (by worker)
-	 */
-	void masterUnavailable(String masterId) {
-		if (master != null) master.removeWorker(masterId);
 	}
 
 	/**
