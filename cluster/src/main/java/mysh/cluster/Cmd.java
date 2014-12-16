@@ -9,7 +9,6 @@ import java.io.Serializable;
 class Cmd implements Serializable {
 	private static final long serialVersionUID = 1560510216235141874L;
 
-
 	static enum Action {
 		WHO_IS_THE_MASTER_BY_WORKER, WHO_IS_THE_MASTER_BY_CLIENT,
 		I_AM_THE_MASTER, I_AM_A_WORKER,

@@ -8,18 +8,15 @@ import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.DatagramSocket;
 import java.net.InterfaceAddress;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.file.Files;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -153,53 +150,6 @@ public final class ClusterClient implements Closeable {
 	}
 
 	/**
-	 * get all workers' current states.
-	 *
-	 * @param wsClass worker state class. if <code>null</code>, use default class.
-	 */
-	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Exception {
-		return runTask(new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
-	}
-
-	private final MgrCancelTask cancelTaskUser = new MgrCancelTask();
-
-	/**
-	 * request cancel task by taskId.
-	 */
-	public void mgrCancelTask(int taskId) throws Exception {
-		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
-	}
-
-	/**
-	 * update cluster files.
-	 *
-	 * @param ctx file content.
-	 */
-	public void mgrUpdateFile(UpdateType updateType, FileType fileType, String fileName, byte[] ctx) throws Exception {
-		runTask(new MgrFileUpdate(updateType, fileType, fileName, ctx), null, 0, 0);
-	}
-
-	private final MgrRestartMaster restartUser = new MgrRestartMaster();
-
-	/**
-	 * restart the master (shutdown master nodes and restart its VM, which apply new core libs).<br/>
-	 * worker nodes will check their core libs with master, if master has applied new core libs,
-	 * worker nodes will update them and restart their VMs to apply new core libs.
-	 */
-	public void mgrRestartMaster() throws Exception {
-		runTask(restartUser, null, 30_000, 0);
-	}
-
-	/**
-	 * shutdown specified nodes.
-	 *
-	 * @param nodes2Shutdown nodes to be shutdown. if <code>null</code>, shutdown entire cluster.
-	 */
-	public void mgrShutdownNodes(List<String> nodes2Shutdown) throws Exception {
-		runTask(new MgrShutdownNodes(nodes2Shutdown), null, 60_000, 0);
-	}
-
-	/**
 	 * preparing cluster service flag.
 	 * use <b>AtomicBoolean</b> but not <b>volatile boolean</b> here to make sure only one thread started.
 	 */
@@ -289,4 +239,113 @@ public final class ClusterClient implements Closeable {
 										InterruptedException.class) != null
 						;
 	}
+
+	/**
+	 * get all workers' current states.
+	 *
+	 * @param wsClass worker state class. if <code>null</code>, use default class.
+	 */
+	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Exception {
+		return runTask(new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
+	}
+
+	private final MgrCancelTask cancelTaskUser = new MgrCancelTask();
+
+	/**
+	 * request cancel task by taskId.
+	 */
+	public void mgrCancelTask(int taskId) throws Exception {
+		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
+	}
+
+	public static class UpdateFile {
+		private static final int DEFAULT_TIMEOUT = 30_000;
+
+		private UpdateType updateType;
+		private String fileName;
+		private File file;
+		private int timeout = DEFAULT_TIMEOUT;
+
+		public UpdateFile(UpdateType updateType, String fileName, File file) {
+			this.updateType = updateType;
+			this.fileName = fileName;
+			this.file = updateType == UpdateType.DELETE ? null : file;
+		}
+
+		/**
+		 * set file update timeout in millisecond. default value is {@link #DEFAULT_TIMEOUT}.
+		 */
+		public void setTimeout(int timeout) {
+			this.timeout = timeout;
+		}
+
+		@Override
+		public String toString() {
+			return "UpdateFile{" +
+							"updateType=" + updateType +
+							", fileName='" + fileName + '\'' +
+							", file=" + file +
+							", timeout=" + timeout +
+							'}';
+		}
+	}
+
+	/**
+	 * update cluster files.
+	 * <br/>
+	 * WARNING: <br/>
+	 * there's no transaction and undo here.<br/>
+	 * when update CORE files: the entire cluster will restart if all files are updated successfully;
+	 * if one file fails to update, the process will continue on next file, but there will be no
+	 * restart then.
+	 *
+	 * @return files that failed to update
+	 * @throws Exception
+	 */
+	public List<UpdateFile> mgrUpdateFile(FileType fileType, List<UpdateFile> ufs) throws Exception {
+		List<UpdateFile> failureList = new ArrayList<>();
+		boolean isFail = false;
+		for (UpdateFile uf : ufs) {
+			try {
+				runTask(new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
+								(uf.file != null ? Files.readAllBytes(uf.file.toPath()) : null)), null, uf.timeout, 0);
+			} catch (Exception e) {
+				if (isClusterUnready(e))
+					throw e;
+
+				log.error("fail to update file: " + uf, e);
+				isFail = true;
+				failureList.add(uf);
+			}
+		}
+		if (!isFail)
+			mgrShutdownRestart(SRType.Restart, SRTarget.EntireCluster, null);
+		return failureList;
+	}
+
+	public static enum SRType {
+		/**
+		 * shutdown node and exit VM.
+		 */
+		Shutdown,
+		/**
+		 * shutdown node and restart its VM, which applies new core libs.
+		 */
+		Restart
+	}
+
+	public static enum SRTarget {EntireCluster, MasterOnly, MasterAndSpecified, Specified}
+
+	/**
+	 * shutdown specified nodes.
+	 *
+	 * @param srType shutdown/restart type
+	 * @param target target type
+	 * @param nodes  specified nodes. will be ignored if target is
+	 *               {@link SRTarget#EntireCluster} or {@link SRTarget#MasterOnly}.
+	 */
+	public void mgrShutdownRestart(SRType srType, SRTarget target, List<String> nodes) throws Exception {
+		runTask(new MgrShutdownRestart(srType, target, nodes), null, 60_000, 0);
+	}
+
 }

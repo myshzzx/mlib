@@ -1,11 +1,15 @@
 package mysh.cluster;
 
-import mysh.cluster.update.FilesMgr;
+import mysh.cluster.ClusterClient.SRTarget;
+import mysh.cluster.ClusterClient.SRType;
+import mysh.cluster.update.FilesMgr.FileType;
+import mysh.cluster.update.FilesMgr.UpdateType;
 import org.junit.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -32,27 +36,30 @@ public class ClusterMgrTest1 {
 	@Test
 	public void restart1() throws Exception {
 		ClusterClient c = new ClusterClient(cmdPort);
-		c.mgrRestartMaster();
+		c.mgrShutdownRestart(SRType.Restart, SRTarget.EntireCluster, null);
 	}
 
 	@Test
 	public void shutdown1() throws Exception {
 		ClusterClient c = new ClusterClient(cmdPort);
-		c.mgrShutdownNodes(null);
+		c.mgrShutdownRestart(SRType.Shutdown, SRTarget.EntireCluster, null);
 	}
 
 	@Test
 	public void shutdown2() throws Exception {
 		ClusterClient c = new ClusterClient(cmdPort);
-		c.mgrShutdownNodes(Arrays.asList("cn_/192.168.80.130_1418572712444", "cn_/169.254.154.173_1418572714483"));
+		c.mgrShutdownRestart(SRType.Shutdown, SRTarget.Specified,
+						Arrays.asList("cn_/192.168.80.130_1418572712444", "cn_/169.254.154.173_1418572714483"));
 	}
 
 	@Test
 	public void update1() throws Exception {
 		ClusterClient c = new ClusterClient(8030);
 
-		byte[] ctx = Files.readAllBytes(Paths.get("l:", "a.jar"));
-		c.mgrUpdateFile(FilesMgr.UpdateType.UPDATE, FilesMgr.FileType.CORE, "a.jar", ctx);
+		List<ClusterClient.UpdateFile> ufs = new ArrayList<>();
+		ufs.add(new ClusterClient.UpdateFile(UpdateType.UPDATE, "a.jar", new File("l:/a.jar")));
+
+		c.mgrUpdateFile(FileType.CORE, ufs);
 
 //		c.runTask(new CU1(), null, 0, 0);
 	}

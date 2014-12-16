@@ -465,6 +465,14 @@ public class ClusterNode {
 	void masterLost(String masterId) {
 		if (master != null && masterId != null)
 			master.removeWorker(masterId);
+
+		// master lost may caused by network changes
+		try {
+			renewNetworkIf();
+		} catch (SocketException e) {
+			log.error("renew network interfaces fails when master lost.", e);
+		}
+
 		changeState(ClusterState.INIT);
 	}
 

@@ -54,6 +54,12 @@ public class FilesMgr implements Closeable {
 		UPDATE, DELETE;
 	}
 
+	static {
+		new File(mainDir, FileType.CORE.dir).mkdirs();
+		new File(mainDir, FileType.USER.dir).mkdirs();
+		new File(updateDir, FileType.CORE.dir).mkdirs();
+	}
+
 	public final Serializer.ClassLoaderFetcher clFetcher = () -> FilesMgr.this.cl;
 
 	private volatile URLClassLoader cl;
@@ -168,6 +174,11 @@ public class FilesMgr implements Closeable {
 		fileLock.writeLock().lock();
 		try {
 			if (type == FileType.CORE) {
+				// delete file in update dir
+				final File updateDirFile = Paths.get(updateDir, FileType.CORE.dir, fileName).toFile();
+				updateDirFile.delete();
+
+				// write delete script
 				String updateScriptFile, script;
 				Charset charset;
 				if (OSUtil.getOS() == OSUtil.OS.Windows) {

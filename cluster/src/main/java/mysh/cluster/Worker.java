@@ -74,7 +74,7 @@ class Worker implements IWorker {
 			while (!this.isInterrupted()) {
 				try {
 					Thread.sleep(timeout);
-					if (lastMasterAction < System.currentTimeMillis() - timeout)
+					if (lastMasterAction + timeout < System.currentTimeMillis())
 						clusterNode.masterLost(null);
 				} catch (InterruptedException e) {
 					// end thread if interrupted
@@ -238,6 +238,7 @@ class Worker implements IWorker {
 	}
 
 	private void masterServiceUnavailable(String masterId) {
+		lastMasterAction = System.currentTimeMillis();
 		removeMasterFromCache(masterId);
 		clusterNode.masterLost(masterId);
 	}

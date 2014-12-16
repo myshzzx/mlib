@@ -14,14 +14,14 @@ import java.util.List;
 final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	private static final long serialVersionUID = -674837947039151106L;
 
-	private UpdateType updateType;
 	private FileType fileType;
+	private UpdateType updateType;
 	private String fileName;
 	private byte[] ctx;
 
-	public MgrFileUpdate(UpdateType updateType, FileType fileType, String fileName, byte[] ctx) {
-		this.updateType = updateType;
+	public MgrFileUpdate(FileType fileType, UpdateType updateType, String fileName, byte[] ctx) {
 		this.fileType = fileType;
+		this.updateType = updateType;
 		this.fileName = fileName;
 		this.ctx = ctx;
 	}

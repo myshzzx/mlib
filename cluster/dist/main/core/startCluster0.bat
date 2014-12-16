@@ -9,10 +9,6 @@ xcopy /e /c /i /r /h /y update\* main\
 del /s /q update
 rd /s /q update
 
-mkdir main\user
-mkdir update
-mkdir update\core
-
 @echo off
 set CLUSTER_CP=.\main\core\
 for %%F in (.\main\core\*.jar) do call :cp %%F
