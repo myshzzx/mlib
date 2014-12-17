@@ -9,7 +9,7 @@ import org.junit.Ignore;
 @Ignore
 public class ClusterTest {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Throwable {
 		new ClusterNode(ClusterConf.readConf());
 		Thread.sleep(1000000000);
 	}

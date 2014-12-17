@@ -83,7 +83,7 @@ public class FilesMgr implements Closeable {
 						curr.coreFiles.put(fileName, sha);
 					else if (type == FileType.USER)
 						curr.userFiles.put(fileName, sha);
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("read file error: " + p, e);
 				}
 			});
@@ -109,6 +109,9 @@ public class FilesMgr implements Closeable {
 		cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
 	}
 
+	/**
+	 * get current applied files info. (files in main/core and main/user)
+	 */
 	public FilesInfo getFilesInfo() {
 		return old;
 	}
@@ -122,7 +125,7 @@ public class FilesMgr implements Closeable {
 			for (String ts : tsList) {
 				out.write(ts.getBytes(StandardCharsets.UTF_8));
 			}
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("refresh thumbStamp error.", e);
 		}
 		curr.thumbStamp = getThumbStamp(out.toByteArray());

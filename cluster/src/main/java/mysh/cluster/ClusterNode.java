@@ -84,9 +84,9 @@ public class ClusterNode {
 	private BlockingQueue<Closeable> thriftConns = new LinkedBlockingQueue<>();
 
 	/**
-	 * @throws Exception fail to bind UDP port, or no available network interface.
+	 * @throws Throwable fail to bind UDP port, or no available network interface.
 	 */
-	public ClusterNode(ClusterConf conf) throws Exception {
+	public ClusterNode(ClusterConf conf) throws Throwable {
 		this.id = conf.id;
 		this.cmdPort = conf.cmdPort;
 
@@ -148,7 +148,7 @@ public class ClusterNode {
 					cmds.add(cmd);
 				} catch (InterruptedException e) {
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("get cmd error.", e);
 				}
 			}
@@ -212,7 +212,7 @@ public class ClusterNode {
 					}
 				} catch (InterruptedException e) {
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("proc cmd failed.", e);
 				}
 			}
@@ -244,33 +244,33 @@ public class ClusterNode {
 			log.debug("closing node.tGetCmd.");
 			tGetCmd.interrupt();
 			tGetCmd.join();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("node.tGetCmd close error.", e);
 		}
 		try {
 			log.debug("closing node.tProcCmd.");
 			tProcCmd.interrupt();
 			tProcCmd.join();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("node.tProcCmd close error.", e);
 		}
 		try {
 			log.debug("closing node.rChkMaster.");
 			rChkMaster.shutdownNow();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("node.rChkMaster close error.", e);
 		}
 
 		try {
 			log.debug("stopping master.");
 			tMasterServer.stop();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("stopping master service error.", e);
 		}
 		try {
 			log.debug("stopping worker.");
 			tWorkerServer.stop();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("stopping worker service error.", e);
 		}
 
@@ -291,7 +291,7 @@ public class ClusterNode {
 	}
 
 	/**
-	 * whether the exception throw by remote invoking means node unavailable.<br/>
+	 * whether the Throwable throw by remote invoking means node unavailable.<br/>
 	 * in conditions below: <br/>
 	 * unknown host, ip unreachable, no service on the port,
 	 * response timeout in remote invoking
@@ -299,13 +299,13 @@ public class ClusterNode {
 	 *
 	 * @param e remote invoke exception.
 	 */
-	static boolean isNodeUnavailable(Exception e) {
+	static boolean isNodeUnavailable(Throwable e) {
 		return ExpUtil.isCausedBy(e, UnknownHostException.class, ConnectException.class,
 						SocketTimeoutException.class, SocketException.class) != null;
 	}
 
 	@Deprecated
-	private static boolean isNodeUnavailableRMI(Exception e) {
+	private static boolean isNodeUnavailableRMI(Throwable e) {
 		return e instanceof java.rmi.ConnectException // re-connect to remote ipAddr failed
 						|| e instanceof java.rmi.ConnectIOException // can't connect to remote ipAddr
 						|| e instanceof java.rmi.NoSuchObjectException
@@ -376,7 +376,7 @@ public class ClusterNode {
 				try {
 					SockUtil.sendCmd(this.cmdSock, cmdForClient, InetAddress.getByName(clientCmd.ipAddr), clientCmd.masterPort);
 					log.debug("reply client >>> " + cmdForClient);
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("reply client error.", e);
 				}
 				break;
@@ -393,7 +393,7 @@ public class ClusterNode {
 			try {
 				SockUtil.sendCmd(cmdSock, c, ifa.getBroadcast(), cmdSock.getLocalPort());
 				log.debug("bc cmd >>> " + c);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.error("broadcast cmd error, interface:" + ifa.toString(), e);
 				try {
 					renewNetworkIf();
@@ -424,7 +424,7 @@ public class ClusterNode {
 	/**
 	 * get worker service. (by master)
 	 */
-	IWorker getWorkerService(String host, int port) throws Exception {
+	IWorker getWorkerService(String host, int port) throws Throwable {
 		IFaceHolder<IWorker> ch = RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
 						filesMgr.clFetcher);
 		this.thriftConns.add(ch);
@@ -449,7 +449,7 @@ public class ClusterNode {
 	/**
 	 * get master service. (by worker)
 	 */
-	IMaster getMasterService(String host, int port) throws Exception {
+	IMaster getMasterService(String host, int port) throws Throwable {
 		IFaceHolder<IMaster> ch = RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
 						filesMgr.clFetcher);
 		this.thriftConns.add(ch);

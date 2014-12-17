@@ -13,14 +13,14 @@ import java.util.function.Consumer;
  * @since 14-2-3 下午2:37
  */
 class SockUtil {
-	static Cmd receiveCmd(DatagramSocket cmdSock, final DatagramPacket reusePack) throws Exception {
+	static Cmd receiveCmd(DatagramSocket cmdSock, final DatagramPacket reusePack) throws Throwable {
 		synchronized (reusePack) {
 			cmdSock.receive(reusePack);
 			return RpcUtil.s.unSerialize(reusePack.getData(), reusePack.getOffset(), reusePack.getLength(), null);
 		}
 	}
 
-	static Cmd receiveCmd(DatagramSocket cmdSock, int bufSize) throws Exception {
+	static Cmd receiveCmd(DatagramSocket cmdSock, int bufSize) throws Throwable {
 		byte[] buf = new byte[bufSize];
 		DatagramPacket p = new DatagramPacket(buf, 0, buf.length);
 		return receiveCmd(cmdSock, p);

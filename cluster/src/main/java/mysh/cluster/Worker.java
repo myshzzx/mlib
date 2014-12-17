@@ -79,7 +79,7 @@ class Worker implements IWorker {
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("worker checker failed.", e);
 				}
 			}
@@ -107,7 +107,7 @@ class Worker implements IWorker {
 					} catch (InterruptedException e) {
 						// end thread if interrupted
 						return;
-					} catch (Exception e) {
+					} catch (Throwable e) {
 						log.error("run subTask error. " + currSubTask, e);
 					}
 				}
@@ -172,7 +172,7 @@ class Worker implements IWorker {
 					}
 					stExecutors.clear();
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("task scheduler error.", e);
 				}
 			}
@@ -209,7 +209,7 @@ class Worker implements IWorker {
 				} catch (InterruptedException e) {
 					// end thread if interrupted
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					if (ClusterNode.isNodeUnavailable(e)) {
 						if (task.masterId != null) masterServiceUnavailable(task.masterId);
 						log.error("submit task result error: master is unavailable: " + task, e);
@@ -229,7 +229,7 @@ class Worker implements IWorker {
 				log.debug("closing " + t.getName());
 				t.interrupt();
 				t.join();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.error(t.getName() + " close error.", e);
 			}
 		}
@@ -259,7 +259,7 @@ class Worker implements IWorker {
 			// this pre-check(but not putIfAbsent) can be used in multi-thread app env
 			if (!mastersCache.containsKey(c.id))
 				mastersCache.put(c.id, clusterNode.getMasterService(c.ipAddr, c.masterPort));
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("failed to connect to master. " + c, e);
 		}
 	}
@@ -346,7 +346,7 @@ class Worker implements IWorker {
 					}
 					result = cUser.procSubTask(subTask, timeout);
 				}
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				result = e;
 				if (e instanceof InterruptedException)
 					log.info("sub-task interrupted: " + this.toString());
@@ -450,7 +450,7 @@ class Worker implements IWorker {
 
 				if (needRestart)
 					clusterNode.shutdownVM(true);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.error("update files error.", e);
 			} finally {
 				updateFilesRunning.set(false);

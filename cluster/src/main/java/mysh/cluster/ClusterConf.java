@@ -68,7 +68,7 @@ public class ClusterConf implements Serializable {
 			c.cmdPort = propConf.getPropInt(_cmdPort, c.cmdPort);
 			c.serverPoolSize = propConf.getPropInt(_serverPoolSize, c.serverPoolSize);
 			c.heartBeatTime = propConf.getPropInt(_heartBeatTime, c.heartBeatTime);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("read cluster conf from file error.", e);
 		}
 

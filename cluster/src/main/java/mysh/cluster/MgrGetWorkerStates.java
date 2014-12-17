@@ -30,7 +30,7 @@ final class MgrGetWorkerStates<WS extends WorkerState>
 
 		try {
 			workerStates = master.getWorkerStates();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("master.getWorkerStates error.", e);
 		}
 		return pack(new Object[0], null);

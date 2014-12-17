@@ -15,9 +15,9 @@ public interface IClusterService {
 	 * @throws mysh.cluster.ClusterExp        exceptions from cluster, generally about cluster
 	 *                                        status and task status.
 	 * @throws java.lang.InterruptedException current thread interrupted.
-	 * @throws java.lang.Exception            other exceptions.
+	 * @throws java.lang.Throwable            other exceptions.
 	 */
 	<T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws Exception;
+					throws Throwable;
 
 }

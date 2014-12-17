@@ -75,10 +75,10 @@ public final class ClusterClient implements Closeable {
 	 * @throws mysh.cluster.ClusterExp        exceptions from cluster, generally about cluster
 	 *                                        status and task status.
 	 * @throws java.lang.InterruptedException current thread interrupted.
-	 * @throws java.lang.Exception            other exceptions.
+	 * @throws java.lang.Throwable            other exceptions.
 	 */
 	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
-	                                final int timeout, final int subTaskTimeout) throws Exception {
+	                                final int timeout, final int subTaskTimeout) throws Throwable {
 
 		if (this.service == null && timeout < 0) {
 			this.prepareClusterService();
@@ -103,22 +103,22 @@ public final class ClusterClient implements Closeable {
 
 			try {
 				return cs.getClient().runTask(cUser, task, leftTime, subTaskTimeout);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.debug("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
 					if (this.service != null)
 						try {
 							this.service.close();
-						} catch (Exception ex) {
+						} catch (Throwable ex) {
 						}
 					cs = this.service = null;
 					this.prepareClusterService();
 					if (timeout < 0) throw new ClusterExp.Unready(e);
 				} else {
-					Exception et;
-					if (e instanceof UndeclaredThrowableException && (et = (Exception) e.getCause()) != null)
+					Throwable et;
+					if (e instanceof UndeclaredThrowableException && (et = e.getCause()) != null)
 						e = et;
-					if (e instanceof InvocationTargetException && (et = (Exception) e.getCause()) != null)
+					if (e instanceof InvocationTargetException && (et = e.getCause()) != null)
 						e = et;
 					throw e;
 				}
@@ -138,14 +138,14 @@ public final class ClusterClient implements Closeable {
 			this.tPrepareClusterService.interrupt();
 			try {
 				this.tPrepareClusterService.join();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 			}
 		}
 
 		if (this.service != null)
 			try {
 				this.service.close();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 			}
 	}
 
@@ -180,12 +180,12 @@ public final class ClusterClient implements Closeable {
 					if (service == null && cmd.action == Cmd.Action.I_AM_THE_MASTER) {
 						try {
 							service = RpcUtil.getClient(IClusterService.class, cmd.ipAddr, cmd.masterPort, 0, null);
-						} catch (Exception e) {
+						} catch (Throwable e) {
 							log.error("connect to master service error.", e);
 						}
 					}
 				}
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				if (!(e instanceof SocketTimeoutException))
 					log.error("receive master response error.", e);
 			} finally {
@@ -232,7 +232,7 @@ public final class ClusterClient implements Closeable {
 		return cs;
 	}
 
-	private static boolean isClusterUnready(Exception e) {
+	private static boolean isClusterUnready(Throwable e) {
 		return ClusterNode.isNodeUnavailable(e)
 						||
 						ExpUtil.isCausedBy(e, ClusterExp.NotMaster.class, ClusterExp.NoWorkers.class,
@@ -245,7 +245,7 @@ public final class ClusterClient implements Closeable {
 	 *
 	 * @param wsClass worker state class. if <code>null</code>, use default class.
 	 */
-	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Exception {
+	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Throwable {
 		return runTask(new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
@@ -254,7 +254,7 @@ public final class ClusterClient implements Closeable {
 	/**
 	 * request cancel task by taskId.
 	 */
-	public void mgrCancelTask(int taskId) throws Exception {
+	public void mgrCancelTask(int taskId) throws Throwable {
 		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
@@ -295,14 +295,14 @@ public final class ClusterClient implements Closeable {
 	 * <br/>
 	 * WARNING: <br/>
 	 * there's no transaction and undo here.<br/>
-	 * when update CORE files: the entire cluster will restart if all files are updated successfully;
+	 * when update CORE files: the master node will restart if all files are updated successfully;
 	 * if one file fails to update, the process will continue on next file, but there will be no
 	 * restart then.
 	 *
 	 * @return files that failed to update
-	 * @throws Exception
+	 * @throws Throwable
 	 */
-	public List<UpdateFile> mgrUpdateFile(FileType fileType, List<UpdateFile> ufs) throws Exception {
+	public List<UpdateFile> mgrUpdateFile(FileType fileType, List<UpdateFile> ufs) throws Throwable {
 		List<UpdateFile> failureList = new ArrayList<>();
 		if (ufs.size() == 0) return failureList;
 
@@ -311,7 +311,7 @@ public final class ClusterClient implements Closeable {
 			try {
 				runTask(new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
 								(uf.file != null ? Files.readAllBytes(uf.file.toPath()) : null)), null, uf.timeout, 0);
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				if (isClusterUnready(e))
 					throw e;
 
@@ -347,7 +347,7 @@ public final class ClusterClient implements Closeable {
 	 * @param nodes  specified nodes. will be ignored if target is
 	 *               {@link SRTarget#EntireCluster} or {@link SRTarget#MasterOnly}.
 	 */
-	public void mgrShutdownRestart(SRType srType, SRTarget target, List<String> nodes) throws Exception {
+	public void mgrShutdownRestart(SRType srType, SRTarget target, List<String> nodes) throws Throwable {
 		runTask(new MgrShutdownRestart(srType, target, nodes), null, 60_000, 0);
 	}
 

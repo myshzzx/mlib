@@ -41,7 +41,7 @@ public class RpcUtil {
 
 	public static <I> TServer exportTServer(
 					Class<I> svIf, I sv, int port, TServerEventHandler eventHandler, int poolSize,
-					ClassLoaderFetcher clFetcher) throws Exception {
+					ClassLoaderFetcher clFetcher) throws Throwable {
 		ThriftServerFactory f = new ThriftServerFactory();
 		f.setServerHost("0.0.0.0");
 		f.setServerPort(port);
@@ -68,7 +68,7 @@ public class RpcUtil {
 				try {
 					Object result = methods.get(methodName).invoke(sv, unSerialize(params, clFetcher));
 					return result == null ? EMPTY : serialize((Serializable) result);
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					return wrapExp(e);
 				}
 			}
@@ -79,7 +79,7 @@ public class RpcUtil {
 	 * @param <I> client interface type.
 	 */
 	public static <I> IFaceHolder<I> getClient(
-					Class<I> svIf, String svHost, int svPort, int soTimeout, ClassLoaderFetcher clFetcher) throws Exception {
+					Class<I> svIf, String svHost, int svPort, int soTimeout, ClassLoaderFetcher clFetcher) throws Throwable {
 		ThriftClientFactory.Config<TClusterService.Iface> conf = new ThriftClientFactory.Config<>();
 		conf.setServerHost(svHost);
 		conf.setServerPort(svPort);
@@ -105,7 +105,7 @@ public class RpcUtil {
 						ch);
 	}
 
-	private static ByteBuffer wrapExp(Exception e) {
+	private static ByteBuffer wrapExp(Throwable e) {
 		return serialize(e);
 	}
 
@@ -114,7 +114,7 @@ public class RpcUtil {
 
 		try {
 			return ByteBuffer.wrap(s.serialize(obj));
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("serialize obj error:" + obj, e);
 			throw new RuntimeException(e);
 		}
@@ -125,7 +125,7 @@ public class RpcUtil {
 
 		try {
 			return s.unSerialize(buf.array(), buf.position(), buf.limit() - buf.position(), clFetcher);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
 			log.error("unSerialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);

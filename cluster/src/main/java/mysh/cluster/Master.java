@@ -113,7 +113,7 @@ class Master implements IMaster {
 							try {
 								WorkerState state = workerEntry.getValue().workerService.masterHeartBeat(id, mts);
 								updateWorkerState(workerEntry.getKey(), state);
-							} catch (Exception e) {
+							} catch (Throwable e) {
 								if (isNodeUnavailable(e))
 									workerUnavailable(workerEntry.getValue(), e);
 								else
@@ -123,7 +123,7 @@ class Master implements IMaster {
 					}
 				} catch (InterruptedException e) {
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("master-to-worker-heart-beat error.", e);
 				}
 			}
@@ -185,7 +185,7 @@ class Master implements IMaster {
 
 				} catch (InterruptedException e) {
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("subTask dispatch error.", e);
 
 					try {
@@ -195,7 +195,7 @@ class Master implements IMaster {
 							else
 								updateWorkerState(node.id, node.workerState);
 						}
-					} catch (Exception ex) {
+					} catch (Throwable ex) {
 						log.error("handle sub-task dispatch error failed.", ex);
 					}
 
@@ -223,14 +223,14 @@ class Master implements IMaster {
 					if (node != null) {
 						try {
 							node.workerService.cancelTask(taskId, -1);
-						} catch (Exception e) {
+						} catch (Throwable e) {
 							if (isNodeUnavailable(e))
 								workerUnavailable(node, e);
 						}
 					}
 				} catch (InterruptedException e) {
 					return;
-				} catch (Exception e) {
+				} catch (Throwable e) {
 					log.error("cancel sub task error.", e);
 				}
 			}
@@ -245,7 +245,7 @@ class Master implements IMaster {
 				log.debug("closing " + thread.getName());
 				thread.interrupt();
 				thread.join();
-			} catch (Exception e) {
+			} catch (Throwable e) {
 				log.error(thread.getName() + " stop error.", e);
 			}
 
@@ -267,12 +267,12 @@ class Master implements IMaster {
 				this.workersCache.put(node.id, node);
 				this.workersDispatchQueue.offer(node);
 			}
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			log.error("failed to connect to worker. " + c, e);
 		}
 	}
 
-	private void workerUnavailable(WorkerNode workerNode, Exception e) {
+	private void workerUnavailable(WorkerNode workerNode, Throwable e) {
 		log.info("worker is unavailable: " + workerNode.id, e);
 		removeWorker(workerNode.id);
 		this.clusterNode.workerUnavailable(workerNode.id);
@@ -322,7 +322,7 @@ class Master implements IMaster {
 		if (ti != null) {
 			// cancel task if a subTask throws exception
 			if (result instanceof Throwable) {
-				cancelTask(taskId, (Exception) result);
+				cancelTask(taskId, (Throwable) result);
 			} else
 				ti.subTaskComplete(subTaskId, result, workerNodeId);
 		}
@@ -330,7 +330,7 @@ class Master implements IMaster {
 
 	@Override
 	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws Exception {
+					throws Throwable {
 		if (!isMaster)
 			throw notMasterExp == null ?
 							(notMasterExp = new ClusterExp.NotMaster()) : notMasterExp;
@@ -394,7 +394,7 @@ class Master implements IMaster {
 	 * @param exp cancel reason, can be null.
 	 */
 	@SuppressWarnings("unchecked")
-	void cancelTask(int taskId, Exception exp) {
+	void cancelTask(int taskId, Throwable exp) {
 		log.info("preparing to cancel task, taskId=" + taskId);
 		TaskInfo ti = this.taskInfoTable.remove(taskId);
 		if (ti != null) {
@@ -404,7 +404,7 @@ class Master implements IMaster {
 			for (int i = 0; i < ti.assignedNodeIds.length; i++) {
 				// the sub-tasks those are assigned but not returned
 				if (ti.assignedNodeIds[i] != null &&
-								(ti.results[i] == null || ti.results[i] instanceof Exception))
+								(ti.results[i] == null || ti.results[i] instanceof Throwable))
 					assignedNodes.add(ti.assignedNodeIds[i]);
 			}
 			for (String nodeId : assignedNodes) {
@@ -436,7 +436,7 @@ class Master implements IMaster {
 
 		private final AtomicInteger unfinishedTask;
 		private final CountDownLatch completeLatch;
-		private final AtomicReference<Exception> exp;
+		private final AtomicReference<Throwable> exp;
 
 		@SuppressWarnings("unchecked")
 		public TaskInfo(int taskId, IClusterUser<T, ST, SR, R> cUser, ST[] subTasks,

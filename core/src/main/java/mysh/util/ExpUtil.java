@@ -17,7 +17,7 @@ public class ExpUtil {
 	/**
 	 * 将CheckedException转换为UncheckedException.
 	 */
-	public static RuntimeException unchecked(Exception e) {
+	public static RuntimeException unchecked(Throwable e) {
 		if (e instanceof RuntimeException) {
 			return (RuntimeException) e;
 		} else {
@@ -38,10 +38,10 @@ public class ExpUtil {
 	 * 判断异常是否由某些底层的异常(含本层)引起. 是则返回异常, 否返回 null.
 	 */
 	@SafeVarargs
-	public static Throwable isCausedBy(Exception ex, Class<? extends Exception>... causeExceptionClasses) {
+	public static Throwable isCausedBy(Throwable ex, Class<? extends Throwable>... causeExceptionClasses) {
 		Throwable cause = ex;
 		while (cause != null) {
-			for (Class<? extends Exception> causeClass : causeExceptionClasses) {
+			for (Class<? extends Throwable> causeClass : causeExceptionClasses) {
 				if (causeClass.isInstance(cause)) {
 					return cause;
 				}

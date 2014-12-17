@@ -20,7 +20,7 @@ public class ClusterTest2 {
 
 	private static final int cmdPort = 8030;
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Throwable {
 		final String name = ClusterTest2.class.getClassLoader().getClass().getName();
 		System.out.println(name);
 
@@ -29,7 +29,7 @@ public class ClusterTest2 {
 	}
 
 	@Test
-	public void calcTest() throws Exception {
+	public void calcTest() throws Throwable {
 		ClusterClient c = new ClusterClient(cmdPort);
 
 		Random r = new Random();

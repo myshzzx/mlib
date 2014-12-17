@@ -46,7 +46,7 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 				filesMgr.putFile(fileType, fileName, ctx);
 			else if (updateType == UpdateType.DELETE)
 				filesMgr.removeFile(fileType, fileName);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw ExpUtil.unchecked(e);
 		}
 	}

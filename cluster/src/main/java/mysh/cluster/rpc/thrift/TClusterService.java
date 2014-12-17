@@ -206,7 +206,7 @@ public class TClusterService {
             try {
               fcall.sendResponse(fb,result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
               return;
-            } catch (Exception e) {
+            } catch (Throwable e) {
               LOGGER.error("Exception writing to internal frame buffer", e);
             }
             fb.close();
@@ -222,7 +222,7 @@ public class TClusterService {
             try {
               fcall.sendResponse(fb,msg,msgType,seqid);
               return;
-            } catch (Exception ex) {
+            } catch (Throwable ex) {
               LOGGER.error("Exception writing to internal frame buffer", ex);
             }
             fb.close();

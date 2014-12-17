@@ -12,7 +12,7 @@ import java.util.Scanner;
 @Ignore
 public class ControllerTest {
 
-	public static void main(String[] args) throws Exception {
+	public static void main(String[] args) throws Throwable {
 		ClusterClient c = new ClusterClient(8030);
 		Scanner sc = new Scanner(System.in);
 		while (true) {
