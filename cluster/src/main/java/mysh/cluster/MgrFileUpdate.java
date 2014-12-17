@@ -13,6 +13,7 @@ import java.util.List;
  */
 final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	private static final long serialVersionUID = -674837947039151106L;
+	private static final String[] emptyArray = new String[0];
 
 	private FileType fileType;
 	private UpdateType updateType;
@@ -30,7 +31,13 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
 		updateFile(master.getFilesMgr());
 
-		return pack(new String[workerNodes.size()], workerNodes.toArray(new String[workerNodes.size()]));
+		if (fileType == FileType.CORE) {
+			return pack(emptyArray, emptyArray);
+		} else if (fileType == FileType.USER) {
+			workerNodes.remove(masterNode);
+			return pack(new String[workerNodes.size()], workerNodes.toArray(new String[workerNodes.size()]));
+		} else
+			throw new RuntimeException("unknown fileType: " + fileType);
 	}
 
 	private void updateFile(FilesMgr filesMgr) {
@@ -68,4 +75,5 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 						", fileName='" + fileName + '\'' +
 						'}';
 	}
+
 }

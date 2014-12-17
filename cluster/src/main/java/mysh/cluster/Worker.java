@@ -421,6 +421,9 @@ class Worker implements IWorker {
 		@Override
 		public void run() {
 			try {
+				// when update core libs, then node needs to restart
+				boolean needRestart = false;
+
 				masterFiles = master.getFilesInfo();
 				for (FileType type : new FileType[]{USER, CORE}) {
 					Map<String, String> cFiles = type == CORE ? currFilesInfo.coreFiles : currFilesInfo.userFiles;
@@ -428,17 +431,25 @@ class Worker implements IWorker {
 					for (Map.Entry<String, String> cFileEntry : cFiles.entrySet()) {
 						final String cFileName = cFileEntry.getKey();
 						String mts = mFiles.get(cFileName);
-						if (mts == null)
+						if (mts == null) {
 							filesMgr.removeFile(type, cFileName);
-						else if (!mts.equals(cFileEntry.getValue()))
+							needRestart |= type == CORE;
+						} else if (!mts.equals(cFileEntry.getValue())) {
 							filesMgr.putFile(type, cFileName, master.getFile(type, cFileName));
+							needRestart |= type == CORE;
+						}
 					}
 					for (Map.Entry<String, String> mFileEntry : mFiles.entrySet()) {
 						final String mFileName = mFileEntry.getKey();
-						if (!cFiles.containsKey(mFileName))
+						if (!cFiles.containsKey(mFileName)) {
 							filesMgr.putFile(type, mFileName, master.getFile(type, mFileName));
+							needRestart |= type == CORE;
+						}
 					}
 				}
+
+				if (needRestart)
+					clusterNode.shutdownVM(true);
 			} catch (Exception e) {
 				log.error("update files error.", e);
 			} finally {

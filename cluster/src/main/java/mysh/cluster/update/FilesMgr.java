@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -20,6 +21,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -132,48 +134,71 @@ public class FilesMgr implements Closeable {
 
 	private final ReentrantReadWriteLock fileLock = new ReentrantReadWriteLock();
 
+	private ConcurrentHashMap<String, WeakReference<byte[]>> filesCache = new ConcurrentHashMap<>();
+
 	public byte[] getFile(FileType type, String fileName) throws IOException {
 		fileLock.readLock().lock();
 		try {
-			if (type == FileType.CORE) {
-				final Path updatedFile = Paths.get(updateDir, type.dir, fileName);
-				if (updatedFile.toFile().exists())
-					return Files.readAllBytes(updatedFile);
+			final String filesCacheKey = (type.dir + '/' + fileName).intern();
+
+			// read from cache
+			WeakReference<byte[]> fileCtx = filesCache.get(filesCacheKey);
+			byte[] ctx;
+			if (fileCtx != null && (ctx = fileCtx.get()) != null)
+				return ctx;
+
+			// read file and update cache
+			synchronized (filesCacheKey) {
+				ctx = Files.readAllBytes(Paths.get(mainDir, type.dir, fileName));
+				filesCache.put(filesCacheKey, new WeakReference<>(ctx));
+				return ctx;
 			}
-			return Files.readAllBytes(Paths.get(mainDir, type.dir, fileName));
 		} finally {
 			fileLock.readLock().unlock();
 		}
 	}
 
+	/**
+	 * put file operation, then update FilesInfo if update USER files.
+	 */
 	public void putFile(FileType type, String fileName, byte[] ctx) throws IOException {
 		log.info("update file: (" + type + ") " + fileName);
 		fileLock.writeLock().lock();
 		try {
 			if (type == FileType.CORE) {
 				Files.write(Paths.get(updateDir, type.dir, fileName), ctx);
-			} else {
+			} else if (type == FileType.USER) {
 				try {
+					// close class loader and write file
 					cl.close();
 					Files.write(Paths.get(mainDir, type.dir, fileName), ctx);
+
+					// update files info
+					curr.userFiles.put(fileName, getThumbStamp(ctx));
+					refreshTS();
+					old = new FilesInfo(curr);
+
+					// put cache
+					String filesCacheKey = (type.dir + '/' + fileName).intern();
+					filesCache.put(filesCacheKey, new WeakReference<>(ctx));
 				} finally {
 					renewCl();
 				}
-			}
-
-			(type == FileType.CORE ? curr.coreFiles : curr.userFiles).put(fileName, getThumbStamp(ctx));
-			refreshTS();
-			old = new FilesInfo(curr);
+			} else
+				throw new RuntimeException("unknown fileType: " + type);
 		} finally {
 			fileLock.writeLock().unlock();
 		}
 	}
 
+	/**
+	 * remove file operation, then update FilesInfo if update USER files.
+	 */
 	public void removeFile(FileType type, String fileName) throws IOException {
 		log.info("remove file: (" + type + ") " + fileName);
 		fileLock.writeLock().lock();
 		try {
-			if (type == FileType.CORE) {
+			if (type == FileType.CORE) { // update core files
 				// delete file in update dir
 				final File updateDirFile = Paths.get(updateDir, FileType.CORE.dir, fileName).toFile();
 				updateDirFile.delete();
@@ -195,18 +220,26 @@ public class FilesMgr implements Closeable {
 				Files.write(usFile, script.getBytes(charset),
 								StandardOpenOption.APPEND, StandardOpenOption.CREATE);
 				usFile.toFile().setExecutable(true, false);
-			} else {
+			} else if (type == FileType.USER) { // update user files
 				try {
+					// close class loader and delete file
 					cl.close();
 					Paths.get(mainDir, type.dir, fileName).toFile().delete();
+
+					// update files info
+					curr.userFiles.remove(fileName);
+					refreshTS();
+					old = new FilesInfo(curr);
+
+					// clear cache
+					String filesCacheKey = (type.dir + '/' + fileName).intern();
+					filesCache.remove(filesCacheKey);
 				} finally {
+					// start class loader
 					renewCl();
 				}
-			}
-
-			(type == FileType.CORE ? curr.coreFiles : curr.userFiles).remove(fileName);
-			refreshTS();
-			old = new FilesInfo(curr);
+			} else
+				throw new RuntimeException("unknown fileType: " + type);
 		} finally {
 			fileLock.writeLock().unlock();
 		}

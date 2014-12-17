@@ -304,7 +304,9 @@ public final class ClusterClient implements Closeable {
 	 */
 	public List<UpdateFile> mgrUpdateFile(FileType fileType, List<UpdateFile> ufs) throws Exception {
 		List<UpdateFile> failureList = new ArrayList<>();
-		boolean isFail = false;
+		if (ufs.size() == 0) return failureList;
+
+		boolean hasFailure = false;
 		for (UpdateFile uf : ufs) {
 			try {
 				runTask(new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
@@ -314,12 +316,13 @@ public final class ClusterClient implements Closeable {
 					throw e;
 
 				log.error("fail to update file: " + uf, e);
-				isFail = true;
+				hasFailure = true;
 				failureList.add(uf);
 			}
 		}
-		if (!isFail)
-			mgrShutdownRestart(SRType.Restart, SRTarget.EntireCluster, null);
+
+		if (fileType == FileType.CORE && !hasFailure)
+			mgrShutdownRestart(SRType.Restart, SRTarget.MasterOnly, null);
 		return failureList;
 	}
 
