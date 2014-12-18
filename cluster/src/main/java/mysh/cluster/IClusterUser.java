@@ -2,6 +2,7 @@ package mysh.cluster;
 
 
 import mysh.annotation.GuardedBy;
+import mysh.annotation.Nullable;
 
 import java.io.Serializable;
 import java.lang.reflect.Array;
@@ -81,7 +82,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	 */
 	public abstract R join(String masterNode, String[] assignedNodeIds, SR[] subResults);
 
-	protected SubTasksPack<ST> pack(ST[] subTasks, String[] referredNodeIds) {
+	protected SubTasksPack<ST> pack(ST[] subTasks, @Nullable String[] referredNodeIds) {
 		return new SubTasksPack<ST>() {
 			private static final long serialVersionUID = 5545201296636690353L;
 

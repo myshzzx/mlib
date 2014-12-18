@@ -2,6 +2,7 @@ package mysh.cluster;
 
 import mysh.cluster.ClusterClient.SRTarget;
 import mysh.cluster.ClusterClient.SRType;
+import mysh.cluster.update.FilesMgr.FileType;
 import mysh.cluster.update.FilesMgr.UpdateType;
 import org.junit.Test;
 
@@ -58,8 +59,20 @@ public class ClusterMgrTest1 {
 		List<ClusterClient.UpdateFile> ufs = new ArrayList<>();
 		ufs.add(new ClusterClient.UpdateFile(UpdateType.UPDATE, "a.jar", new File("l:/a.jar")));
 
-//		c.mgrUpdateFile(FileType.USER, ufs);
+		c.mgrUpdateFile(FileType.CORE, ufs);
 
-		c.runTask(new CU1(), null, 0, 0);
+//		c.runTask(new CU1(), null, 0, 0);
 	}
+
+	@Test
+	public void update2() throws Throwable {
+		ClusterClient c = new ClusterClient(8030);
+
+		List<ClusterClient.UpdateFile> ufs = new ArrayList<>();
+		ufs.add(new ClusterClient.UpdateFile(UpdateType.DELETE, "a.jar", new File("l:/a.jar")));
+
+		c.mgrUpdateFile(FileType.USER, ufs);
+
+	}
+
 }

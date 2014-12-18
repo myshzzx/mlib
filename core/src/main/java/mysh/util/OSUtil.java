@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
+import java.util.StringTokenizer;
 
 /**
  * @author Mysh
@@ -83,12 +84,24 @@ public class OSUtil {
 
 	/**
 	 * restart current process.
+	 *
+	 * @param inheritIO see {@link ProcessBuilder#inheritIO()}
+	 * @throws java.io.IOException
 	 */
-	public static void restart() throws IOException {
+	public static void restart(boolean inheritIO) throws IOException {
 		String cmd = getCmdLine();
 		log.debug("restart cmdLine:" + cmd);
 
-		Runtime.getRuntime().exec(cmd);
+		StringTokenizer st = new StringTokenizer(cmd);
+		String[] cmdArray = new String[st.countTokens()];
+		for (int i = 0; st.hasMoreTokens(); i++)
+			cmdArray[i] = st.nextToken();
+
+		ProcessBuilder pb = new ProcessBuilder(cmdArray);
+		if (inheritIO)
+			pb.inheritIO();
+		pb.start();
+
 		System.exit(0);
 	}
 

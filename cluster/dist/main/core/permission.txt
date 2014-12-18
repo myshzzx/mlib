@@ -1,0 +1,9 @@
+grant codeBase "file:main/core/-" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:main/user/-" {
+  permission java.net.SocketPermission "*", "connect";
+  permission java.util.PropertyPermission "*", "read";
+};
+

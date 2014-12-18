@@ -503,7 +503,7 @@ public class ClusterNode {
 					} catch (IOException e) {
 						log.error("restartVM cluster node error, try restartVM process", e);
 						try {
-							OSUtil.restart();
+							OSUtil.restart(true);
 						} catch (IOException ex) {
 							log.error("restartVM process error, the cluster node need manual start.", ex);
 						}

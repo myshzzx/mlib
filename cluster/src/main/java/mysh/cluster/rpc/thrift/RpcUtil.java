@@ -3,6 +3,7 @@ package mysh.cluster.rpc.thrift;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.thrift.ThriftClientFactory;
 import mysh.thrift.ThriftServerFactory;
+import mysh.util.ExpUtil;
 import mysh.util.Serializer;
 import mysh.util.Serializer.ClassLoaderFetcher;
 import org.apache.thrift.TException;
@@ -129,7 +130,7 @@ public class RpcUtil {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
 			log.error("unSerialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);
-			throw new RuntimeException(e);
+			throw ExpUtil.unchecked(e);
 		}
 	}
 
