@@ -106,6 +106,10 @@ public class Math2 {
 			int start = factor, end = Math.min(factor + step, factorLimit);
 			fjp.execute(() -> {
 				for (int f = start; f < end; f++) {
+					if (f > 3 && (f + 1) % 6 != 0 && (f - 1) % 6 != 0) {
+						continue;
+					}
+
 					int composite = from / f;
 					if (composite == 0) composite = 1;
 					composite *= f;
@@ -156,6 +160,10 @@ public class Math2 {
 			long start = factor, end = Math.min(factor + step, factorLimit);
 			fjp.execute(() -> {
 				for (long f = start; f < end; f++) {
+					if (f > 3 && (f + 1) % 6 != 0 && (f - 1) % 6 != 0) {
+						continue;
+					}
+
 					long composite = from / f;
 					if (composite == 0) composite = 1;
 					composite *= f;
