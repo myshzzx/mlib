@@ -3,6 +3,7 @@ package mysh.cluster;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.net.SocketException;
 import java.util.Arrays;
 
 /**
@@ -30,6 +31,17 @@ public class SockUtilTest {
 				});
 				System.out.println();
 			});
+		});
+	}
+
+	@Test
+	public void iteratTest() throws SocketException {
+		SockUtil.iterateNetworkIF(nif -> {
+			nif.getInterfaceAddresses().stream()
+							.filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
+							.forEach(addr -> {
+								System.out.println(addr + "---bc--->" + addr.getBroadcast());
+							});
 		});
 	}
 }

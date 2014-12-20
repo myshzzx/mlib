@@ -16,4 +16,5 @@ public final class ClusterSecMgr extends SecurityManager {
 		super.checkAccess(g);
 		checkPermission(SecurityConstants.MODIFY_THREADGROUP_PERMISSION);
 	}
+
 }

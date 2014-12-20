@@ -19,8 +19,8 @@ import java.nio.ByteBuffer;
  * @author Mysh
  * @since 2014/11/21 15:08
  */
-public class AsyncTest {
-	private static final Logger log = LoggerFactory.getLogger(AsyncTest.class);
+public class AsyncTest1 {
+	private static final Logger log = LoggerFactory.getLogger(AsyncTest1.class);
 
 	@Test
 	public void test2() throws Exception {

@@ -1,6 +1,7 @@
 
 package mysh.algorithm;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -9,21 +10,37 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertArrayEquals;
 
 public class Math2Test {
 
-	private void checkPrime(int from, int to, int[] ps) {
+	private void checkPrimeInt(int from, int to, int[] ps) {
 		int i = from;
 		for (int p : ps) {
 			while (i < p)
 				assertFalse(Math2.isPrime(i++));
 
-			assertTrue(Math2.isPrime(i++));
+			assertTrue(i + "", Math2.isPrime(i++));
 		}
 
+		if (i < 0) return;
+
 		while (i <= to)
-			assertFalse(Math2.isPrime(i++));
+			assertFalse(i + "", Math2.isPrime(i++));
+	}
+
+	private void checkPrimeLong(long from, long to, long[] ps) {
+		long i = from;
+		for (long p : ps) {
+			while (i < p)
+				assertFalse(Math2.isPrime(i++));
+
+			assertTrue(i + "", Math2.isPrime(i++));
+		}
+
+		if (i < 0) return;
+
+		while (i <= to)
+			assertFalse(i + "", Math2.isPrime(i++));
 	}
 
 	@Test
@@ -53,25 +70,47 @@ public class Math2Test {
 		assertFalse(Math2.isPrime(221));
 	}
 
-
 	@Test
-	public void genPrime() {
-
-		int from, to;
-
-		from = 100_000_000;
-		to = 100_000_100;
-		checkPrime(from, to, Math2.genPrime(from, to));
-
-		from = 10;
-		to = 1_000_000;
-		checkPrime(from, to, Math2.genPrime(from, to));
+	@Ignore
+	public void isPrimeLong() {
+		assertTrue(Math2.isPrime(9223372036854775139L));
 	}
 
 	@Test
-	public void genPrime2() {
+	public void genPrime() {
 		int limit = 1_000_000;
-		checkPrime(0, limit, Math2.genPrime(limit));
+		checkPrimeInt(0, limit, Math2.genPrime(limit));
+	}
+
+	@Test
+	public void genPrimeInt() {
+
+		int from, to;
+
+		from = 10;
+		to = 1_000_000;
+		checkPrimeInt(from, to, Math2.genPrime(from, to));
+
+		from = 100_000_000;
+		to = 100_111_000;
+		checkPrimeInt(from, to, Math2.genPrime(from, to));
+
+		from = Integer.MAX_VALUE - 100;
+		to = Integer.MAX_VALUE;
+		checkPrimeInt(from, to, Math2.genPrime(from, to));
+	}
+
+	@Test
+	@Ignore
+	public void genPrimeLong() throws InterruptedException {
+
+		long from = Long.MAX_VALUE - 1000;
+		long to = Long.MAX_VALUE;
+		long[] ps = Math2.genPrime(from, to);
+		System.out.println(Arrays.toString(ps));
+
+		ps = Math2.genPrime(9223372036854775139L,9223372036854775139L);
+		System.out.println(Arrays.toString(ps));
 	}
 
 	@Test

@@ -3,89 +3,51 @@ package mysh.algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.TimeUnit;
 
 public class Math2 {
 
 	/**
 	 * 判断 n 是否质数.
+	 *
+	 * @see <a href='http://en.wikipedia.org/wiki/Primality_test'>Primality test</a>
 	 */
 	public static boolean isPrime(int n) {
-		if (n < 2) return false;
-		if (n == 2) return true;
-		if (n % 2 == 0) return false;
-
-		int sqrt = (int) Math.sqrt(n) + 1;
-		for (int i = 3; i < sqrt; i += 2)
-			if (n % i == 0) return false;
-		return true;
-	}
-
-	/**
-	 * 取 [from, to] 内的质数. 传入参数需不小于10.
-	 */
-	public static int[] genPrime(int from, int to) {
-
-		if (to < from || from < 10)
-			throw new IllegalArgumentException();
-
-		// 第 i 个值表示 i+from 是否合数
-		boolean[] get = new boolean[to - from + 1];
-
-		int factorLimit = (int) Math.sqrt(to) + 1;
-		int composite;
-		for (int factor = 2; factor < factorLimit; factor++) {
-			composite = from / factor;
-			if (composite == 0) composite = 1;
-			composite *= factor;
-			if (composite == from) get[0] = true;
-
-			while ((composite += factor) <= to)
-				get[composite - from] = true;
+		if (n <= 3) {
+			return n > 1;
+		} else if (n % 2 == 0 || n % 3 == 0) {
+			return false;
+		} else {
+			int l = (int) (Math.sqrt(n)) + 1;
+			for (int i = 5; i < l; i += 6) {
+				if (n % i == 0 || n % (i + 2) == 0) {
+					return false;
+				}
+			}
+			return true;
 		}
-
-		int primeCount = 0;
-		for (boolean g : get) if (!g) primeCount++;
-
-		int[] primes = new int[primeCount];
-		for (int i = 0, j = 0; i < get.length; i++)
-			if (!get[i]) primes[j++] = from + i;
-
-		return primes;
 	}
 
 	/**
-	 * 取 [from, to] 内的质数. 传入参数需不小于10且跨度不超过 {@link Integer#MAX_VALUE}/2.
+	 * 判断 n 是否质数.
 	 *
-	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>素数定理</a>
+	 * @see <a href='http://en.wikipedia.org/wiki/Primality_test'>Primality test</a>
 	 */
-	public static long[] genPrime(long from, long to) {
-
-		if (to < from || from < 10 || to - from > Integer.MAX_VALUE / 2)
-			throw new IllegalArgumentException();
-
-		// 第 i 个值表示 i+from 是否合数
-		boolean[] get = new boolean[(int) (to - from + 1)];
-
-		long factorLimit = (long) Math.sqrt(to) + 1;
-		long composite;
-		for (long factor = 2; factor < factorLimit; factor++) {
-			composite = from / factor;
-			if (composite == 0) composite = 1;
-			composite *= factor;
-			if (composite == from) get[0] = true;
-
-			while ((composite += factor) <= to)
-				get[((int) (composite - from))] = true;
+	public static boolean isPrime(long n) {
+		if (n <= 3) {
+			return n > 1;
+		} else if (n % 2 == 0 || n % 3 == 0) {
+			return false;
+		} else {
+			long l = (long) (Math.sqrt(n)) + 1;
+			for (long i = 5; i < l; i += 6) {
+				if (n % i == 0 || n % (i + 2) == 0) {
+					return false;
+				}
+			}
+			return true;
 		}
-
-		int primeCount = 0;
-		for (boolean g : get) if (!g) primeCount++;
-
-		long[] primes = new long[primeCount];
-		for (int i = 0, j = 0; i < get.length; i++)
-			if (!get[i]) primes[j++] = from + i;
-
-		return primes;
 	}
 
 	/**
@@ -116,6 +78,106 @@ public class Math2 {
 		int[] primes = new int[primeCount];
 		for (int i = 2, j = 0; i < get.length; i++)
 			if (!get[i]) primes[j++] = i;
+
+		return primes;
+	}
+
+	/**
+	 * 取 [from, to] 内的质数. 传入参数需不小于10.<br/>
+	 * 使用并行计算, 若计算时间超过30分钟, 将抛异常.
+	 *
+	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>质数定理</a>
+	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
+	 */
+	public static int[] genPrime(final int from, final int to) {
+
+		if (to < from || from < 10)
+			throw new IllegalArgumentException();
+
+		// 第 i 个值表示 i+from 是否合数
+		boolean[] get = new boolean[to - from + 1];
+		int factorLimit = (int) Math.sqrt(to) + 1;
+
+		int parts = Math.min(Runtime.getRuntime().availableProcessors(), factorLimit - 2);
+		int step = (factorLimit - 2) / parts + 1;
+		ForkJoinPool fjp = ForkJoinPool.commonPool();
+
+		for (int factor = 2; factor < factorLimit; factor += step) {
+			int start = factor, end = Math.min(factor + step, factorLimit);
+			fjp.execute(() -> {
+				for (int f = start; f < end; f++) {
+					int composite = from / f;
+					if (composite == 0) composite = 1;
+					composite *= f;
+					if (composite == from) get[0] = true;
+
+					int compositeEnd = to - f;
+					while (composite <= compositeEnd) {
+						composite += f;
+						get[composite - from] = true;
+					}
+				}
+			});
+		}
+		if (!fjp.awaitQuiescence(30, TimeUnit.MINUTES))
+			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
+
+		int primeCount = 0;
+		for (boolean g : get) if (!g) primeCount++;
+
+		int[] primes = new int[primeCount];
+		for (int i = 0, j = 0; i < get.length; i++)
+			if (!get[i]) primes[j++] = from + i;
+
+		return primes;
+	}
+
+	/**
+	 * 取 [from, to] 内的质数. 传入参数需不小于10且跨度不超过 {@link Integer#MAX_VALUE}/2.<br/>
+	 * 使用并行计算, 若计算时间超过30分钟, 将抛异常.
+	 *
+	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>质数定理</a>
+	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
+	 */
+	public static long[] genPrime(final long from, final long to) {
+
+		if (to < from || from < 10 || to - from > Integer.MAX_VALUE / 2)
+			throw new IllegalArgumentException();
+
+		// 第 i 个值表示 i+from 是否合数
+		boolean[] get = new boolean[(int) (to - from + 1)];
+		long factorLimit = (long) Math.sqrt(to) + 1;
+
+		int parts = (int) Math.min(Runtime.getRuntime().availableProcessors(), factorLimit - 2);
+		long step = (factorLimit - 2) / parts + 1;
+		ForkJoinPool fjp = ForkJoinPool.commonPool();
+
+		for (long factor = 2; factor < factorLimit; factor += step) {
+			long start = factor, end = Math.min(factor + step, factorLimit);
+			fjp.execute(() -> {
+				for (long f = start; f < end; f++) {
+					long composite = from / f;
+					if (composite == 0) composite = 1;
+					composite *= f;
+					if (composite == from) get[0] = true;
+
+					long compositeEnd = to - f;
+					while (composite <= compositeEnd) {
+						composite += f;
+						get[((int) (composite - from))] = true;
+					}
+				}
+			});
+		}
+		if (!fjp.awaitQuiescence(30, TimeUnit.MINUTES))
+			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
+
+		int primeCount = 0;
+		for (boolean g : get) if (!g) primeCount++;
+
+		long[] primes = new long[primeCount];
+		for (int i = 0, j = 0; i < get.length; i++)
+			if (!get[i]) primes[j++] = from + i;
 
 		return primes;
 	}

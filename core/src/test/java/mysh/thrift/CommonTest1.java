@@ -11,7 +11,7 @@ import org.junit.Test;
  * @author Mysh
  * @since 2014/11/11 1:39
  */
-public class CommonTest {
+public class CommonTest1 {
 	@Test
 	public void server() {
 		try {
