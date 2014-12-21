@@ -353,11 +353,8 @@ class Worker implements IWorker {
 				else
 					log.error("sub-task exec error:" + this.toString(), e);
 			} finally {
-				// terminate user threads
-				if (cUser.userThreads != null)
-					for (Thread t : cUser.userThreads) {
-						t.interrupt();
-					}
+				// close cluster user and release resources
+				cUser.closeAndRelease();
 			}
 		}
 

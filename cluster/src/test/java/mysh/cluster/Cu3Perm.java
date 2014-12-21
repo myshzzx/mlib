@@ -3,7 +3,7 @@ package mysh.cluster;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.*;
 
 /**
  * @author Mysh
@@ -12,7 +12,6 @@ import java.util.concurrent.CountDownLatch;
 public class Cu3Perm extends IClusterUser<String, String, String, String> {
 	@Override
 	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
-		test();
 		return pack(new String[1], null);
 	}
 
@@ -60,6 +59,27 @@ public class Cu3Perm extends IClusterUser<String, String, String, String> {
 			t.setPriority(1);
 			l.countDown();
 			t.join();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		try {
+			ForkJoinPool fjp = ForkJoinPool.commonPool();
+			fjp.submit(() -> System.out.println("ForkJoinPool common success"));
+			fjp.submit(() -> System.out.println("ForkJoinPool common success"));
+			fjp.awaitQuiescence(1, TimeUnit.MINUTES);
+
+			fjp = new ForkJoinPool(3);
+			fjp.submit(() -> System.out.println("ForkJoinPool custom success"));
+			fjp.awaitQuiescence(1, TimeUnit.MINUTES);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		try {
+			ExecutorService exec = Executors.newFixedThreadPool(2);
+			exec.submit(() -> System.out.println("thread pool success"));
+			exec.shutdown();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

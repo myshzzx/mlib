@@ -43,7 +43,7 @@ public class ClusterTest2 {
 		while (true) {
 			Thread.sleep(3000);
 			long start = System.nanoTime();
-			assertEquals(new Integer(a.length), c.runTask(sumUser, a, 30000, 0));
+			assertEquals(new Integer(a.length), c.runTask(null, sumUser, a, 30000, 0));
 			System.out.println("cost time: " + (System.nanoTime() - start) / 1000_000);
 		}
 	}

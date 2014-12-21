@@ -64,6 +64,7 @@ public final class ClusterClient implements Closeable {
 	/**
 	 * run task in cluster.
 	 *
+	 * @param ns             execute within this namespace. it's used for resource access control.
 	 * @param cUser          task define.
 	 * @param task           task data.
 	 * @param timeout        task execution timeout(milli-second).
@@ -72,12 +73,13 @@ public final class ClusterClient implements Closeable {
 	 *                       but throwing {@link ClusterExp.Unready} immediately if cluster is not ready.
 	 * @param subTaskTimeout suggested subTask execution timeout,
 	 *                       obeying it or not depends on the implementation of cUser.
+	 * @return execution result.
 	 * @throws mysh.cluster.ClusterExp        exceptions from cluster, generally about cluster
 	 *                                        status and task status.
 	 * @throws java.lang.InterruptedException current thread interrupted.
 	 * @throws java.lang.Throwable            other exceptions.
 	 */
-	public <T, ST, SR, R> R runTask(final IClusterUser<T, ST, SR, R> cUser, final T task,
+	public <T, ST, SR, R> R runTask(final String ns, IClusterUser<T, ST, SR, R> cUser, T task,
 	                                final int timeout, final int subTaskTimeout) throws Throwable {
 
 		if (this.service == null && timeout < 0) {
@@ -102,7 +104,7 @@ public final class ClusterClient implements Closeable {
 				break;
 
 			try {
-				return cs.getClient().runTask(cUser, task, leftTime, subTaskTimeout);
+				return cs.getClient().runTask(ns, cUser, task, leftTime, subTaskTimeout);
 			} catch (Throwable e) {
 				log.debug("client run cluster task error.", e);
 				if (isClusterUnready(e)) {
@@ -246,7 +248,7 @@ public final class ClusterClient implements Closeable {
 	 * @param wsClass worker state class. if <code>null</code>, use default class.
 	 */
 	public <WS extends WorkerState> Map<String, WS> mgrGetWorkerStates(Class<WS> wsClass) throws Throwable {
-		return runTask(new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
+		return runTask(null, new MgrGetWorkerStates<>(wsClass), null, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
 	private final MgrCancelTask cancelTaskUser = new MgrCancelTask();
@@ -255,7 +257,7 @@ public final class ClusterClient implements Closeable {
 	 * request cancel task by taskId.
 	 */
 	public void mgrCancelTask(int taskId) throws Throwable {
-		runTask(cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
+		runTask(null, cancelTaskUser, taskId, ClusterNode.NETWORK_TIMEOUT, 0);
 	}
 
 	public static class UpdateFile {
@@ -309,7 +311,7 @@ public final class ClusterClient implements Closeable {
 		boolean hasFailure = false;
 		for (UpdateFile uf : ufs) {
 			try {
-				runTask(new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
+				runTask(null, new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
 								(uf.file != null ? Files.readAllBytes(uf.file.toPath()) : null)), null, uf.timeout, 0);
 			} catch (Throwable e) {
 				if (isClusterUnready(e))
@@ -348,7 +350,7 @@ public final class ClusterClient implements Closeable {
 	 *               {@link SRTarget#EntireCluster} or {@link SRTarget#MasterOnly}.
 	 */
 	public void mgrShutdownRestart(SRType srType, SRTarget target, List<String> nodes) throws Throwable {
-		runTask(new MgrShutdownRestart(srType, target, nodes), null, 60_000, 0);
+		runTask(null, new MgrShutdownRestart(srType, target, nodes), null, 60_000, 0);
 	}
 
 }

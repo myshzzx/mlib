@@ -3,7 +3,10 @@ grant codeBase "file:main/core/-" {
 };
 
 grant codeBase "file:main/user/-" {
-  permission java.net.SocketPermission "*", "connect";
+  permission java.net.SocketPermission "*:21", "connect";
+  permission java.net.SocketPermission "*:80", "connect";
+  permission java.net.SocketPermission "*:443", "connect";
+  permission java.net.SocketPermission "*:65000-", "connect";
   permission java.util.PropertyPermission "*", "read";
 };
 

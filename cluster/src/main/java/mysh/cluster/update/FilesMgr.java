@@ -31,8 +31,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class FilesMgr implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(FilesMgr.class);
 
-	private static final String mainDir = "main";
-	private static final String updateDir = "update";
+	public static final String mainDir = "main";
+	public static final String updateDir = "update";
+	public static final String workDir = "work";
 
 	public static enum FileType {
 		/**
@@ -60,6 +61,7 @@ public class FilesMgr implements Closeable {
 		new File(mainDir, FileType.CORE.dir).mkdirs();
 		new File(mainDir, FileType.USER.dir).mkdirs();
 		new File(updateDir, FileType.CORE.dir).mkdirs();
+		new File(workDir).mkdirs();
 	}
 
 	public final Serializer.ClassLoaderFetcher clFetcher = () -> FilesMgr.this.cl;

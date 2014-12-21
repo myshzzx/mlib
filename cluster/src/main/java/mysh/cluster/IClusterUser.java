@@ -3,10 +3,15 @@ package mysh.cluster;
 
 import mysh.annotation.GuardedBy;
 import mysh.annotation.Nullable;
+import mysh.cluster.update.FilesMgr;
+import mysh.util.ExpUtil;
 
-import java.io.Serializable;
+import java.io.*;
 import java.lang.reflect.Array;
+import java.security.*;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Cluster user.<p>
@@ -161,19 +166,175 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 		return s;
 	}
 
+	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(0);
+	private volatile boolean isClosed = false;
+
+	/**
+	 * close current cluster user, and release registered resources.
+	 * limited resources are not accessible after this invoking.
+	 */
+	synchronized void closeAndRelease() {
+		isClosed = true;
+		ns = null;
+		filesPerm = null;
+
+		if (userThreads != null) {
+			for (Thread t : userThreads) {
+				if (t.isAlive()) t.interrupt();
+			}
+			if (userThreads.size() > 0)
+				scheduler.schedule(() -> {
+					for (Thread t : userThreads) {
+						t.stop();
+					}
+				}, 1, TimeUnit.MINUTES);
+		}
+	}
+
 	/**
 	 * user created threads.
 	 */
 	@GuardedBy("this")
-	transient List<Thread> userThreads;
+	private transient Queue<Thread> userThreads;
+	@GuardedBy("this")
+	private transient AtomicInteger userThreadCount;
 
 	/**
-	 * register user created threads so that they can be interrupted when task is being canceled.<br/>
-	 * WARNING: the thread should react when interrupted so that they can be terminated graciously.
+	 * create a thread factory. <br/>
+	 * make sure all created threads are terminated after process finished
+	 * (on return of {@link #procSubTask} or {@link mysh.cluster.IMaster#runTask}),
+	 * or at least react for interruption so that they can be terminated graciously,
+	 * because all threads will be interrupted then, and forced stopped in 1 minute after interruption.
 	 */
-	protected synchronized void regUserThread(Thread t) {
-		if (userThreads == null) userThreads = new ArrayList<>();
-		userThreads.add(t);
+	protected synchronized ThreadFactory threadFactory() {
+		nsCheck();
+		if (userThreads == null) userThreads = new ConcurrentLinkedQueue<>();
+		if (userThreadCount == null) userThreadCount = new AtomicInteger(1);
+		return r -> {
+			Thread t = AccessController.doPrivileged(
+							(PrivilegedAction<Thread>) () -> {
+								Thread tt = new Thread(r, "user-" + ns + "-" + userThreadCount.getAndIncrement());
+								tt.setPriority(Thread.NORM_PRIORITY - 2);
+								tt.setDaemon(true);
+								return tt;
+							});
+			userThreads.offer(t);
+			if (!isClosed) {
+				return t;
+			} else
+				throw new RuntimeException("cluster user has been closed.");
+		};
+	}
+
+	private volatile String ns;
+	private transient String workDir;
+	private transient Permission filesPerm;
+	private transient Permission folderPerm;
+
+	/**
+	 * set namespace of current clusterUser instance.<br/>
+	 * it's used for resource access control.
+	 */
+	final void setNamespace(String ns) {
+		this.ns = ns;
+	}
+
+	private void nsCheck() {
+		if (isClosed)
+			throw new RuntimeException("cluster user has been closed.");
+		if (ns == null)
+			throw new AccessControlException("access denied (namespace not given)");
+	}
+
+	/**
+	 * prepare permission and get current working folder.
+	 */
+	private String chkAndGetWorkDir() {
+		nsCheck();
+
+		if (workDir == null) {
+			workDir = FilesMgr.workDir + "/" + ns + "/";
+
+			AccessController.doPrivileged((PrivilegedAction) () -> {
+				File dir = new File(workDir);
+				if (!dir.exists()) dir.mkdirs();
+				return null;
+			});
+		}
+
+		if (filesPerm == null) {
+			filesPerm = new FilePermission(FilesMgr.workDir + "/" + ns + "/-",
+							"read,write,delete,readlink");
+			folderPerm = new FilePermission(FilesMgr.workDir + "/" + ns, "read,readlink");
+		}
+		return workDir;
+	}
+
+	/**
+	 * get file that user can access.
+	 *
+	 * @param path file path related to work dir.
+	 */
+	protected final File fileGet(String path) {
+		String wd = chkAndGetWorkDir();
+		return new File(wd + path);
+	}
+
+	/**
+	 * get file input stream.
+	 */
+	protected final FileInputStream fileIn(File f) {
+		try {
+			return AccessController.doPrivileged(
+							(PrivilegedExceptionAction<FileInputStream>) () ->
+											new FileInputStream(f), null, filesPerm, folderPerm);
+		} catch (PrivilegedActionException e) {
+			throw ExpUtil.unchecked(e);
+		}
+	}
+
+	/**
+	 * get file input stream.
+	 */
+	protected final FileOutputStream fileOut(File f) {
+		try {
+			return AccessController.doPrivileged(
+							(PrivilegedExceptionAction<FileOutputStream>) () -> {
+								if (!f.getParentFile().exists())
+									f.getParentFile().mkdirs();
+								return new FileOutputStream(f);
+							}, null, filesPerm, folderPerm);
+		} catch (PrivilegedActionException e) {
+			throw ExpUtil.unchecked(e);
+		}
+	}
+
+	/**
+	 * delete file or folder.
+	 */
+	protected final void fileDelete(File f) {
+		try {
+			AccessController.doPrivileged(
+							(PrivilegedExceptionAction<Object>) () -> {
+								f.delete();
+								return null;
+							}, null, filesPerm, folderPerm);
+		} catch (PrivilegedActionException e) {
+			throw ExpUtil.unchecked(e);
+		}
+	}
+
+	/**
+	 * list child.
+	 */
+	protected final File[] fileList(File parent, FileFilter filter) {
+		try {
+			return AccessController.doPrivileged(
+							(PrivilegedExceptionAction<File[]>) () -> parent.listFiles(filter),
+							null, filesPerm, folderPerm);
+		} catch (PrivilegedActionException e) {
+			throw ExpUtil.unchecked(e);
+		}
 	}
 
 

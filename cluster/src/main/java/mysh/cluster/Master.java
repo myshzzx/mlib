@@ -329,8 +329,8 @@ class Master implements IMaster {
 	}
 
 	@Override
-	public <T, ST, SR, R> R runTask(IClusterUser<T, ST, SR, R> cUser, T task, int timeout, int subTaskTimeout)
-					throws Throwable {
+	public <T, ST, SR, R> R runTask(String ns, IClusterUser<T, ST, SR, R> cUser, T task, int timeout,
+	                                int subTaskTimeout) throws Throwable {
 		if (!isMaster)
 			throw notMasterExp == null ?
 							(notMasterExp = new ClusterExp.NotMaster()) : notMasterExp;
@@ -344,48 +344,55 @@ class Master implements IMaster {
 
 		final Integer taskId = taskIdGen.incrementAndGet();
 		if (taskId > Integer.MAX_VALUE / 2) taskIdGen.compareAndSet(taskId, 0);
-		log.info("task add, id=" + taskId + ", cUser=" + cUser + ", task=" + task);
 
-		if (cUser instanceof IClusterMgr) {
-			((IClusterMgr) cUser).master = this;
+		try {
+			log.info("task(" + taskId + ") added, cUser=" + cUser + ", task=" + task);
+
+			cUser.setNamespace(ns);
+			if (cUser instanceof IClusterMgr) {
+				((IClusterMgr) cUser).master = this;
+			}
+
+			IClusterUser.SubTasksPack<ST> sTasks =
+							cUser.fork(task, this.id, new ArrayList<>(workersCache.keySet()));
+			Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
+
+			TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
+							System.currentTimeMillis(), timeout, subTaskTimeout, sTasks.getReferredNodeIds());
+			this.taskInfoTable.put(taskId, ti);
+
+			int subTaskCount = sTasks.getSubTasks().length;
+			for (int i = 0; i < subTaskCount; i++)
+				this.subTasks.add(new SubTask(ti, i));
+
+			if (timeout <= 0)
+				ti.completeLatch.await();
+			else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS)) { // timeout
+				cancelTask(ti.taskId, null);
+				throw taskTimeoutExp == null ?
+								(taskTimeoutExp = new ClusterExp.TaskTimeout()) : taskTimeoutExp;
+			}
+
+			this.taskInfoTable.remove(taskId);
+
+			if (ti.unfinishedTask.get() > 0) {// check if task is canceled or sub-task throws exp
+				if (ti.exp.get() != null)
+					throw ti.exp.get();
+				throw taskCanceledExp == null ?
+								(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
+			}
+
+			final R taskResult = cUser.join(this.id, ti.assignedNodeIds, ti.results);
+
+			log.info("task(" + taskId + ") returns successfully.");
+			return taskResult;
+		} catch (Throwable e) {
+			log.info("task(" + taskId + ") returns with exception, exp=" + e);
+			throw e;
+		} finally {
+			// close cluster user and release resources
+			cUser.closeAndRelease();
 		}
-
-		IClusterUser.SubTasksPack<ST> sTasks =
-						cUser.fork(task, this.id, new ArrayList<>(workersCache.keySet()));
-		Objects.requireNonNull(sTasks, "IClusterUser.fork return NULL value.");
-
-		TaskInfo<T, ST, SR, R> ti = new TaskInfo<>(taskId, cUser, sTasks.getSubTasks(),
-						System.currentTimeMillis(), timeout, subTaskTimeout, sTasks.getReferredNodeIds());
-		this.taskInfoTable.put(taskId, ti);
-
-		int subTaskCount = sTasks.getSubTasks().length;
-		for (int i = 0; i < subTaskCount; i++)
-			this.subTasks.add(new SubTask(ti, i));
-
-		if (timeout <= 0)
-			ti.completeLatch.await();
-		else if (!ti.completeLatch.await(timeout, TimeUnit.MILLISECONDS)) { // timeout
-			cancelTask(ti.taskId, null);
-			throw taskTimeoutExp == null ?
-							(taskTimeoutExp = new ClusterExp.TaskTimeout()) : taskTimeoutExp;
-		}
-
-		this.taskInfoTable.remove(taskId);
-
-		if (ti.unfinishedTask.get() > 0) {// check if task is canceled or sub-task throws exp
-			if (ti.exp.get() != null)
-				throw ti.exp.get();
-			throw taskCanceledExp == null ?
-							(taskCanceledExp = new ClusterExp.TaskCanceled()) : taskCanceledExp;
-		}
-
-		final R taskResult = cUser.join(this.id, ti.assignedNodeIds, ti.results);
-		if (cUser.userThreads != null) // terminate user threads
-			for (Thread t : cUser.userThreads)
-				t.interrupt();
-
-		log.info("task return, id=" + taskId);
-		return taskResult;
 	}
 
 	/**
