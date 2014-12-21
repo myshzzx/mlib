@@ -106,11 +106,12 @@ public class Math2Test {
 		long from, to;
 		from = 10;
 		to = 1_000_000;
-		checkPrimeLong(from, to, Math2.genPrime(from, to));
+		long[] ps = Math2.genPrime(from, to);
+		checkPrimeLong(from, to, ps);
 
 		from = Long.MAX_VALUE - 1000;
 		to = Long.MAX_VALUE;
-		long[] ps = Math2.genPrime(from, to);
+		ps = Math2.genPrime(from, to);
 		System.out.println(Arrays.toString(ps));
 
 		ps = Math2.genPrime(9223372036854775139L, 9223372036854775139L);

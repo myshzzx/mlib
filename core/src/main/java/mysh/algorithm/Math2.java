@@ -95,6 +95,7 @@ public class Math2 {
 			throw new IllegalArgumentException();
 
 		// 第 i 个值表示 i+from 是否合数
+		int getLen = to - from + 1;
 		boolean[] get = new boolean[to - from + 1];
 		int factorLimit = (int) Math.sqrt(to) + 1;
 
@@ -102,6 +103,7 @@ public class Math2 {
 		int step = (factorLimit - 2) / parts + 1;
 		ForkJoinPool fjp = ForkJoinPool.commonPool();
 
+		final int maxInt = Integer.MAX_VALUE;
 		for (int factor = 2; factor < factorLimit; factor += step) {
 			int start = factor, end = Math.min(factor + step, factorLimit);
 			fjp.execute(() -> {
@@ -110,15 +112,20 @@ public class Math2 {
 						continue;
 					}
 
-					int composite = from / f;
-					if (composite == 0) composite = 1;
-					composite *= f;
-					if (composite == from) get[0] = true;
+					int offset, modF;
+					if (f >= from)
+						offset = f * 2 - from;
+					else if ((modF = from % f) == 0)
+						offset = 0;
+					else
+						offset = f - modF;
 
-					int compositeEnd = to - f;
-					while (composite <= compositeEnd) {
-						composite += f;
-						get[composite - from] = true;
+					if (offset >= getLen) continue;
+					int offsetEnd = maxInt - f;
+					while (offset < getLen) {
+						get[offset] = true;
+						if (offset > offsetEnd) break;
+						offset += f;
 					}
 				}
 			});
@@ -149,13 +156,15 @@ public class Math2 {
 			throw new IllegalArgumentException();
 
 		// 第 i 个值表示 i+from 是否合数
-		boolean[] get = new boolean[(int) (to - from + 1)];
+		int getLen = (int) (to - from + 1);
+		boolean[] get = new boolean[getLen];
 		long factorLimit = (long) Math.sqrt(to) + 1;
 
 		int parts = (int) Math.min(Runtime.getRuntime().availableProcessors(), factorLimit - 2);
 		long step = (factorLimit - 2) / parts + 1;
 		ForkJoinPool fjp = ForkJoinPool.commonPool();
 
+		final long maxInt = Integer.MAX_VALUE;
 		for (long factor = 2; factor < factorLimit; factor += step) {
 			long start = factor, end = Math.min(factor + step, factorLimit);
 			fjp.execute(() -> {
@@ -164,15 +173,21 @@ public class Math2 {
 						continue;
 					}
 
-					long composite = from / f;
-					if (composite == 0) composite = 1;
-					composite *= f;
-					if (composite == from) get[0] = true;
+					long offsetLong, modF;
+					if (f >= from)
+						offsetLong = f * 2 - from;
+					else if ((modF = from % f) == 0)
+						offsetLong = 0;
+					else
+						offsetLong = f - modF;
 
-					long compositeEnd = to - f;
-					while (composite <= compositeEnd) {
-						composite += f;
-						get[((int) (composite - from))] = true;
+					if (offsetLong >= getLen) continue;
+					int offset = (int) offsetLong;
+					int offsetEnd = (int) (maxInt - f);
+					while (offset < getLen) {
+						get[offset] = true;
+						if (offset > offsetEnd) break;
+						offset += f;
 					}
 				}
 			});
