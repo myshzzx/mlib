@@ -42,7 +42,7 @@ public class ClusterConf implements Serializable {
 	 * when update files. can be 0.<br/>
 	 * see {@link mysh.thrift.ThriftServerFactory#setServerPoolSize}
 	 */
-	int serverPoolSize = 0;
+	int serverPoolSize = 20;
 	private static final String _serverPoolSize = "serverPoolSize";
 	/**
 	 * heart beat interval time in milliseconds.
@@ -91,5 +91,14 @@ public class ClusterConf implements Serializable {
 		} catch (IOException e) {
 			log.error("save cluster conf error.", e);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "ClusterConf{" +
+						"cmdPort=" + cmdPort +
+						", serverPoolSize=" + serverPoolSize +
+						", heartBeatTime=" + heartBeatTime +
+						'}';
 	}
 }

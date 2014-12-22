@@ -75,4 +75,10 @@ public class ClusterMgrTest1 {
 
 	}
 
+	@Test
+	public void updateConf1() throws Throwable {
+		ClusterClient c = new ClusterClient(8030);
+
+		c.mgrUpdateConf(-1, -1, 25);
+	}
 }

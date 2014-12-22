@@ -1,6 +1,5 @@
 package mysh.cluster;
 
-
 import mysh.annotation.GuardedBy;
 import mysh.annotation.Nullable;
 import mysh.cluster.update.FilesMgr;
@@ -167,7 +166,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 	}
 
 	private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(0);
-	private volatile boolean isClosed = false;
+	private transient volatile boolean isClosed = false;
 
 	/**
 	 * close current cluster user, and release registered resources.
