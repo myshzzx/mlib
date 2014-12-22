@@ -13,7 +13,7 @@ rd /s /q update
 set CLUSTER_CP=.\main\core\
 for %%F in (.\main\core\*.jar) do call :cp %%F
 @echo on
-java -cp %CLUSTER_CP% -Dfile.encoding=UTF-8 -Djava.security.manager=mysh.cluster.ClusterSecMgr -Djava.security.policy=main/core/permission.txt mysh.cluster.starter.ClusterStart
+java -cp %CLUSTER_CP% -Xms100m -Dfile.encoding=UTF-8 -Djava.security.manager=mysh.cluster.ClusterSecMgr -Djava.security.policy=main/core/permission.txt mysh.cluster.starter.ClusterStart
 
 goto :EOF
 
