@@ -87,6 +87,12 @@ public class ClusterNode {
 	 * @throws Throwable fail to bind UDP port, or no available network interface.
 	 */
 	public ClusterNode(ClusterConf conf) throws Throwable {
+		try {
+			OSUtil.changePriority(OSUtil.getPid(), OSUtil.OsProcPriority.BelowNormal);
+		} catch (Throwable e) {
+			log.info("change process failed.", e);
+		}
+
 		this.id = conf.id;
 		this.cmdPort = conf.cmdPort;
 

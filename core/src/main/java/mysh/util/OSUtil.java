@@ -105,4 +105,38 @@ public class OSUtil {
 		System.exit(0);
 	}
 
+	public static enum OsProcPriority {
+		VeryHigh("real time", "-20"),
+		High("high priority", "-12"),
+		AboveNormal("above normal", "-5"),
+		Normal("normal", "0"),
+		BelowNormal("below normal", "5"),
+		VeryLow("idle", "19");
+
+		String win;
+		String linux;
+
+		OsProcPriority(String win, String linux) {
+			this.win = win;
+			this.linux = linux;
+		}
+	}
+
+	/**
+	 * change process priority.
+	 * Windows: wmic process where ProcessId=2547 CALL setpriority "xxx"
+	 * Linux: renice -p 3534 -n -19
+	 */
+	public static void changePriority(int pid, OsProcPriority priority) throws IOException {
+		String cmd;
+		switch (getOS()) {
+			case Windows:
+				cmd = "wmic process where ProcessId=" + pid + " CALL setpriority \"" + priority.win + "\"";
+				break;
+			default:
+				cmd = "renice -n " + priority.linux + " -p " + pid;
+		}
+		log.debug("change priority: " + cmd);
+		Runtime.getRuntime().exec(cmd);
+	}
 }
