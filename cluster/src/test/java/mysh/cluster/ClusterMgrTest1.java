@@ -72,7 +72,6 @@ public class ClusterMgrTest1 {
 		ufs.add(new ClusterClient.UpdateFile(UpdateType.DELETE, "a.jar", new File("l:/a.jar")));
 
 		c.mgrUpdateFile(FileType.USER, "test", ufs);
-
 	}
 
 	@Test

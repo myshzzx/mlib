@@ -10,7 +10,6 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.Charset;
@@ -33,21 +32,6 @@ public class FilesMgr implements Closeable {
 	public static final String mainDir = "main";
 	public static final String updateDir = "update";
 	public static final String workDir = "work";
-
-	/**
-	 * check namespace. namespace can be null, or consists of [a-zA-Z0-9\.-_].
-	 */
-	public static void checkNs(String ns) {
-		if (ns != null) {
-			if (ns.length() == 0)
-				throw new IllegalArgumentException("namespace can't be blank string");
-			for (int i = 0; i < ns.length(); i++) {
-				char c = ns.charAt(i);
-				if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '.' || c == '-' || c == '_'))
-					throw new IllegalArgumentException("illegal character in namespace: [" + c + "]");
-			}
-		}
-	}
 
 	public static enum FileType {
 		/**
@@ -77,12 +61,14 @@ public class FilesMgr implements Closeable {
 			else if (USER.dir.equals(name))
 				return USER;
 			else
-				throw new IllegalArgumentException("unknown name: " + name);
+				throw new IllegalArgumentException("unknown fileType name: " + name);
 		}
+
 	}
 
 	public static enum UpdateType {
 		UPDATE, DELETE;
+
 	}
 
 	static {
@@ -102,10 +88,11 @@ public class FilesMgr implements Closeable {
 	public FilesMgr() throws IOException {
 		curr.filesTsMap = new HashMap<>();
 
-		Files.walk(Paths.get(mainDir), 3).forEach(p -> {
+		Path mainPath = Paths.get(mainDir);
+		Files.walk(mainPath, 3).forEach(p -> {
 			if (!p.toFile().isFile()) return;
 			try {
-				final String name = p.toString().replace('\\', '/');
+				final String name = mainPath.relativize(p).toString().replace('\\', '/');
 				final String sha = getThumbStamp(Files.readAllBytes(p));
 				curr.filesTsMap.put(name, sha);
 			} catch (Throwable e) {
@@ -135,16 +122,17 @@ public class FilesMgr implements Closeable {
 				renewCl(tNs);
 		} else { // renew specified namespace class loader
 			ArrayList<URL> urls = new ArrayList<>();
-			for (String dir : userLibDirs)
-				Files.walk(Paths.get(mainDir, dir, ns), 1).forEach(p -> {
-					try {
-						File file = p.toFile();
-						if (file.isFile() && file.getName().endsWith(".jar"))
-							urls.add(new URL("jar:file:///" + file.getAbsolutePath() + "!/"));
-					} catch (MalformedURLException e) {
-						log.error("get file url error:" + p, e);
-					}
-				});
+			for (String dir : userLibDirs) {
+				File nsDir = Paths.get(mainDir, dir, ns).toFile();
+				if (nsDir.exists() && nsDir.isDirectory()) {
+					File[] children = nsDir.listFiles();
+					if (children != null)
+						for (File file : children) {
+							if (file.isFile() && file.getName().endsWith(".jar"))
+								urls.add(new URL("jar:file:///" + file.getAbsolutePath() + "!/"));
+						}
+				}
+			}
 			URLClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
 			loaders.put(ns, cl);
 		}
@@ -221,7 +209,7 @@ public class FilesMgr implements Closeable {
 			if (type == FileType.CORE) {
 				if (ns != null)
 					throw new IllegalArgumentException("namespace should be null");
-				Files.write(Paths.get(updateDir, type.dir, fileName), ctx);
+				writeFile(Paths.get(updateDir, type.dir, fileName), ctx);
 			} else if (type == FileType.USER || type == FileType.SU) {
 				if (ns == null)
 					throw new IllegalArgumentException("namespace can't be null");
@@ -230,7 +218,7 @@ public class FilesMgr implements Closeable {
 					ClassLoader oldCl = loaders.get(ns);
 					if (oldCl instanceof Closeable) ((Closeable) oldCl).close();
 
-					Files.write(Paths.get(mainDir, type.dir, ns, fileName), ctx);
+					writeFile(Paths.get(mainDir, type.dir, ns, fileName), ctx);
 
 					// update files info
 					String fileKey = type.dir + '/' + ns + '/' + fileName;
@@ -248,6 +236,11 @@ public class FilesMgr implements Closeable {
 		} finally {
 			fileLock.writeLock().unlock();
 		}
+	}
+
+	private static void writeFile(Path p, byte[] ctx) throws IOException {
+		p.toFile().getParentFile().mkdirs();
+		Files.write(p, ctx);
 	}
 
 	private static void checkFileName(String fileName) {
@@ -337,5 +330,20 @@ public class FilesMgr implements Closeable {
 			return new String[]{"startCluster.bat", pid};
 		else
 			return new String[]{"/bin/sh", "startCluster.sh", pid};
+	}
+
+	/**
+	 * check namespace. namespace can be null, or consists of [a-zA-Z0-9\.-_].
+	 */
+	public static void checkNs(String ns) {
+		if (ns != null) {
+			if (ns.length() == 0)
+				throw new IllegalArgumentException("namespace can't be blank string");
+			for (int i = 0; i < ns.length(); i++) {
+				char c = ns.charAt(i);
+				if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '.' || c == '-' || c == '_'))
+					throw new IllegalArgumentException("illegal character in namespace: [" + c + "]");
+			}
+		}
 	}
 }

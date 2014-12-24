@@ -1,4 +1,12 @@
+// http://docs.oracle.com/javase/8/docs/technotes/guides/security/PolicyFiles.html
+// http://docs.oracle.com/javase/8/docs/technotes/guides/security/spec/security-spec.doc3.html
+// http://docs.oracle.com/javase/tutorial/security/userperm/index.html
+
 grant codeBase "file:main/core/-" {
+  permission java.security.AllPermission;
+};
+
+grant codeBase "file:main/su/-" {
   permission java.security.AllPermission;
 };
 

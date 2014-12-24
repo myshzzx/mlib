@@ -1,10 +1,9 @@
 package mysh.cluster.update;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -13,6 +12,7 @@ import java.security.ProtectionDomain;
 public class FilesMgrTest {
 
 	@Test
+	@Ignore
 	public void file1() throws IOException {
 		System.setSecurityManager(new SecurityManager());
 
@@ -30,6 +30,7 @@ public class FilesMgrTest {
 	}
 
 	@Test
+	@Ignore
 	public void file2(){
 		System.setSecurityManager(new SecurityManager());
 
@@ -42,9 +43,4 @@ public class FilesMgrTest {
 	}
 
 
-	public static void main(String[] args) {
-		Path p1 = Paths.get("c:\\a\\b");
-		Path rp = p1.relativize(Paths.get("a/b/c").toAbsolutePath());
-		System.out.println(rp);
-	}
 }

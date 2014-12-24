@@ -34,7 +34,7 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 
 		if (fileType == FileType.CORE) {
 			return pack(emptyArray, emptyArray);
-		} else if (fileType == FileType.USER) {
+		} else if (fileType == FileType.USER || fileType == FileType.SU) {
 			workerNodes.remove(masterNode);
 			return pack(new String[workerNodes.size()], workerNodes.toArray(new String[workerNodes.size()]));
 		} else

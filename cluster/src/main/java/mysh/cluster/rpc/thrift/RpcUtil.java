@@ -46,7 +46,8 @@ public class RpcUtil {
 		ThriftServerFactory f = new ThriftServerFactory();
 		f.setServerHost("0.0.0.0");
 		f.setServerPort(port);
-		f.setProcessor(new TClusterService.Processor<>(wrapService(svIf, sv, loaders)));
+		f.setProcessor(new TClusterService.Processor<>(
+						wrapService(svIf, sv, loaders == null ? new HashMap<>() : loaders)));
 		f.setServerEventHandler(eventHandler);
 		f.setServerPoolSize(poolSize);
 		return f.build();
@@ -81,7 +82,7 @@ public class RpcUtil {
 	 * @param <I> client interface type.
 	 */
 	public static <I> IFaceHolder<I> getClient(
-					Class<I> svIf, String svHost, int svPort, int soTimeout, Map<String, ClassLoader> loader) throws Throwable {
+					Class<I> svIf, String svHost, int svPort, int soTimeout, Map<String, ClassLoader> loaders) throws Throwable {
 		ThriftClientFactory.Config<TClusterService.Iface> conf = new ThriftClientFactory.Config<>();
 		conf.setServerHost(svHost);
 		conf.setServerPort(svPort);
@@ -90,12 +91,12 @@ public class RpcUtil {
 		conf.setTClientClass(TClusterService.Client.class);
 		ThriftClientFactory<TClusterService.Iface> f = new ThriftClientFactory<>(conf);
 		ClientHolder<TClusterService.Iface> ch = f.buildPooled();
-		return wrapSyncClient(svIf, ch, loader);
+		return wrapSyncClient(svIf, ch, loaders == null ? new HashMap<>() : loaders);
 	}
 
 	@SuppressWarnings("unchecked")
 	private static <I> IFaceHolder<I> wrapSyncClient(
-					Class<I> svIf, ClientHolder<TClusterService.Iface> ch, Map<String, ClassLoader> loader) {
+					Class<I> svIf, ClientHolder<TClusterService.Iface> ch, Map<String, ClassLoader> loaders) {
 		return new IFaceHolder<>(
 						(I) Proxy.newProxyInstance(
 										svIf.getClassLoader(),
@@ -110,7 +111,7 @@ public class RpcUtil {
 
 											ByteBuffer result = ch.getClient().invokeSvMethod(
 															ns, methodName, serialize(args));
-											Serializable sr = unSerialize(result, ns == null ? null : loader.get(ns));
+											Serializable sr = unSerialize(result, ns == null ? null : loaders.get(ns));
 											if (sr instanceof Throwable) throw (Throwable) sr;
 											else return sr;
 										}),

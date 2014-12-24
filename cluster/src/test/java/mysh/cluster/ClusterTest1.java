@@ -29,7 +29,7 @@ public class ClusterTest1 {
 	@Test
 	public void t3() throws Throwable {
 		ClusterClient c = new ClusterClient(cmdPort);
-		final String r = c.runTask("cu4", new Cu4Perm(), null, 10000, 0);
+		final String r = c.runTask("test", new Cu4Perm(), null, 10000, 0);
 		System.out.println(r);
 	}
 
