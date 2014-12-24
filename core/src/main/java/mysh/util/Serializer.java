@@ -109,7 +109,7 @@ public abstract class Serializer {
 		@SuppressWarnings("unchecked")
 		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length, ClassLoader cl) {
 			final DefaultCoder c = getCoder();
-			c.getConf().setClassLoader(cl);
+			c.getConf().setClassLoader(cl == null ? getClass().getClassLoader() : cl);
 			return (T) c.toObject(b, offset, length);
 		}
 	};

@@ -69,7 +69,7 @@ public class FilesMgr implements Closeable {
 			this.dir = dir;
 		}
 
-	static 	FileType parse(String name) {
+		static FileType parse(String name) {
 			if (CORE.dir.equals(name))
 				return CORE;
 			else if (SU.dir.equals(name))
@@ -126,10 +126,9 @@ public class FilesMgr implements Closeable {
 		if (ns == null) { // renew all loaders
 			Set<String> nsSet = new HashSet<>();
 			for (String dir : userLibDirs) {
-				Files.walk(Paths.get(mainDir, dir), 1).forEach(p -> {
-					File file = p.toFile();
-					if (file.isDirectory()) nsSet.add(file.getName());
-				});
+				for (File f : new File(mainDir, dir).listFiles()) {
+					if (f.isDirectory()) nsSet.add(f.getName());
+				}
 			}
 
 			for (String tNs : nsSet)
