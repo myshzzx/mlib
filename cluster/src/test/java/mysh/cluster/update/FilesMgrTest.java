@@ -3,6 +3,8 @@ package mysh.cluster.update;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -37,5 +39,12 @@ public class FilesMgrTest {
 				System.out.println("abc");
 			}
 		}.start();
+	}
+
+
+	public static void main(String[] args) {
+		Path p1 = Paths.get("c:\\a\\b");
+		Path rp = p1.relativize(Paths.get("a/b/c").toAbsolutePath());
+		System.out.println(rp);
 	}
 }

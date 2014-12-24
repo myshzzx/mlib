@@ -1,4 +1,4 @@
-package mysh.cluster.update;
+package mysh.cluster;
 
 /**
  * @author Mysh

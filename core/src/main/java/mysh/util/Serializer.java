@@ -16,10 +16,6 @@ import java.util.Objects;
 public abstract class Serializer {
 	static final Logger log = LoggerFactory.getLogger(Serializer.class);
 
-	public static interface ClassLoaderFetcher {
-		ClassLoader get();
-	}
-
 	/**
 	 * serialize object to byte array.
 	 */
@@ -32,20 +28,20 @@ public abstract class Serializer {
 	/**
 	 * unSerialize obj from buf.
 	 *
-	 * @param clFetcher nullable
+	 * @param cl nullable
 	 */
-	public final <T extends Serializable> T unSerialize(byte[] buf,
-	                                                    @Nullable ClassLoaderFetcher clFetcher) {
-		return unSerialize(buf, 0, buf.length, clFetcher);
+	public final <T extends Serializable> T unSerialize(
+					byte[] buf, @Nullable ClassLoader cl) {
+		return unSerialize(buf, 0, buf.length, cl);
 	}
 
 	/**
 	 * unSerialize obj from buf.
 	 *
-	 * @param clFetcher nullable
+	 * @param cl nullable
 	 */
-	public abstract <T extends Serializable> T unSerialize(byte[] buf, int offset, int length,
-	                                                       @Nullable ClassLoaderFetcher clFetcher);
+	public abstract <T extends Serializable> T unSerialize(
+					byte[] buf, int offset, int length, @Nullable ClassLoader cl);
 
 	/**
 	 * java build-in serializer.
@@ -64,11 +60,10 @@ public abstract class Serializer {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] buf, int offset, int length, ClassLoaderFetcher clFetcher) {
-
+		public <T extends Serializable> T unSerialize(byte[] buf, int offset, int length, ClassLoader cl) {
 			Objects.requireNonNull(buf);
 
-			try (CustObjIS in = new CustObjIS(new ByteArrayInputStream(buf, offset, length), clFetcher)) {
+			try (CustObjIS in = new CustObjIS(new ByteArrayInputStream(buf, offset, length), cl)) {
 				return (T) in.readObject();
 			} catch (Exception e) {
 				throw ExpUtil.unchecked(e);
@@ -79,18 +74,18 @@ public abstract class Serializer {
 
 	private static class CustObjIS extends ObjectInputStream {
 
-		private ClassLoaderFetcher clFetcher;
+		private ClassLoader cl;
 
-		public CustObjIS(InputStream in, ClassLoaderFetcher clFetcher) throws IOException {
+		public CustObjIS(InputStream in, ClassLoader cl) throws IOException {
 			super(in);
-			this.clFetcher = clFetcher;
+			this.cl = cl;
 		}
 
 		@Override
 		protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-			return clFetcher == null ?
+			return cl == null ?
 							super.resolveClass(desc) :
-							Class.forName(desc.getName(), false, clFetcher.get());
+							Class.forName(desc.getName(), false, cl);
 		}
 	}
 
@@ -112,10 +107,9 @@ public abstract class Serializer {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length, ClassLoaderFetcher clFetcher) {
+		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length, ClassLoader cl) {
 			final DefaultCoder c = getCoder();
-			if (clFetcher != null)
-				c.getConf().setClassLoader(clFetcher.get());
+			c.getConf().setClassLoader(cl);
 			return (T) c.toObject(b, offset, length);
 		}
 	};

@@ -1,7 +1,5 @@
 package mysh.cluster;
 
-import mysh.cluster.update.FilesInfo;
-import mysh.cluster.update.FilesMgr;
 import mysh.util.Asserts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,9 +174,9 @@ class Master implements IMaster {
 
 					@SuppressWarnings("unchecked")
 					WorkerState state = node.workerService.runSubTask(
-									Master.this.id, ti.taskId, subTask.subTaskIdx,
-									ti.cUser, subTask.getSubTask(),
-									taskTimeout, ti.subTaskTimeout);
+									ti.cUser.ns,
+									Master.this.id, ti.taskId, subTask.subTaskIdx, ti.cUser,
+									subTask.getSubTask(), taskTimeout, ti.subTaskTimeout);
 
 					subTask.workerAssigned(node.id);
 					updateWorkerState(node.id, state);
@@ -314,7 +312,7 @@ class Master implements IMaster {
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public void subTaskComplete(int taskId, int subTaskId, Object result,
+	public void subTaskComplete(String ns, int taskId, int subTaskId, Object result,
 	                            String workerNodeId, WorkerState workerState) {
 		this.updateWorkerState(workerNodeId, workerState);
 
@@ -331,6 +329,8 @@ class Master implements IMaster {
 	@Override
 	public <T, ST, SR, R> R runTask(String ns, IClusterUser<T, ST, SR, R> cUser, T task, int timeout,
 	                                int subTaskTimeout) throws Throwable {
+		FilesMgr.checkNs(ns);
+
 		if (!isMaster)
 			throw notMasterExp == null ?
 							(notMasterExp = new ClusterExp.NotMaster()) : notMasterExp;
@@ -348,7 +348,7 @@ class Master implements IMaster {
 		try {
 			log.info("task(" + taskId + ") added, cUser=" + cUser + ", task=" + task);
 
-			cUser.setNamespace(ns);
+			cUser.ns = ns;
 			if (cUser instanceof IClusterMgr) {
 				((IClusterMgr) cUser).master = this;
 			}
@@ -560,8 +560,8 @@ class Master implements IMaster {
 	}
 
 	@Override
-	public byte[] getFile(FilesMgr.FileType type, String fileName) throws IOException {
-		return this.filesMgr.getFile(type, fileName);
+	public byte[] getFile(String name) throws IOException {
+		return this.filesMgr.getFile(name);
 	}
 
 	@Override

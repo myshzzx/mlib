@@ -1,7 +1,5 @@
 package mysh.cluster;
 
-import mysh.cluster.update.IUpdateListener;
-
 /**
  * without any master-heart-beat/invoke-call in NETWORK_TIMEOUT*2,
  * the worker node will be considered as out of master-worker network,
@@ -21,9 +19,10 @@ public interface IWorker extends IUpdateListener {
 	WorkerState masterHeartBeat(String masterId, String masterFilesThumbStamp);
 
 	/**
-	 * Invoked by master, subTask execution.
+	 * Invoked by master, subTask execution.<br/>
+	 * WARNING: check {@link mysh.cluster.rpc.thrift.RpcUtil#wrapSyncClient} when update signature.
 	 */
-	<T, ST, SR, R> WorkerState runSubTask(String masterId, int taskId, int subTaskId,
+	<T, ST, SR, R> WorkerState runSubTask(String ns, String masterId, int taskId, int subTaskId,
 	                                      IClusterUser<T, ST, SR, R> cUser, ST subTask,
 	                                      int timeout, int subTaskTimeout);
 

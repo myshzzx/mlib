@@ -8,6 +8,7 @@ public interface IClusterService {
 
 	/**
 	 * run task of user within timeout(milli-second).
+	 * WARNING: check {@link mysh.cluster.rpc.thrift.RpcUtil#wrapSyncClient} when update signature.
 	 *
 	 * @param namespace      execute within this namespace. it's used for resource access control.
 	 * @param timeout        execution time(milli-second), non-positive value represent for never timeout.

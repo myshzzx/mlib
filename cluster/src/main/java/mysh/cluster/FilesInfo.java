@@ -1,4 +1,4 @@
-package mysh.cluster.update;
+package mysh.cluster;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -16,13 +16,10 @@ public final class FilesInfo implements Serializable {
 
 	public String thumbStamp = "";
 	/**
-	 * core files [name,thumbStamp] map. it's <b>immutable</b>.
+	 * files under main folder. it's <b>immutable</b>.<br/>
+	 * [name, thumbStamp] map. name looks like "user/ns1/lib.jar".
 	 */
-	public Map<String, String> coreFiles;
-	/**
-	 * user files [name,thumbStamp] map. it's <b>immutable</b>.
-	 */
-	public Map<String, String> userFiles;
+	public Map<String, String> filesTsMap;
 
 	@Override
 	public synchronized boolean equals(Object obj) {
@@ -44,16 +41,14 @@ public final class FilesInfo implements Serializable {
 	@SuppressWarnings("unchecked")
 	FilesInfo(FilesInfo fi) {
 		this.thumbStamp = fi.thumbStamp;
-		this.coreFiles = Collections.unmodifiableMap(new HashMap<>(fi.coreFiles));
-		this.userFiles = Collections.unmodifiableMap(new HashMap<>(fi.userFiles));
+		this.filesTsMap = Collections.unmodifiableMap(new HashMap<>(fi.filesTsMap));
 	}
 
 	@Override
 	public String toString() {
 		return "FilesInfo{" +
 						"thumbStamp='" + thumbStamp + '\'' +
-						", coreFiles=" + coreFiles +
-						", userFiles=" + userFiles +
+						", filesTsMap=" + filesTsMap +
 						'}';
 	}
 }

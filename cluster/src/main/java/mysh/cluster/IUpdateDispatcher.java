@@ -1,6 +1,5 @@
-package mysh.cluster.update;
+package mysh.cluster;
 
-import mysh.cluster.update.FilesMgr.FileType;
 
 import java.io.IOException;
 
@@ -11,9 +10,9 @@ import java.io.IOException;
 public interface IUpdateDispatcher {
 
 	/**
-	 * get file content. return <code>null</code> if file not exists.
+	 * get file by name. about name, see {@link mysh.cluster.FilesInfo#filesTsMap}
 	 */
-	byte[] getFile(FileType type, String fileName) throws IOException;
+	byte[] getFile(String name) throws IOException;
 
 	/**
 	 * get <code>core</code> and <code>user</code> files info,

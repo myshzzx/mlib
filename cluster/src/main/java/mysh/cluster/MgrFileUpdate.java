@@ -1,8 +1,7 @@
 package mysh.cluster;
 
-import mysh.cluster.update.FilesMgr;
-import mysh.cluster.update.FilesMgr.FileType;
-import mysh.cluster.update.FilesMgr.UpdateType;
+import mysh.cluster.FilesMgr.FileType;
+import mysh.cluster.FilesMgr.UpdateType;
 import mysh.util.ExpUtil;
 
 import java.util.List;
@@ -16,12 +15,14 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	private static final String[] emptyArray = new String[0];
 
 	private FileType fileType;
+	private String ns;
 	private UpdateType updateType;
 	private String fileName;
 	private byte[] ctx;
 
-	public MgrFileUpdate(FileType fileType, UpdateType updateType, String fileName, byte[] ctx) {
+	public MgrFileUpdate(FileType fileType, String ns, UpdateType updateType, String fileName, byte[] ctx) {
 		this.fileType = fileType;
+		this.ns = ns;
 		this.updateType = updateType;
 		this.fileName = fileName;
 		this.ctx = ctx;
@@ -43,9 +44,9 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	private void updateFile(FilesMgr filesMgr) {
 		try {
 			if (updateType == UpdateType.UPDATE)
-				filesMgr.putFile(fileType, fileName, ctx);
+				filesMgr.putFile(fileType, ns, fileName, ctx);
 			else if (updateType == UpdateType.DELETE)
-				filesMgr.removeFile(fileType, fileName);
+				filesMgr.removeFile(fileType, ns, fileName);
 		} catch (Throwable e) {
 			throw ExpUtil.unchecked(e);
 		}
@@ -70,10 +71,10 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 	@Override
 	public String toString() {
 		return "MgrFileUpdate{" +
-						"updateType=" + updateType +
+						"ns='" + ns + '\'' +
 						", fileType=" + fileType +
+						", updateType=" + updateType +
 						", fileName='" + fileName + '\'' +
 						'}';
 	}
-
 }

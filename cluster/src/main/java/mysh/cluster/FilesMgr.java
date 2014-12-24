@@ -1,7 +1,6 @@
-package mysh.cluster.update;
+package mysh.cluster;
 
 import mysh.util.OSUtil;
-import mysh.util.Serializer;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,11 +34,30 @@ public class FilesMgr implements Closeable {
 	public static final String updateDir = "update";
 	public static final String workDir = "work";
 
+	/**
+	 * check namespace. namespace can be null, or consists of [a-zA-Z0-9\.-_].
+	 */
+	public static void checkNs(String ns) {
+		if (ns != null) {
+			if (ns.length() == 0)
+				throw new IllegalArgumentException("namespace can't be blank string");
+			for (int i = 0; i < ns.length(); i++) {
+				char c = ns.charAt(i);
+				if (!(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c == '.' || c == '-' || c == '_'))
+					throw new IllegalArgumentException("illegal character in namespace: [" + c + "]");
+			}
+		}
+	}
+
 	public static enum FileType {
 		/**
 		 * cluster's core files
 		 */
 		CORE("core"),
+		/**
+		 * super user files
+		 */
+		SU("su"),
 		/**
 		 * user files
 		 */
@@ -51,6 +69,16 @@ public class FilesMgr implements Closeable {
 			this.dir = dir;
 		}
 
+	static 	FileType parse(String name) {
+			if (CORE.dir.equals(name))
+				return CORE;
+			else if (SU.dir.equals(name))
+				return SU;
+			else if (USER.dir.equals(name))
+				return USER;
+			else
+				throw new IllegalArgumentException("unknown name: " + name);
+		}
 	}
 
 	public static enum UpdateType {
@@ -59,68 +87,79 @@ public class FilesMgr implements Closeable {
 
 	static {
 		new File(mainDir, FileType.CORE.dir).mkdirs();
+		new File(mainDir, FileType.SU.dir).mkdirs();
 		new File(mainDir, FileType.USER.dir).mkdirs();
 		new File(updateDir, FileType.CORE.dir).mkdirs();
 		new File(workDir).mkdirs();
 	}
 
-	public final Serializer.ClassLoaderFetcher clFetcher = () -> FilesMgr.this.cl;
+	public final Map<String, ClassLoader> loaders = new ConcurrentHashMap<>();
 
-	private volatile URLClassLoader cl;
 	private volatile FilesInfo old;
 
 	private final FilesInfo curr = new FilesInfo();
 
 	public FilesMgr() throws IOException {
-		curr.coreFiles = new HashMap<>();
-		curr.userFiles = new HashMap<>();
+		curr.filesTsMap = new HashMap<>();
 
-		for (FileType type : Arrays.asList(FileType.CORE, FileType.USER))
-			Files.walk(Paths.get(mainDir, type.dir), 1).forEach(p -> {
-				if (!p.toFile().isFile()) return;
-				try {
-					final String fileName = p.getFileName().toString();
-					final String sha = getThumbStamp(Files.readAllBytes(p));
-					if (type == FileType.CORE)
-						curr.coreFiles.put(fileName, sha);
-					else if (type == FileType.USER)
-						curr.userFiles.put(fileName, sha);
-				} catch (Throwable e) {
-					log.error("read file error: " + p, e);
-				}
-			});
+		Files.walk(Paths.get(mainDir), 3).forEach(p -> {
+			if (!p.toFile().isFile()) return;
+			try {
+				final String name = p.toString().replace('\\', '/');
+				final String sha = getThumbStamp(Files.readAllBytes(p));
+				curr.filesTsMap.put(name, sha);
+			} catch (Throwable e) {
+				log.error("read file error: " + p, e);
+			}
+		});
 
 		this.refreshTS();
 
 		old = new FilesInfo(curr);
 
-		renewCl();
+		renewCl(null);
 	}
 
-	private void renewCl() throws IOException {
-		ArrayList<URL> urls = new ArrayList<>();
-		Files.walk(Paths.get(mainDir, FileType.USER.dir), 1).forEach(p -> {
-			try {
-				final File file = p.toFile();
-				if (file.isFile() && file.getName().endsWith(".jar"))
-					urls.add(new URL("jar:file:///" + file.getAbsolutePath() + "!/"));
-			} catch (MalformedURLException e) {
-				log.error("get file url error:" + p, e);
+	private static String[] userLibDirs = {FileType.SU.dir, FileType.USER.dir};
+
+	private void renewCl(String ns) throws IOException {
+		if (ns == null) { // renew all loaders
+			Set<String> nsSet = new HashSet<>();
+			for (String dir : userLibDirs) {
+				Files.walk(Paths.get(mainDir, dir), 1).forEach(p -> {
+					File file = p.toFile();
+					if (file.isDirectory()) nsSet.add(file.getName());
+				});
 			}
-		});
-		cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
+
+			for (String tNs : nsSet)
+				renewCl(tNs);
+		} else { // renew specified namespace class loader
+			ArrayList<URL> urls = new ArrayList<>();
+			for (String dir : userLibDirs)
+				Files.walk(Paths.get(mainDir, dir, ns), 1).forEach(p -> {
+					try {
+						File file = p.toFile();
+						if (file.isFile() && file.getName().endsWith(".jar"))
+							urls.add(new URL("jar:file:///" + file.getAbsolutePath() + "!/"));
+					} catch (MalformedURLException e) {
+						log.error("get file url error:" + p, e);
+					}
+				});
+			URLClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
+			loaders.put(ns, cl);
+		}
 	}
 
 	/**
 	 * get current applied files info. (files in main/core and main/user)
 	 */
-	public FilesInfo getFilesInfo() {
+	FilesInfo getFilesInfo() {
 		return old;
 	}
 
 	private void refreshTS() {
-		List<String> tsList = new ArrayList<>(curr.coreFiles.values());
-		tsList.addAll(curr.userFiles.values());
+		List<String> tsList = new ArrayList<>(curr.filesTsMap.values());
 		Collections.sort(tsList);
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
@@ -141,10 +180,15 @@ public class FilesMgr implements Closeable {
 
 	private ConcurrentHashMap<String, WeakReference<byte[]>> filesCache = new ConcurrentHashMap<>();
 
-	public byte[] getFile(FileType type, String fileName) throws IOException {
+	/**
+	 * get file by name. about name, see {@link mysh.cluster.FilesInfo#filesTsMap}
+	 */
+	byte[] getFile(String name) throws IOException {
+		name = name.trim();
+
 		fileLock.readLock().lock();
 		try {
-			final String filesCacheKey = (type.dir + '/' + fileName).intern();
+			final String filesCacheKey = name.intern();
 
 			// read from cache
 			WeakReference<byte[]> fileCtx = filesCache.get(filesCacheKey);
@@ -154,7 +198,7 @@ public class FilesMgr implements Closeable {
 
 			// read file and update cache
 			synchronized (filesCacheKey) {
-				ctx = Files.readAllBytes(Paths.get(mainDir, type.dir, fileName));
+				ctx = Files.readAllBytes(Paths.get(mainDir, name));
 				filesCache.put(filesCacheKey, new WeakReference<>(ctx));
 				return ctx;
 			}
@@ -164,30 +208,41 @@ public class FilesMgr implements Closeable {
 	}
 
 	/**
-	 * put file operation, then update FilesInfo if update USER files.
+	 * put file operation, then update FilesInfo if update SU/USER files.
 	 */
-	public void putFile(FileType type, String fileName, byte[] ctx) throws IOException {
-		log.info("update file: (" + type + ") " + fileName);
+	void putFile(FileType type, String ns, String fileName, byte[] ctx) throws IOException {
+		fileName = fileName.trim();
+
+		log.info("update file: (" + type + ") " + (ns != null ? ns + '/' : "") + fileName);
+		checkNs(ns);
+		checkFileName(fileName);
+
 		fileLock.writeLock().lock();
 		try {
 			if (type == FileType.CORE) {
+				if (ns != null)
+					throw new IllegalArgumentException("namespace should be null");
 				Files.write(Paths.get(updateDir, type.dir, fileName), ctx);
-			} else if (type == FileType.USER) {
+			} else if (type == FileType.USER || type == FileType.SU) {
+				if (ns == null)
+					throw new IllegalArgumentException("namespace can't be null");
 				try {
 					// close class loader and write file
-					cl.close();
-					Files.write(Paths.get(mainDir, type.dir, fileName), ctx);
+					ClassLoader oldCl = loaders.get(ns);
+					if (oldCl instanceof Closeable) ((Closeable) oldCl).close();
+
+					Files.write(Paths.get(mainDir, type.dir, ns, fileName), ctx);
 
 					// update files info
-					curr.userFiles.put(fileName, getThumbStamp(ctx));
+					String fileKey = type.dir + '/' + ns + '/' + fileName;
+					curr.filesTsMap.put(fileKey, getThumbStamp(ctx));
 					refreshTS();
 					old = new FilesInfo(curr);
 
 					// put cache
-					String filesCacheKey = (type.dir + '/' + fileName).intern();
-					filesCache.put(filesCacheKey, new WeakReference<>(ctx));
+					filesCache.put(fileKey.intern(), new WeakReference<>(ctx));
 				} finally {
-					renewCl();
+					renewCl(ns);
 				}
 			} else
 				throw new RuntimeException("unknown fileType: " + type);
@@ -196,14 +251,27 @@ public class FilesMgr implements Closeable {
 		}
 	}
 
+	private static void checkFileName(String fileName) {
+		if (fileName == null || fileName.length() == 0 || fileName.contains("\\") || fileName.contains("/"))
+			throw new IllegalArgumentException("illegal file name: " + fileName);
+	}
+
 	/**
 	 * remove file operation, then update FilesInfo if update USER files.
 	 */
-	public void removeFile(FileType type, String fileName) throws IOException {
-		log.info("remove file: (" + type + ") " + fileName);
+	void removeFile(FileType type, String ns, String fileName) throws IOException {
+		fileName = fileName.trim();
+
+		log.info("remove file: (" + type + ") " + (ns != null ? ns + '/' : "") + fileName);
+		checkNs(ns);
+		checkFileName(fileName);
+
 		fileLock.writeLock().lock();
 		try {
 			if (type == FileType.CORE) { // update core files
+				if (ns != null)
+					throw new IllegalArgumentException("namespace should be null");
+
 				// delete file in update dir
 				final File updateDirFile = Paths.get(updateDir, FileType.CORE.dir, fileName).toFile();
 				updateDirFile.delete();
@@ -225,23 +293,26 @@ public class FilesMgr implements Closeable {
 				Files.write(usFile, script.getBytes(charset),
 								StandardOpenOption.APPEND, StandardOpenOption.CREATE);
 				usFile.toFile().setExecutable(true, false);
-			} else if (type == FileType.USER) { // update user files
+			} else if (type == FileType.USER || type == FileType.SU) { // update user files
+				if (ns == null)
+					throw new IllegalArgumentException("namespace can't be null");
 				try {
 					// close class loader and delete file
-					cl.close();
-					Paths.get(mainDir, type.dir, fileName).toFile().delete();
+					ClassLoader oldCl = loaders.get(ns);
+					if (oldCl instanceof Closeable) ((Closeable) oldCl).close();
+
+					Paths.get(mainDir, type.dir, ns, fileName).toFile().delete();
 
 					// update files info
-					curr.userFiles.remove(fileName);
+					String fileKey = type.dir + '/' + ns + '/' + fileName;
+					curr.filesTsMap.remove(fileKey);
 					refreshTS();
 					old = new FilesInfo(curr);
 
 					// clear cache
-					String filesCacheKey = (type.dir + '/' + fileName).intern();
-					filesCache.remove(filesCacheKey);
+					filesCache.remove(fileKey.intern());
 				} finally {
-					// start class loader
-					renewCl();
+					renewCl(ns);
 				}
 			} else
 				throw new RuntimeException("unknown fileType: " + type);
@@ -252,7 +323,9 @@ public class FilesMgr implements Closeable {
 
 	@Override
 	public void close() throws IOException {
-		cl.close();
+		for (ClassLoader loader : loaders.values()) {
+			if (loader instanceof Closeable) ((Closeable) loader).close();
+		}
 	}
 
 	/**

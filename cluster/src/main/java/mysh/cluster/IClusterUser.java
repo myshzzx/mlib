@@ -2,7 +2,7 @@ package mysh.cluster;
 
 import mysh.annotation.GuardedBy;
 import mysh.annotation.Nullable;
-import mysh.cluster.update.FilesMgr;
+import mysh.cluster.FilesMgr;
 import mysh.util.ExpUtil;
 
 import java.io.*;
@@ -225,18 +225,14 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 		};
 	}
 
-	private volatile String ns;
+	/**
+	 * current clusterUser instance.<br/>
+	 * it's used for resource access control.
+	 */
+	volatile String ns;
 	private transient String workDir;
 	private transient Permission filesPerm;
 	private transient Permission folderPerm;
-
-	/**
-	 * set namespace of current clusterUser instance.<br/>
-	 * it's used for resource access control.
-	 */
-	final void setNamespace(String ns) {
-		this.ns = ns;
-	}
 
 	private void nsCheck() {
 		if (isClosed)

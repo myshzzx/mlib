@@ -1,14 +1,16 @@
 package mysh.cluster;
 
+import mysh.cluster.FilesMgr.FileType;
+import mysh.cluster.FilesMgr.UpdateType;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
-import mysh.cluster.update.FilesMgr.FileType;
-import mysh.cluster.update.FilesMgr.UpdateType;
 import mysh.util.ExpUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.DatagramSocket;
@@ -304,14 +306,15 @@ public final class ClusterClient implements Closeable {
 	 * @return files that failed to update
 	 * @throws Throwable
 	 */
-	public List<UpdateFile> mgrUpdateFile(FileType fileType, List<UpdateFile> ufs) throws Throwable {
+	public List<UpdateFile> mgrUpdateFile(
+					FileType fileType, String ns, List<UpdateFile> ufs) throws Throwable {
 		List<UpdateFile> failureList = new ArrayList<>();
 		if (ufs.size() == 0) return failureList;
 
 		boolean hasFailure = false;
 		for (UpdateFile uf : ufs) {
 			try {
-				runTask(null, new MgrFileUpdate(fileType, uf.updateType, uf.fileName,
+				runTask(null, new MgrFileUpdate(fileType, ns, uf.updateType, uf.fileName,
 								(uf.file != null ? Files.readAllBytes(uf.file.toPath()) : null)), null, uf.timeout, 0);
 			} catch (Throwable e) {
 				if (isClusterUnready(e))

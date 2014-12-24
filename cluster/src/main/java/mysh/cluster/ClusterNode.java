@@ -2,7 +2,6 @@ package mysh.cluster;
 
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
-import mysh.cluster.update.FilesMgr;
 import mysh.util.ExpUtil;
 import mysh.util.OSUtil;
 import org.apache.thrift.server.TServer;
@@ -112,12 +111,12 @@ public class ClusterNode {
 
 		master = new Master(id, this, conf.heartBeatTime, filesMgr);
 		tMasterServer = RpcUtil.exportTServer(
-						IMaster.class, master, this.cmdPort + 1, null, conf.serverPoolSize, filesMgr.clFetcher);
+						IMaster.class, master, this.cmdPort + 1, null, conf.serverPoolSize, filesMgr.loaders);
 		RpcUtil.startTServer(tMasterServer);
 
 		worker = new Worker(id, this, conf.initState, conf.heartBeatTime, filesMgr);
 		tWorkerServer = RpcUtil.exportTServer(
-						IWorker.class, worker, this.cmdPort + 2, null, conf.serverPoolSize, filesMgr.clFetcher);
+						IWorker.class, worker, this.cmdPort + 2, null, conf.serverPoolSize, filesMgr.loaders);
 		RpcUtil.startTServer(tWorkerServer);
 
 		startTime = conf.startTime;
@@ -431,8 +430,8 @@ public class ClusterNode {
 	 * get worker service. (by master)
 	 */
 	IWorker getWorkerService(String host, int port) throws Throwable {
-		IFaceHolder<IWorker> ch = RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT,
-						filesMgr.clFetcher);
+		IFaceHolder<IWorker> ch =
+						RpcUtil.getClient(IWorker.class, host, port, NETWORK_TIMEOUT, filesMgr.loaders);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}
@@ -456,8 +455,8 @@ public class ClusterNode {
 	 * get master service. (by worker)
 	 */
 	IMaster getMasterService(String host, int port) throws Throwable {
-		IFaceHolder<IMaster> ch = RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT,
-						filesMgr.clFetcher);
+		IFaceHolder<IMaster> ch =
+						RpcUtil.getClient(IMaster.class, host, port, NETWORK_TIMEOUT, filesMgr.loaders);
 		this.thriftConns.add(ch);
 		return ch.getClient();
 	}

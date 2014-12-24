@@ -1,8 +1,6 @@
 package mysh.cluster;
 
-import mysh.cluster.update.FilesInfo;
-import mysh.cluster.update.FilesMgr;
-import mysh.cluster.update.FilesMgr.FileType;
+import mysh.cluster.FilesMgr.FileType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,8 +10,7 @@ import java.util.Objects;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static mysh.cluster.update.FilesMgr.FileType.CORE;
-import static mysh.cluster.update.FilesMgr.FileType.USER;
+import static mysh.cluster.FilesMgr.FileType.*;
 
 /**
  * SubTasks processor, who offers a task-process-service.
@@ -201,7 +198,7 @@ class Worker implements IWorker {
 					task = completedSubTasks.take();
 					IMaster masterService = mastersCache.get(task.masterId);
 					if (masterService != null) {
-						masterService.subTaskComplete(task.taskId, task.subTaskId, task.result,
+						masterService.subTaskComplete(task.cUser.ns, task.taskId, task.subTaskId, task.result,
 										Worker.this.id, Worker.this.updateState());
 					} else {
 						log.error("submit task result error: master isn't registered: " + task);
@@ -273,8 +270,8 @@ class Worker implements IWorker {
 
 	@Override
 	public <T, ST, SR, R> WorkerState runSubTask(
-					String masterId, int taskId, int subTaskId, IClusterUser<T, ST, SR, R> cUser, ST subTask,
-					int timeout, int subTaskTimeout) {
+					String ns, String masterId, int taskId, int subTaskId, IClusterUser<T, ST, SR, R> cUser,
+					ST subTask, int timeout, int subTaskTimeout) {
 		this.lastMasterAction = System.currentTimeMillis();
 		this.subTasks.offer(new SubTask<>(masterId, taskId, subTaskId, cUser, subTask,
 						timeout <= 0 ? Long.MAX_VALUE : this.lastMasterAction + timeout, subTaskTimeout));
@@ -422,26 +419,32 @@ class Worker implements IWorker {
 				boolean needRestart = false;
 
 				masterFiles = master.getFilesInfo();
-				for (FileType type : new FileType[]{USER, CORE}) {
-					Map<String, String> cFiles = type == CORE ? currFilesInfo.coreFiles : currFilesInfo.userFiles;
-					Map<String, String> mFiles = type == CORE ? masterFiles.coreFiles : masterFiles.userFiles;
-					for (Map.Entry<String, String> cFileEntry : cFiles.entrySet()) {
-						final String cFileName = cFileEntry.getKey();
-						String mts = mFiles.get(cFileName);
-						if (mts == null) {
-							filesMgr.removeFile(type, cFileName);
-							needRestart |= type == CORE;
-						} else if (!mts.equals(cFileEntry.getValue())) {
-							filesMgr.putFile(type, cFileName, master.getFile(type, cFileName));
-							needRestart |= type == CORE;
-						}
+				Map<String, String> cFiles = currFilesInfo.filesTsMap;
+				Map<String, String> mFiles = masterFiles.filesTsMap;
+				for (Map.Entry<String, String> cEntry : cFiles.entrySet()) {
+					final String cName = cEntry.getKey();
+					String[] path = cName.split("/");
+					FileType type = FileType.parse(path[0]);
+					String ns = path.length < 3 ? null : path[1];
+					String fileName = path.length < 3 ? path[1] : path[2];
+					String mts = mFiles.get(cName);
+					if (mts == null) {
+						filesMgr.removeFile(type, ns, fileName);
+						needRestart |= type == CORE;
+					} else if (!mts.equals(cEntry.getValue())) {
+						filesMgr.putFile(type, ns, fileName, master.getFile(cName));
+						needRestart |= type == CORE;
 					}
-					for (Map.Entry<String, String> mFileEntry : mFiles.entrySet()) {
-						final String mFileName = mFileEntry.getKey();
-						if (!cFiles.containsKey(mFileName)) {
-							filesMgr.putFile(type, mFileName, master.getFile(type, mFileName));
-							needRestart |= type == CORE;
-						}
+				}
+				for (Map.Entry<String, String> mEntry : mFiles.entrySet()) {
+					final String mName = mEntry.getKey();
+					String[] path = mName.split("/");
+					FileType type = FileType.parse(path[0]);
+					String ns = path.length < 3 ? null : path[1];
+					String fileName = path.length < 3 ? path[1] : path[2];
+					if (!cFiles.containsKey(mName)) {
+						filesMgr.putFile(type, ns, fileName, master.getFile(mName));
+						needRestart |= type == CORE;
 					}
 				}
 
@@ -453,7 +456,6 @@ class Worker implements IWorker {
 				updateFilesRunning.set(false);
 			}
 		}
-
 	}
 
 	FilesMgr getFilesMgr() {
