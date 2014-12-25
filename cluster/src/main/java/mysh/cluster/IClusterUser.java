@@ -200,7 +200,8 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 
 	/**
 	 * create a thread factory. <br/>
-	 * make sure all created threads are terminated after process finished
+	 * it's recommended to use this factory to create thread or to create thread-pool.<br/>
+	 * make sure all created threads are terminated before process finished
 	 * (on return of {@link #procSubTask} or {@link mysh.cluster.IMaster#runTask}),
 	 * or at least react for interruption so that they can be terminated graciously,
 	 * because all threads will be interrupted then, and forced stopped in 1 minute after interruption.
