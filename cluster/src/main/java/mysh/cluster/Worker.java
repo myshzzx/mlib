@@ -379,6 +379,8 @@ class Worker implements IWorker {
 
 	@Override
 	public void updateFiles(String dispatcherId, String thumbStamp) {
+		if (clusterNode.getNodeState() != ClusterNode.ClusterState.WORKER) return;
+
 		final FilesInfo currFilesInfo = filesMgr.getFilesInfo();
 		if (!currFilesInfo.thumbStamp.equals(thumbStamp)) {
 			log.info("begin to update files from: " + dispatcherId + ", ts:" + thumbStamp);

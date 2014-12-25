@@ -37,7 +37,7 @@ public class ClusterNode {
 	/**
 	 * ClusterNode state.
 	 */
-	private static enum ClusterState {
+	static enum ClusterState {
 		INIT, MASTER, WORKER
 	}
 
@@ -72,7 +72,7 @@ public class ClusterNode {
 	 */
 	private final BlockingQueue<Cmd> cmds = new LinkedBlockingQueue<>();
 	private volatile Cmd masterCandidate;
-	private volatile ClusterState clusterState;
+	private volatile ClusterState nodeState;
 
 	private final FilesMgr filesMgr = new FilesMgr();
 	private Master master;
@@ -178,11 +178,11 @@ public class ClusterNode {
 						case WHO_IS_THE_MASTER_BY_WORKER:
 							prepareMasterCandidate(cmd); // only used by Action.CHECK_MASTER check
 
-							if (clusterState == ClusterState.MASTER)
+							if (nodeState == ClusterState.MASTER)
 								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
 							break;
 						case WHO_IS_THE_MASTER_BY_CLIENT:
-							if (clusterState == ClusterState.MASTER) {
+							if (nodeState == ClusterState.MASTER) {
 								broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
 								replyClient(cmd);
 							}
@@ -225,6 +225,11 @@ public class ClusterNode {
 	};
 
 	private final AtomicBoolean shutdownFlag = new AtomicBoolean(false);
+
+
+	ClusterState getNodeState() {
+		return nodeState;
+	}
 
 	/**
 	 * shutdown cluster node and release resource.
@@ -345,7 +350,7 @@ public class ClusterNode {
 	 * change state to newState.
 	 */
 	private void changeState(ClusterState newClusterState) {
-		if (clusterState == newClusterState) return;
+		if (nodeState == newClusterState) return;
 
 		switch (newClusterState) {
 			case INIT:
@@ -364,8 +369,8 @@ public class ClusterNode {
 				throw new RuntimeException("unknown state:" + newClusterState);
 		}
 
-		clusterState = newClusterState;
-		log.info("state changed to " + clusterState);
+		nodeState = newClusterState;
+		log.info("state changed to " + nodeState);
 	}
 
 	/**
@@ -440,7 +445,7 @@ public class ClusterNode {
 	 * tell current node to check whether it's master, if it is, broadcast to other nodes. (by master)
 	 */
 	void broadcastIAmTheMaster() {
-		if (this.clusterState == ClusterState.MASTER)
+		if (this.nodeState == ClusterState.MASTER)
 			this.broadcastCmd(Cmd.Action.I_AM_THE_MASTER);
 	}
 
