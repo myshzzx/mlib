@@ -25,11 +25,13 @@ public class ClusterConf implements Serializable {
 	 */
 	String id;
 	private static final String _id = "id";
+
 	/**
 	 * cluster start time.
 	 */
 	long startTime = System.currentTimeMillis();
 	private static final String _startTime = "startTime";
+
 	/**
 	 * cmd port. UDP(cmdPort) will be used in broadcast communication,
 	 * while TCP(cmdPort) in services dispatching,
@@ -37,6 +39,7 @@ public class ClusterConf implements Serializable {
 	 */
 	int cmdPort = 8030;
 	private static final String _cmdPort = "cmdPort";
+
 	/**
 	 * rpc server pool size. usually used by client, also used by worker node
 	 * when update files. can be 0.<br/>
@@ -44,11 +47,19 @@ public class ClusterConf implements Serializable {
 	 */
 	int serverPoolSize = 20;
 	private static final String _serverPoolSize = "serverPoolSize";
+
 	/**
 	 * heart beat interval time in milliseconds.
 	 */
 	int heartBeatTime = 10_000;
 	private static final String _heartBeatTime = "heartBeatTime";
+
+	/**
+	 * Not implement now. rpc service use TLS(bidirectional authentication) or not .
+	 */
+	Boolean useTLS = Boolean.FALSE;
+	private static final String _useTLS = "useTLS";
+
 	/**
 	 * initial state of the worker, which can be updated and sent to master node automatically.
 	 * can be <b>null</b>.
@@ -68,6 +79,7 @@ public class ClusterConf implements Serializable {
 			c.cmdPort = propConf.getPropInt(_cmdPort, c.cmdPort);
 			c.serverPoolSize = propConf.getPropInt(_serverPoolSize, c.serverPoolSize);
 			c.heartBeatTime = propConf.getPropInt(_heartBeatTime, c.heartBeatTime);
+			c.useTLS = Boolean.parseBoolean(propConf.getPropString(_useTLS, "false"));
 		} catch (Throwable e) {
 			log.error("read cluster conf from file error.", e);
 		}
@@ -86,6 +98,7 @@ public class ClusterConf implements Serializable {
 			propConf.putProp(_cmdPort, cmdPort);
 			propConf.putProp(_serverPoolSize, serverPoolSize);
 			propConf.putProp(_heartBeatTime, heartBeatTime);
+			propConf.putProp(_useTLS, useTLS);
 
 			propConf.save2File(filePath);
 		} catch (IOException e) {

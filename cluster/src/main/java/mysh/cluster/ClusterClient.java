@@ -358,7 +358,7 @@ public final class ClusterClient implements Closeable {
 
 	/**
 	 * update config of current running nodes. <br/>
-	 * negative value will be ignored.
+	 * negative/null value will be ignored.
 	 * new config works only after node restart, but this invoke doesn't restart any node.
 	 */
 	public void mgrUpdateConf(int tCmdPort, int tHeartBeatTime, int tServerPoolSize) throws Throwable {
