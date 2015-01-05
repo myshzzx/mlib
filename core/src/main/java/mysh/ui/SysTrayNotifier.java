@@ -45,18 +45,17 @@ public class SysTrayNotifier {
 		}
 	}
 
-	public static class ActionListener {
+	public static interface ActionListener {
 		/**
 		 * @param unHandledMsgs unHandled msgs.
 		 */
-		public void onIconClicked(Queue<Msg> unHandledMsgs) {
-		}
+		public void onIconClicked(Queue<Msg> unHandledMsgs);
 
 		/**
 		 * @param msg msg.
 		 * @return flash icon or not.
 		 */
-		public boolean onReceivingMsg(Msg msg) {
+		default boolean onReceivingMsg(Msg msg) {
 			return true;
 		}
 	}
@@ -123,7 +122,7 @@ public class SysTrayNotifier {
 							msg.getType() == null ? TrayIcon.MessageType.INFO : msg.getType());
 
 		this.unHandledMsgs.add(msg);
-		this.setFlashing(this.listener == null || this.listener.onReceivingMsg(msg));
+		this.setFlashing(this.listener != null && this.listener.onReceivingMsg(msg));
 	}
 
 	private void setFlashing(boolean flag) {
