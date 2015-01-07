@@ -5,13 +5,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.ActionEvent;
 import java.io.IOException;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.*;
 
 /**
  * 任务栏通知.
@@ -23,7 +19,10 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class SysTrayNotifier {
 	private static final Logger log = LoggerFactory.getLogger(SysTrayNotifier.class);
 
-	public static class Msg {
+	/**
+	 * msgs will be regarded equal if their class are the same and getMsg() return the same.
+	 */
+	public static abstract class Msg {
 		protected Date receivedTime;
 
 		public String getTitle() {
@@ -33,9 +32,7 @@ public class SysTrayNotifier {
 		/**
 		 * will not display tray icon bubble msg if this return null.
 		 */
-		public String getMsg() {
-			return null;
-		}
+		public abstract String getMsg();
 
 		public TrayIcon.MessageType getType() {
 			return TrayIcon.MessageType.INFO;
@@ -43,13 +40,27 @@ public class SysTrayNotifier {
 
 		public void act() {
 		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return this == obj ||
+							obj instanceof Msg && getClass() == obj.getClass()
+											&& Objects.equals(getMsg(), ((Msg) obj).getMsg());
+		}
+
+		@Override
+		public int hashCode() {
+			String msg = getMsg();
+			return msg != null ? msg.hashCode() : super.hashCode();
+		}
 	}
 
 	public static interface ActionListener {
 		/**
+		 * @param e
 		 * @param unHandledMsgs unHandled msgs.
 		 */
-		public void onIconClicked(Queue<Msg> unHandledMsgs);
+		public void onAction(ActionEvent e, Set<Msg> unHandledMsgs);
 
 		/**
 		 * @param msg msg.
@@ -67,7 +78,7 @@ public class SysTrayNotifier {
 	private final Image oriTrayImg;
 
 	private volatile Image currentImg;
-	private volatile ConcurrentLinkedQueue<Msg> unHandledMsgs = new ConcurrentLinkedQueue<>();
+	private volatile Set<Msg> unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
 
 	public SysTrayNotifier(final TrayIcon icon, ActionListener listener) throws IOException {
 		this.icon = icon;
@@ -76,20 +87,13 @@ public class SysTrayNotifier {
 		currentImg = oriTrayImg = icon.getImage();
 		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank.gif"));
 
-		icon.addMouseListener(
-						new MouseAdapter() {
-							@Override
-							public void mouseClicked(MouseEvent e) {
-								if (listener != null) {
-									ConcurrentLinkedQueue<Msg> t = unHandledMsgs;
-									unHandledMsgs = new ConcurrentLinkedQueue<>();
-									listener.onIconClicked(
-													e.getButton() == MouseEvent.BUTTON2 ?
-																	new LinkedList<>() : t
-									);
-								}
-								setFlashing(false);
+		icon.addActionListener(e -> {
+							if (listener != null) {
+								Set<Msg> t = unHandledMsgs;
+								unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
+								listener.onAction(e, t);
 							}
+							setFlashing(false);
 						}
 		);
 
@@ -122,7 +126,8 @@ public class SysTrayNotifier {
 							msg.getType() == null ? TrayIcon.MessageType.INFO : msg.getType());
 
 		this.unHandledMsgs.add(msg);
-		this.setFlashing(this.listener != null && this.listener.onReceivingMsg(msg));
+		if (this.listener != null && this.listener.onReceivingMsg(msg))
+			this.setFlashing(true);
 	}
 
 	private void setFlashing(boolean flag) {
