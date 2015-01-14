@@ -30,10 +30,7 @@ import java.io.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * HTTP 客户端组件.
@@ -85,46 +82,64 @@ public class HttpClientAssist implements Closeable {
 		hc = hcBuilder.build();
 	}
 
+
 	/**
-	 * get url entity by get method.
+	 * get url entity by get method.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	public UrlEntity access(String url)
+	public UrlEntity access(String url) throws InterruptedException, IOException {
+
+		return access(new HttpGet(url), null);
+	}
+
+
+	/**
+	 * get url entity by get method.<br/>
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers, can be null.
+	 * @throws InterruptedException 线程中断.
+	 * @throws IOException          连接异常.
+	 */
+	public UrlEntity access(String url, Map<String, String> headers)
 					throws InterruptedException, IOException {
 
-		return access(new HttpGet(url));
+		return access(new HttpGet(url), headers);
 	}
 
 	/**
-	 * get url entity by post method.
+	 * get url entity by post method.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @param charset encoding the name/value pairs be encoded with. can be null.
+	 * @param headers request headers, can be null.
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	public UrlEntity access(String url, List<NameValuePair> postParams, Charset charset)
-					throws IOException, InterruptedException {
+	public UrlEntity access(String url, List<NameValuePair> postParams, Charset charset,
+	                        Map<String, String> headers) throws IOException, InterruptedException {
 		HttpPost post = new HttpPost(url);
 		HttpEntity reqEntity = new UrlEncodedFormEntity(postParams, charset);
 		post.setEntity(reqEntity);
-		return access(post);
+		return access(post, headers);
 	}
 
 	/**
-	 * get url entity.
+	 * get url entity.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
+	 * @param headers request headers, can be null.
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	public UrlEntity access(HttpUriRequest req)
+	public UrlEntity access(HttpUriRequest req, Map<String, String> headers)
 					throws InterruptedException, IOException {
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
@@ -132,6 +147,11 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		HttpContext ctx = new BasicHttpContext();
+		if (headers != null) {
+			for (Map.Entry<String, String> he : headers.entrySet()) {
+				req.setHeader(he.getKey(), he.getValue());
+			}
+		}
 		return new UrlEntity(req.getURI().toString(), hc.execute(req, ctx), ctx);
 	}
 
@@ -139,9 +159,11 @@ public class HttpClientAssist implements Closeable {
 	 * get input stream of the entity.
 	 * WARNING: the InputStream must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers, can be null.
 	 */
-	public InputStream getInputStream(String url) throws IOException, InterruptedException {
-		UrlEntity newEntity = access(url);
+	public InputStream getInputStream(String url, Map<String, String> headers) throws IOException, InterruptedException {
+		UrlEntity newEntity = access(url, headers);
 		return newEntity.rsp.getEntity().getContent();
 	}
 
@@ -149,6 +171,7 @@ public class HttpClientAssist implements Closeable {
 	 * 将数据下载保存到文件.
 	 *
 	 * @param url            数据文件地址
+	 * @param headers        请求头, 可为 null
 	 * @param filePath       保存路径
 	 * @param overwrite      是否覆盖原有文件
 	 * @param downloadBufLen 下载缓存, 有效值为 100K ~ 10M 间
@@ -156,8 +179,9 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException          IO异常
 	 * @throws InterruptedException 线程中断异常
 	 */
-	public boolean saveToFile(String url, String filePath, boolean overwrite, int downloadBufLen)
-					throws InterruptedException, IOException {
+	public boolean saveToFile(String url, Map<String, String> headers,
+	                          String filePath, boolean overwrite, int downloadBufLen
+	) throws InterruptedException, IOException {
 
 		File file = new File(filePath);
 
@@ -168,7 +192,7 @@ public class HttpClientAssist implements Closeable {
 			downloadBufLen = 500000;
 		}
 
-		try (UrlEntity ue = this.access(url)) {
+		try (UrlEntity ue = this.access(url, headers)) {
 
 			long fileLength = ue.rsp.getEntity().getContentLength();
 
@@ -308,8 +332,8 @@ public class HttpClientAssist implements Closeable {
 			this.ctx = ctx;
 
 			int status = rsp.getStatusLine().getStatusCode();
-			if (status != 200)
-				log.warn("problem in url, status=" + rsp.getStatusLine() + ", url=" + getCurrentURL());
+			if (status >= 400)
+				log.warn("access error, status=" + rsp.getStatusLine() + ", url=" + getCurrentURL());
 
 			if (rsp.getEntity() != null && rsp.getEntity().getContentType() != null)
 				this.contentType = rsp.getEntity().getContentType().getValue();

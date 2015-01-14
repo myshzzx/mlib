@@ -151,7 +151,7 @@ public class HttpClientAssistTest1 {
 		List<NameValuePair> nvps = new ArrayList<>();
 		nvps.add(new BasicNameValuePair("in_id", "6526011966061508122"));
 
-		HttpClientAssist.UrlEntity ue = hca.access("http://idquery.duapp.com/index.php", nvps, null);
+		HttpClientAssist.UrlEntity ue = hca.access("http://idquery.duapp.com/index.php", nvps, null, null);
 		System.out.println(ue.getReqUrl());
 		System.out.println(ue.getEntityStr());
 	}
