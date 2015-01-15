@@ -310,8 +310,8 @@ public class ClusterNode {
 	 * @param e remote invoke exception.
 	 */
 	static boolean isNodeUnavailable(Throwable e) {
-		return ExpUtil.isCausedBy(e, UnknownHostException.class, ConnectException.class,
-						SocketTimeoutException.class, SocketException.class) != null;
+		return ExpUtil.isCausedBy(e, SocketException.class, UnknownHostException.class,
+						SocketTimeoutException.class) != null;
 	}
 
 	@Deprecated

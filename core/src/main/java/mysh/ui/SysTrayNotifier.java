@@ -5,7 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.util.*;
 
@@ -55,47 +56,77 @@ public class SysTrayNotifier {
 		}
 	}
 
-	public static interface ActionListener {
+	public static class ActionListener {
 		/**
-		 * @param e
 		 * @param unHandledMsgs unHandled msgs.
 		 */
-		public void onAction(ActionEvent e, Set<Msg> unHandledMsgs);
+		protected void onAction(Set<Msg> unHandledMsgs) {
+		}
 
 		/**
 		 * @param msg msg.
 		 * @return flash icon or not.
 		 */
-		default boolean onReceivingMsg(Msg msg) {
+		protected boolean isMsgFlash(Msg msg) {
 			return true;
 		}
 	}
 
+	private static final ActionListener DEFAULT_LISTENER = new ActionListener();
+
 	private final Image blankImg;
 
 	private final TrayIcon icon;
+	private String title;
 	private final ActionListener listener;
 	private final Image oriTrayImg;
 
 	private volatile Image currentImg;
 	private volatile Set<Msg> unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
 
-	public SysTrayNotifier(final TrayIcon icon, ActionListener listener) throws IOException {
+	/**
+	 * create a new sysTray notifier.
+	 *
+	 * @param icon     icon displayed in system tray.
+	 * @param title    default icon title. can be null.
+	 * @param listener system tray icon action listener. can be null.
+	 */
+	public SysTrayNotifier(final TrayIcon icon, String title, ActionListener listener) throws IOException {
 		this.icon = icon;
-		this.listener = listener;
+		this.title = title == null ? getClass().getSimpleName() : title;
+		this.listener = listener == null ? DEFAULT_LISTENER : listener;
+		icon.setToolTip(this.title);
 
 		currentImg = oriTrayImg = icon.getImage();
 		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank.gif"));
 
-		icon.addActionListener(e -> {
-							if (listener != null) {
-								Set<Msg> t = unHandledMsgs;
-								unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
-								listener.onAction(e, t);
-							}
-							setFlashing(false);
-						}
-		);
+		Runnable notifyAction = () -> {
+			Set<Msg> t = this.unHandledMsgs;
+			this.unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
+			this.listener.onAction(t);
+			setFlashing(false);
+			icon.setToolTip(this.title);
+		};
+		Runnable cancelAction = () -> {
+			this.unHandledMsgs.clear();
+			setFlashing(false);
+			icon.setToolTip(this.title);
+		};
+
+		icon.addActionListener(e -> notifyAction.run());
+		icon.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				switch (e.getButton()) {
+					case MouseEvent.BUTTON1:
+						notifyAction.run();
+						break;
+					case MouseEvent.BUTTON2:
+						cancelAction.run();
+						break;
+				}
+			}
+		});
 
 		// flash thread
 		Thread flashThread = new Thread(this.getClass().getName() + "-flasher") {
@@ -126,7 +157,15 @@ public class SysTrayNotifier {
 							msg.getType() == null ? TrayIcon.MessageType.INFO : msg.getType());
 
 		this.unHandledMsgs.add(msg);
-		if (this.listener != null && this.listener.onReceivingMsg(msg))
+
+		final StringBuilder tooltips = new StringBuilder();
+		unHandledMsgs.forEach(m -> {
+			tooltips.append(m);
+			tooltips.append('\n');
+		});
+		icon.setToolTip(tooltips.toString());
+
+		if (this.listener.isMsgFlash(msg))
 			this.setFlashing(true);
 	}
 
