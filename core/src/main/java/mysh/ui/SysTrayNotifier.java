@@ -159,10 +159,12 @@ public class SysTrayNotifier {
 		this.unHandledMsgs.add(msg);
 
 		final StringBuilder tooltips = new StringBuilder();
-		unHandledMsgs.forEach(m -> {
-			tooltips.append(m);
-			tooltips.append('\n');
-		});
+		unHandledMsgs.stream()
+						.filter(m -> m.getMsg() != null)
+						.forEach(m -> {
+							tooltips.append(m.getMsg());
+							tooltips.append('\n');
+						});
 		icon.setToolTip(tooltips.toString());
 
 		if (this.listener.isMsgFlash(msg))

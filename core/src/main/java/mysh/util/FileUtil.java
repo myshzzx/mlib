@@ -5,6 +5,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
@@ -51,10 +53,15 @@ public class FileUtil {
 	 */
 	@SuppressWarnings("unchecked")
 	public static <T> T getObjectFromFileWithBuf(String filepath) throws IOException, ClassNotFoundException {
-		byte[] buf = Files.readAllBytes(Paths.get(filepath));
-		T obj = Serializer.buildIn.unSerialize(buf, null);
-		log.debug("load object from file: " + filepath);
-		return obj;
+		File f = new File(filepath);
+		try (FileChannel fileChannel = FileChannel.open(Paths.get(f.getAbsolutePath()))) {
+			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, f.length());
+			byte[] buf = new byte[(int) f.length()];
+			fileMap.get(buf);
+			T obj = Serializer.buildIn.unSerialize(buf, null);
+			log.debug("load object from file: " + filepath);
+			return obj;
+		}
 	}
 
 	/**

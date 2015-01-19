@@ -84,4 +84,14 @@ public class FileUtilTest {
 	public void testFolderSize() throws Exception {
 		System.out.println(folderSize("l:/temp"));
 	}
+
+	@Test
+	@Ignore
+	public void testGetObjectFromFileWithBuf() throws Exception {
+		File f = File.createTempFile("test", ".txt");
+		String obj = "mysh";
+		FileUtil.writeObjectToFile(f.getAbsolutePath(), obj);
+		Object obj1 = FileUtil.getObjectFromFileWithBuf(f.getAbsolutePath());
+		Assert.assertEquals(obj, obj1);
+	}
 }
