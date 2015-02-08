@@ -90,7 +90,10 @@ public class CLJInterpreterMain extends JPanel {
 				while (true) {
 					try {
 						String next = scanner.next();
-						SwingUtilities.invokeAndWait(() -> result.text.append(next + prompt));
+						SwingUtilities.invokeAndWait(() -> {
+							result.text.append(next + prompt);
+							result.text.setCaretPosition(result.text.getDocument().getLength());
+						});
 					} catch (Throwable t) {
 						oriErr.println(CLJInterpreterMain.class + " 输出展示线程 error:" + t);
 					}

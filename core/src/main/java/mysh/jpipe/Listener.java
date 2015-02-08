@@ -1,10 +1,14 @@
 
 package mysh.jpipe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 
 public class Listener extends Thread {
+	private static final Logger log = LoggerFactory.getLogger(Listener.class);
 
 	private int listeningPort;
 
@@ -21,7 +25,7 @@ public class Listener extends Thread {
 		super("Listener");
 
 		if (listeningPort < 1 || listeningPort > 65534 || targetPort < 1
-				|| targetPort > 65534) {
+						|| targetPort > 65534) {
 			throw new RuntimeException("invalid port");
 		}
 
@@ -29,8 +33,8 @@ public class Listener extends Thread {
 		this.targetHost = targetHost;
 		this.targetPort = targetPort;
 
-		System.out.println("Listener start, [ localhost : " + this.listeningPort + " ] ~ [ "
-				+ this.targetHost + " : " + this.targetPort + " ]");
+		log.info("Listener start, [ localhost : " + this.listeningPort + " ] ~ [ "
+						+ this.targetHost + " : " + this.targetPort + " ]");
 	}
 
 	@Override
@@ -43,11 +47,11 @@ public class Listener extends Thread {
 				try {
 					new Pipe(server.accept(), this.targetHost, this.targetPort);
 				} catch (IOException e) {
-					System.err.println(e);
+					log.error("", e);
 				}
 			}
 		} catch (IOException e) {
-			System.err.println("在 " + this.listeningPort + " 端口监听失败, " + e);
+			log.error("在 " + this.listeningPort + " 端口监听失败.", e);
 		}
 
 	}

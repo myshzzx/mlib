@@ -1,6 +1,9 @@
 
 package mysh.jpipe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,15 +14,16 @@ import java.util.List;
  * 数据推送器.<br/>
  * 把 源Socket 发送的数据取下来, 缓存, 并交插件进行处理( 按插件列表顺序执行插件 ), 然后发送给 目标Socket.<br/>
  * Pusher 有类型, 即 本地Pusher (把本地数据发送到远程) 还是 远程Pusher.
- * 
+ *
  * @author ZhangZhx
  */
 public class Pusher implements PusherStateController {
+	private static final Logger log = LoggerFactory.getLogger(Pusher.class);
 
 	/**
 	 * Pusher 类型.<br/>
 	 * 本地Pusher (把本地数据发送到远程) 还是 远程Pusher.
-	 * 
+	 *
 	 * @author ZhangZhx
 	 */
 	public static enum Type {
@@ -137,7 +141,7 @@ public class Pusher implements PusherStateController {
 			return;
 
 		if (buf.length < 200)
-			System.out.println("推送器警告: 设置的新数据缓冲区不足 200 字节.");
+			log.info("推送器警告: 设置的新数据缓冲区不足 200 字节.");
 
 		this.buf = buf;
 	}

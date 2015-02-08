@@ -21,7 +21,6 @@ public interface PluginFactory {
 	 * @param remoteHost 远程主机
 	 * @param remotePort 远程端口
 	 */
-	Plugin buildNewPluginInstance(String localHost, int localPort, String remoteHost,
-	                              int remotePort);
+	Plugin buildNewPluginInstance(String localHost, int localPort, String remoteHost, int remotePort);
 
 }

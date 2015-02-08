@@ -1,11 +1,15 @@
 
 package mysh.jpipe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 
 public class Pipe {
+	private static final Logger log = LoggerFactory.getLogger(Pipe.class);
 
 	/**
 	 * 连接管道器.<br/>
@@ -16,15 +20,11 @@ public class Pipe {
 		try {
 			Socket remoteSock = new Socket(remoteHost, remotePort);
 
-			List<Plugin> plugins = PluginsGenerator.generatePluginsInstance(
-							localSock, remoteSock);
-			new Pusher(Pusher.Type.LOCAL, localSock, remoteSock, plugins)
-							.start();
-			new Pusher(Pusher.Type.REMOTE, remoteSock, localSock, plugins)
-							.start();
+			List<Plugin> plugins = PluginsGenerator.generatePluginsInstance(localSock, remoteSock);
+			new Pusher(Pusher.Type.LOCAL, localSock, remoteSock, plugins).start();
+			new Pusher(Pusher.Type.REMOTE, remoteSock, localSock, plugins).start();
 		} catch (Exception e) {
-			System.err.println("连接到 [" + remoteHost + ": " + remotePort
-							+ "] 失败. 无法建立数据管道.");
+			log.error("连接到 [" + remoteHost + ": " + remotePort + "] 失败. 无法建立数据管道.", e);
 			if (localSock != null) {
 				try {
 					localSock.close();

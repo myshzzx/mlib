@@ -1,6 +1,9 @@
 
 package mysh.util;
 
+import javafx.application.ConditionalFeature;
+import javafx.application.Platform;
+import mysh.ui.CookieCatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +14,8 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.io.File;
+import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 
 public class UIUtil {
@@ -181,4 +186,39 @@ public class UIUtil {
 		return file;
 	}
 
+	/**
+	 * open url(non-blank) using JavaFx web engine.
+	 */
+	public static void openInnerBrowser(String openUrl) {
+		if (Strings.isBlank(openUrl)) return;
+		if (Platform.isSupported(ConditionalFeature.WEB)) {
+			try {
+				new CookieCatcher(openUrl, openUrl);
+			} catch (Exception e) {
+				String errMsg = "open URL failed:" + openUrl;
+				JOptionPane.showMessageDialog(null, errMsg + "\n" + e.getMessage());
+				log.error(errMsg, e);
+			}
+		} else {
+			log.error("javaFx web not supported, url not opened: " + openUrl);
+		}
+	}
+
+	/**
+	 * open url(non-blank) using default external browser.
+	 */
+	public static void openOuterBrowser(String openUrl) {
+		if (Strings.isBlank(openUrl)) return;
+		if (Desktop.isDesktopSupported()) {
+			try {
+				Desktop.getDesktop().browse(URI.create(openUrl));
+			} catch (IOException e) {
+				String errMsg = "open URL failed:" + openUrl;
+				JOptionPane.showMessageDialog(null, errMsg + "\n" + e.getMessage());
+				log.error(errMsg, e);
+			}
+		} else {
+			log.error("Desktop not supported, url not opened: " + openUrl);
+		}
+	}
 }

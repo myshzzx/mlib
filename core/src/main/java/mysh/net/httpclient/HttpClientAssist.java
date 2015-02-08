@@ -3,6 +3,7 @@ package mysh.net.httpclient;
 
 import mysh.annotation.ThreadSafe;
 import mysh.util.EncodingUtil;
+import mysh.util.Strings;
 import org.apache.http.*;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -24,7 +25,6 @@ import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.util.StringUtils;
 
 import java.io.*;
 import java.net.URI;
@@ -70,7 +70,7 @@ public class HttpClientAssist implements Closeable {
 							conf.getProxyType());
 			hcBuilder.setProxy(proxyHost);
 
-			if (!StringUtils.isEmpty(conf.getProxyAuthName())) {
+			if (!Strings.isEmpty(conf.getProxyAuthName())) {
 				CredentialsProvider cp = new BasicCredentialsProvider();
 				cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
 								new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));
@@ -81,7 +81,6 @@ public class HttpClientAssist implements Closeable {
 
 		hc = hcBuilder.build();
 	}
-
 
 	/**
 	 * get url entity by get method.<br/>

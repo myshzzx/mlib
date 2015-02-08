@@ -1,12 +1,16 @@
 
 package mysh.jpipe;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class PluginsGenerator {
+	private static final Logger log = LoggerFactory.getLogger(PluginsGenerator.class);
 
 	/**
 	 * Guarded by PluginsGenerator.class instance.<br/>
@@ -23,14 +27,11 @@ public class PluginsGenerator {
 
 		if (pluginFactoryClassNames != null && pluginFactoryClassNames.length > 0) {
 			for (String pluginFactoryClassName : pluginFactoryClassNames) {
-				if (pluginFactoryClassName != null
-								&& pluginFactoryClassName.trim().length() > 0) {
+				if (pluginFactoryClassName != null && pluginFactoryClassName.trim().length() > 0) {
 					try {
-						pluginFactories.add((PluginFactory) Class.forName(
-										pluginFactoryClassName).newInstance());
+						pluginFactories.add((PluginFactory) Class.forName(pluginFactoryClassName).newInstance());
 					} catch (Exception e) {
-						System.err.println("加载插件失败: " + pluginFactoryClassName
-										+ ", " + e);
+						log.error("加载插件失败: " + pluginFactoryClassName, e);
 					}
 				}
 			}
@@ -52,13 +53,14 @@ public class PluginsGenerator {
 		Plugin newPlugin;
 		for (PluginFactory pluginFactory : pluginFactories) {
 			try {
-				newPlugin = pluginFactory.buildNewPluginInstance(localSock
-								.getLocalAddress().getHostAddress(), localSock
-								.getLocalPort(), remoteSock.getInetAddress()
-								.getHostAddress(), remoteSock.getPort());
+				newPlugin = pluginFactory.buildNewPluginInstance(
+								localSock.getLocalAddress().getHostAddress(),
+								localSock.getLocalPort(),
+								remoteSock.getInetAddress().getHostAddress(),
+								remoteSock.getPort());
 				plugins.add(newPlugin);
 			} catch (Exception e) {
-				System.err.println("实例化插件失败: " + pluginFactory.getClass().getName());
+				log.error("实例化插件失败: " + pluginFactory.getClass().getName(), e);
 			}
 		}
 
