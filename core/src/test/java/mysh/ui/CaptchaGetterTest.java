@@ -1,9 +1,12 @@
 package mysh.ui;
 
-import junit.framework.TestCase;
+import org.junit.Ignore;
+import org.junit.Test;
 
-public class CaptchaGetterTest extends TestCase {
+@Ignore
+public class CaptchaGetterTest {
 
+	@Test
 	public void testGetCaptcha() throws Exception {
 		CaptchaGetter cg = new CaptchaGetter("http://www.renrendai.com/image_https.jsp", null, null, null);
 		System.out.println(cg.getCaptcha());

@@ -7,6 +7,8 @@ import javax.swing.*;
 import java.util.Arrays;
 import java.util.StringTokenizer;
 
+import static org.junit.Assert.assertEquals;
+
 @Ignore
 public class OSUtilTest1 {
 
@@ -44,4 +46,21 @@ public class OSUtilTest1 {
 	}
 
 
+	@Test
+	public void testParseCmdLine() throws Exception {
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 p2 p3"));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine(" p1 p2 p3"));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 p2 p3 "));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 'p2' p3 "));
+		assertEquals(Arrays.asList("p1", "p2  p3"), OSUtil.parseCmdLine("   p1  'p2  p3' "));
+		assertEquals(Arrays.asList("p1", "p2  p3"), OSUtil.parseCmdLine("   p1  \"p2  p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 \\ p3"), OSUtil.parseCmdLine("   p1  \"p2 \\ p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 ' p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSUtil.parseCmdLine("   p1  'p2 \" p3' "));
+		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSUtil.parseCmdLine("   p1  \"p2 \\\" p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 \\' p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 ' p3 "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3 2"), OSUtil.parseCmdLine("   p1  \"p2 \\' p3 2"));
+		assertEquals(Arrays.asList("  p1  \"p2 ' p3\""), OSUtil.parseCmdLine(" '  p1  \"p2 \\' p3\"' "));
+	}
 }

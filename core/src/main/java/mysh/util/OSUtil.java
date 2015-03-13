@@ -9,7 +9,7 @@ import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * @author Mysh
@@ -139,4 +139,49 @@ public class OSUtil {
 		log.debug("change priority: " + cmd);
 		Runtime.getRuntime().exec(cmd);
 	}
+
+	/**
+	 * parse cmd line to separated params.<br/>
+	 * example1: [cmd param1 "param 2"] -> [cmd, param1, param 2]<br/>
+	 * example1: [cmd param1 "param \" 2"] -> [cmd, param1, param " 2]<br/>
+	 * example1: [cmd param1 'a " b'] -> [cmd, param1, a " b]
+	 */
+	public static List<String> parseCmdLine(String cmd) {
+		Objects.requireNonNull(cmd, "cmd line should not be null");
+		cmd = cmd.trim();
+		if (cmd.length() == 0) return Collections.emptyList();
+
+		List<String> r = new ArrayList<>();
+		char[] chars = cmd.toCharArray();
+		int start = 0;
+		char waiting = 0, c;
+		int len = chars.length;
+		for (int i = 0; i < len; i++) {
+			c = chars[i];
+			if (c == '\'' || c == '"') {
+				waiting = c;
+				start = ++i;
+				while (i < len) {
+					c = chars[i];
+					if (c == '\\')
+						i += 2;
+					else if (c != waiting)
+						i++;
+					else break;
+				}
+				i = i > len ? len : i;
+				r.add(new String(chars, start, i - start));
+				i++;
+			} else if (c > ' ') {
+				start = i;
+				while (i < len && chars[i] > ' ') i++;
+				r.add(new String(chars, start, i - start));
+			}
+		}
+		for (int i = 0; i < r.size(); i++) {
+			r.set(i, r.get(i).replace("\\\"", "\"").replace("\\'", "'"));
+		}
+		return r;
+	}
+
 }
