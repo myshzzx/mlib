@@ -126,6 +126,7 @@ public class AppContainer {
 			} catch (Exception e) {
 				log.error("start app error: " + cmd, e);
 				cl.close();
+				Runtime.getRuntime().exec("javaw -jar " + cmd);
 			}
 		}
 	}
