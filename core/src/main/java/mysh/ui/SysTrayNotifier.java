@@ -7,6 +7,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
 
@@ -17,7 +18,7 @@ import java.util.*;
  * @author Mysh
  * @since 2014/4/1 20:59
  */
-public class SysTrayNotifier {
+public class SysTrayNotifier implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(SysTrayNotifier.class);
 
 	/**
@@ -129,7 +130,7 @@ public class SysTrayNotifier {
 		});
 
 		// flash thread
-		Thread flashThread = new Thread(this.getClass().getName() + "-flasher") {
+		flashThread = new Thread(this.getClass().getName() + "-flasher") {
 			int iconFlashTime = 400;
 
 			@Override
@@ -148,6 +149,13 @@ public class SysTrayNotifier {
 		};
 		flashThread.setDaemon(true);
 		flashThread.start();
+	}
+
+	private Thread flashThread;
+
+	@Override
+	public void close() {
+		flashThread.interrupt();
 	}
 
 	public void newMsg(Msg msg) {
