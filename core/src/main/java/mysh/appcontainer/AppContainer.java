@@ -1,6 +1,7 @@
 package mysh.appcontainer;
 
 import mysh.util.OSUtil;
+import mysh.util.ThreadUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,9 +13,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -27,6 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
  * which releases all resources the app applied, such as threads, sockets, files and so on.
  * this method will be invoked when the app killed by AppContainer, and this method
  * should also be invoked when the app exits itself.
+ * the app should never invoke System.exit, it's obviously, but be careful of JFrame,
+ * don't do JFrame.setDefaultCloseOperation(EXIT_ON_CLOSE).
  * <p>
  * notice that, the META-INF/MANIFEST.MF should be inside jar files and declares the main class,
  * so the AppContainer can start the app.
@@ -42,6 +43,8 @@ public class AppContainer {
 
 	public AppContainer(int serverPort) throws IOException {
 		ServerSocket sock = new ServerSocket(serverPort);
+
+		consoleHelper.startMonitor();
 
 		Socket accept;
 		while ((accept = sock.accept()) != null) {
@@ -128,6 +131,34 @@ public class AppContainer {
 	}
 
 	private class ConsoleHelper {
+		private void startMonitor() {
+			Thread t = new Thread("AppContainer-Monitor") {
+				@Override
+				public void run() {
+					while (true) {
+						try {
+							Thread.sleep(15000);
+							Set<AcLoader> acLoaders = new HashSet<>();
+							ClassLoader cl;
+							for (Thread thread : ThreadUtil.allThreads()) {
+								cl = thread.getContextClassLoader();
+								if (cl instanceof AcLoader)
+									acLoaders.add((AcLoader) cl);
+							}
+							apps.values().stream()
+											.filter(appInfo -> !acLoaders.contains(appInfo.cl))
+											.forEach(appInfo -> apps.remove(appInfo.id));
+						} catch (InterruptedException e) {
+							return;
+						} catch (Exception e) {
+							log.error("", e);
+						}
+					}
+				}
+			};
+			t.setDaemon(true);
+			t.start();
+		}
 
 		private void goConsole(BufferedReader reader, PrintWriter writer) throws Exception {
 			writer.println("welcome to AppContainer console.");

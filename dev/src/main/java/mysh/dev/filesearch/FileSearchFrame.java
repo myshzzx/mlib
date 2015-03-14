@@ -26,13 +26,6 @@ public class FileSearchFrame extends javax.swing.JFrame implements FileSearch.Re
 	 */
 	public FileSearchFrame() {
 
-		try {
-			UIManager.setLookAndFeel("com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel");
-		} catch (Exception e) {
-			JOptionPane.showMessageDialog(null, "Swing Nimbus 外观需要 jre 6u10 以上版本支持", "外观",
-							JOptionPane.INFORMATION_MESSAGE);
-		}
-
 		initComponents();
 
 		this.fileSearch = new FileSearch();

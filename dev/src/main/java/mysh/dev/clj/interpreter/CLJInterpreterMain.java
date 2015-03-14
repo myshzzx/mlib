@@ -80,7 +80,7 @@ public class CLJInterpreterMain extends JPanel {
 		initComponents();
 
 		// 输出展示线程
-		showThread = new Thread("sysout-reader") {
+		showThread = new Thread("mysh.dev.clj.sysout-reader") {
 			Pattern prompt = Pattern.compile("=> ");
 			Scanner scanner = new Scanner(resultIn).useDelimiter(prompt);
 
@@ -103,7 +103,7 @@ public class CLJInterpreterMain extends JPanel {
 		showThread.setDaemon(true);
 
 		// 错误输出线程
-		showErrThread = new Thread("syserr-reader") {
+		showErrThread = new Thread("mysh.dev.clj.syserr-reader") {
 			Scanner scanner = new Scanner(errResultIn);
 
 			@Override
@@ -194,7 +194,7 @@ public class CLJInterpreterMain extends JPanel {
 		});
 
 		// clojure 解析线程.
-		cljThread = new Thread("cljMain") {
+		cljThread = new Thread("mysh.dev.clj.cljMain") {
 			@Override
 			public void run() {
 				clojure.main.main(new String[]{});

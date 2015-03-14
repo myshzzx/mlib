@@ -5,7 +5,6 @@
  */
 package mysh.dev.ui;
 
-import mysh.dev.clj.interpreter.CLJInterpreterFrame;
 import mysh.dev.codegen.ui.BeanPropCopy;
 import mysh.dev.codegen.ui.NameConvert;
 import mysh.dev.encoding.Encoding;
@@ -17,11 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import java.awt.*;
+import java.awt.event.WindowEvent;
 import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author Allen
@@ -47,21 +44,21 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
         this.tabPane.add("正则判断", new RegExpTestFrame().getContentPane());
         this.tabPane.add("TCP端口扫描", new TcpPortScannerUI().getContentPane());
 
-        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
-        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
-
-        this.tabPane.addChangeListener(new ChangeListener() {
-            private AtomicBoolean cljStartFlag = new AtomicBoolean(false);
-
-            @Override
-            public void stateChanged(ChangeEvent e) {
-                if (tabPane.getSelectedComponent() == cljItpPane
-                        && cljStartFlag.compareAndSet(false, true)) {
-                    cljIptFrame.startCljThread();
-                    System.out.println(cljIptFrame.getTitle());
-                }
-            }
-        });
+//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
+//        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
+//
+//        this.tabPane.addChangeListener(new ChangeListener() {
+//            private AtomicBoolean cljStartFlag = new AtomicBoolean(false);
+//
+//            @Override
+//            public void stateChanged(ChangeEvent e) {
+//                if (tabPane.getSelectedComponent() == cljItpPane
+//                        && cljStartFlag.compareAndSet(false, true)) {
+//                    cljIptFrame.startCljThread();
+//                    System.out.println(cljIptFrame.getTitle());
+//                }
+//            }
+//        });
     }
 
     /**
@@ -82,8 +79,8 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 432, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 432, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -122,11 +119,17 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
         UIUtil.resetFont(null);
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-            ToolsIntegratedUI frame = new ToolsIntegratedUI();
+            frame = new ToolsIntegratedUI();
             frame.setBounds(0, 0, 720, 600);
             frame.setLocationRelativeTo(null);
             frame.setVisible(true);
         });
+    }
+
+    private static ToolsIntegratedUI frame;
+    public static void shutdown(){
+        WindowEvent we = new WindowEvent(frame, WindowEvent.WINDOW_CLOSING);
+        frame.dispatchEvent(we);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
