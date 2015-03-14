@@ -20,6 +20,7 @@ import java.util.List;
 public class Pusher implements PusherStateController {
 	private static final Logger log = LoggerFactory.getLogger(Pusher.class);
 
+
 	/**
 	 * Pusher 类型.<br/>
 	 * 本地Pusher (把本地数据发送到远程) 还是 远程Pusher.
@@ -35,7 +36,7 @@ public class Pusher implements PusherStateController {
 		/**
 		 * 远程Pusher
 		 */
-		REMOTE
+		REMOTE;
 	}
 
 	private static final int BUF_LENGTH = 300000;
@@ -47,6 +48,7 @@ public class Pusher implements PusherStateController {
 	private final Socket dst;
 
 	private final List<Plugin> plugins;
+	private Runnable closeNotifier;
 
 	/**
 	 * 缓冲区.<br/>
@@ -98,20 +100,22 @@ public class Pusher implements PusherStateController {
 					} catch (Exception e2) {
 					}
 				}
-			}
 
+				closeNotifier.run();
+			}
 		}
 	};
 
-	public Pusher(Type type, Socket src, Socket dst, List<Plugin> plugins) {
+	public Pusher(Type type, Socket src, Socket dst, List<Plugin> plugins,Runnable closeNotifier) {
 
 		this.type = type;
 		this.src = src;
 		this.dst = dst;
 		this.plugins = plugins;
+		this.closeNotifier = closeNotifier;
 
 		this.buf = new byte[Pusher.BUF_LENGTH];
-
+		this.dataPusher.setName("jpipe.Pusher." + type);
 	}
 
 	/**
