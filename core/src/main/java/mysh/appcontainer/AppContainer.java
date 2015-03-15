@@ -91,15 +91,24 @@ public class AppContainer {
 			AcLoader cl = new AcLoader(urls.toArray(new URL[urls.size()]),
 							AppContainer.class.getClassLoader().getParent());
 			Thread.currentThread().setContextClassLoader(cl);
-			InputStream in = cl.getResourceAsStream("META-INF/MANIFEST.MF");
-			try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-				String line, mainClass = null;
-				while ((line = reader.readLine()) != null) {
-					if (line.startsWith("Main-Class:")) {
-						mainClass = line.substring(12);
-						break;
+
+			String mainClass = null, line;
+			Enumeration<URL> manifests = cl.getResources("META-INF/MANIFEST.MF");
+			SearchMainClass:
+			while (manifests.hasMoreElements()) {
+				InputStream in = manifests.nextElement().openStream();
+				try (BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+					while ((line = reader.readLine()) != null) {
+						if (line.startsWith("Main-Class:")) {
+							mainClass = line.substring(12);
+							break SearchMainClass;
+						}
 					}
+				} catch (Exception e) {
 				}
+			}
+
+			try {
 				if (mainClass != null) {
 					Class<?> clazz = Class.forName(mainClass, true, cl);
 					Method mainMethod = clazz.getMethod("main", String[].class);
@@ -122,6 +131,7 @@ public class AppContainer {
 					mainMethod.invoke(clazz, new Object[]{params.toArray(new String[params.size()])});
 				} else {
 					log.info("can't find mainClass:" + cmd);
+					cl.close();
 				}
 			} catch (Exception e) {
 				log.error("start app error: " + cmd, e);
@@ -199,13 +209,14 @@ public class AppContainer {
 			}
 		}
 
-		private AppInfo consoleKill(PrintWriter writer, List<String> params) throws InterruptedException {
+		private AppInfo consoleKill(PrintWriter writer, List<String> params) throws InterruptedException, IOException {
 			long id = Long.parseLong(params.get(1));
 			AppInfo appInfo = apps.get(id);
 			if (appInfo == null) {
 				writer.println("app doesn't exist");
 			} else {
 				appInfo.shutdown.run();
+				appInfo.cl.close();
 				writer.println(id + " killed");
 				apps.remove(appInfo.id);
 			}
