@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * the main class of the app should implement a static method called "shutdown",
  * which releases all resources the app applied, such as threads, sockets, files and so on.
  * this method will be invoked when the app killed by AppContainer, and this method
- * should also be invoked when the app exits itself.
+ * <b>SHOULD ALSO BE INVOKED WHEN THE APP EXITS ITSELF</b>.
  * the app should never invoke System.exit, it's obviously, but be careful of JFrame,
  * don't do JFrame.setDefaultCloseOperation(EXIT_ON_CLOSE).
  * <p/>

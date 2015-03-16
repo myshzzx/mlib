@@ -18,9 +18,12 @@ import org.slf4j.LoggerFactory;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Allen
@@ -29,6 +32,8 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 
 	private static final Logger log = LoggerFactory.getLogger(ToolsIntegratedUI.class);
 	private Image icon;
+
+	private static final List<JFrame> frames = new ArrayList<>();
 
 	/**
 	 * Creates new form ToolsIntegratedUI
@@ -39,12 +44,27 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		} catch (IOException ex) {
 		}
 		initComponents();
-		this.tabPane.add("属性复制", new BeanPropCopy().getContentPane());
-		this.tabPane.add("命名转换", new NameConvert().getContentPane());
-		this.tabPane.add("编码转换", new Encoding().getContentPane());
-		this.tabPane.add("文件搜索", new FileSearchFrame().getContentPane());
-		this.tabPane.add("正则判断", new RegExpTestFrame().getContentPane());
-		this.tabPane.add("TCP端口扫描", new TcpPortScannerUI().getContentPane());
+
+
+		BeanPropCopy beanPropCopy = new BeanPropCopy();
+		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
+		NameConvert nameConvert = new NameConvert();
+		this.tabPane.add("命名转换", nameConvert.getContentPane());
+		Encoding encoding = new Encoding();
+		this.tabPane.add("编码转换", encoding.getContentPane());
+		FileSearchFrame fileSearchFrame = new FileSearchFrame();
+		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
+		RegExpTestFrame regExpTestFrame = new RegExpTestFrame();
+		this.tabPane.add("正则判断", regExpTestFrame.getContentPane());
+		TcpPortScannerUI tcpPortScannerUI = new TcpPortScannerUI();
+		this.tabPane.add("TCP端口扫描", tcpPortScannerUI.getContentPane());
+
+		frames.add(beanPropCopy);
+		frames.add(nameConvert);
+		frames.add(encoding);
+		frames.add(fileSearchFrame);
+		frames.add(regExpTestFrame);
+		frames.add(tcpPortScannerUI);
 
 //        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
 //        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
@@ -122,6 +142,12 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
         /* Create and display the form */
 		java.awt.EventQueue.invokeLater(() -> {
 			frame = new ToolsIntegratedUI();
+			frame.addWindowListener(new WindowAdapter() {
+				@Override
+				public void windowClosed(WindowEvent e) {
+					exitApp();
+				}
+			});
 			frame.setBounds(0, 0, 720, 600);
 			frame.setLocationRelativeTo(null);
 			frame.setVisible(true);
@@ -135,8 +161,19 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 			WindowEvent we = new WindowEvent(frame, WindowEvent.WINDOW_CLOSING);
 			frame.dispatchEvent(we);
 		} finally {
-			ClassLoader cl = ToolsIntegratedUI.class.getClassLoader();
-			if (cl instanceof Closeable) ((Closeable) cl).close();
+			exitApp();
+		}
+	}
+
+	private static void exitApp()   {
+		for (JFrame jFrame : frames) {
+			jFrame.dispose();
+		}
+
+		ClassLoader cl = ToolsIntegratedUI.class.getClassLoader();
+		if (cl instanceof Closeable) try {
+			((Closeable) cl).close();
+		} catch (IOException e) {
 		}
 	}
 
