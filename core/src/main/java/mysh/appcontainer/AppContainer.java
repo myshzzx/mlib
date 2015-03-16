@@ -21,17 +21,30 @@ import java.util.concurrent.atomic.AtomicLong;
  * an application container. just like jsp container such as Tomcat or Jetty.<br/>
  * It's created to reduce memory usage in a multi-jvm env,
  * so that java apps can share one jvm, and make a better use of memory.
- * <p>
+ * <p/>
+ * <pre>
+ *   public static void shutdown() throws Exception{
+ *     try{
+ *        // release resources applied by the app
+ *        // stop all threads started by the app
+ *     } finally {
+ *        // close the ClassLoader so that the jar files can be released by jvm
+ *        ClassLoader cl = MainClass.class.getClassLoader();
+ *        if (cl instanceof Closeable) ((Closeable) cl).close();
+ *     }
+ *   }
+ *   </pre>
  * the main class of the app should implement a static method called "shutdown",
  * which releases all resources the app applied, such as threads, sockets, files and so on.
  * this method will be invoked when the app killed by AppContainer, and this method
  * should also be invoked when the app exits itself.
  * the app should never invoke System.exit, it's obviously, but be careful of JFrame,
  * don't do JFrame.setDefaultCloseOperation(EXIT_ON_CLOSE).
- * <p>
- * notice that, the META-INF/MANIFEST.MF should be inside jar files and declares the main class,
+ * <p/>
+ * NOTICE that, the META-INF/MANIFEST.MF should be inside jar files and declares the main class,
  * so the AppContainer can start the app.
- * <p>
+ * <p></p>
+ *
  * usage example:  echo "c:/xxx.jar" param1 param2 | nc localhost 12345
  */
 public class AppContainer {
