@@ -10,9 +10,7 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
-import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -84,6 +82,17 @@ public class UIUtil {
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
 		Transferable tText = new StringSelection(str);
 		clipboard.setContents(tText, null);
+	}
+
+	/**
+	 * get system clipboard content.
+	 *
+	 * @throws IllegalStateException      - if this clipboard is currently unavailable
+	 * @throws UnsupportedFlavorException - if the requested DataFlavor is not available
+	 * @throws IOException                - if the data in the requested DataFlavor can not be retrieved
+	 */
+	public static String getSysClipboard() throws IOException, UnsupportedFlavorException {
+		return (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
 	}
 
 	/**
