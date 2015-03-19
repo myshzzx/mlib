@@ -78,12 +78,18 @@ public class Math2Test {
 
 	@Test
 	public void genPrime() {
-		int limit = 1_000_000;
+		int limit = 100_000;
 		checkPrimeInt(0, limit, Math2.genPrime(limit));
 	}
 
 	@Test
-	public void genPrimeInt() {
+	public void genPrimeParallel() throws InterruptedException {
+		int limit = 1000_000_000;
+		checkPrimeInt(0, limit, Math2.genPrimeParallel(limit));
+	}
+
+	@Test
+	public void genPrimeInt() throws InterruptedException {
 
 		int from, to;
 
@@ -116,6 +122,28 @@ public class Math2Test {
 
 		ps = Math2.genPrime(9223372036854775139L, 9223372036854775139L);
 		System.out.println(Arrays.toString(ps));
+	}
+
+	@Test
+	public void genPrimeCost() throws InterruptedException {
+		int limit = 1_000_000;
+		Math2.genPrimeParallel(limit);
+		Math2.genPrime(10, limit);
+
+		limit = 1000_000_000;
+		long s;
+
+		s = System.nanoTime();
+		Math2.genPrimeParallel(limit);
+		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
+
+		System.gc();
+		Thread.sleep(1000);
+
+		s = System.nanoTime();
+		Math2.genPrime(10, limit);
+		System.out.println("p:" + (System.nanoTime() - s) / 1000_000);
+
 	}
 
 	@Test

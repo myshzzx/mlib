@@ -16,7 +16,7 @@ import java.nio.FloatBuffer;
  */
 public class GPGPUBenchmark {
 	@BeforeClass
-	public void init() {
+	public static void init() {
 		//		System.setProperty("com.amd.aparapi.enableExecutionModeReporting", "true");
 //		System.setProperty("com.amd.aparapi.enableShowGeneratedOpenCL", "true");
 //		System.setProperty("com.amd.aparapi.enableProfiling", "true");

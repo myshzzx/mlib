@@ -3,7 +3,10 @@ package mysh.algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.ForkJoinPool;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Math2 {
@@ -54,29 +57,106 @@ public class Math2 {
 	 * 取 [2, limit] 内的质数.
 	 */
 	public static int[] genPrime(int limit) {
+		long s = System.nanoTime();
 		if (limit < 2) throw new IllegalArgumentException();
+		if (limit > 20_0000_0000) throw new IllegalArgumentException();
+
+		// 第 i 个值表示 i 是否合数
+		boolean[] get = new boolean[limit + 1];
+
+		int factorLimit = (int) Math.sqrt(limit) + 1;
+		int composite;
+		for (int factor = 3, f2; factor < factorLimit; factor += 2) {
+			if (!get[factor]) {
+				// 至此可确定 factor 一定是质数
+				composite = factor * factor;
+				f2 = factor << 1;
+				while (composite <= limit) {
+					get[composite] = true;
+					composite += f2;
+				}
+			}
+		}
+		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
+
+		int primeCount = 0;
+		int getLen = get.length;
+		for (int i = 3; i < getLen; i+=2)
+			if (!get[i]) primeCount++;
+
+		int[] primes = new int[primeCount+1];
+		primes[0]=2;
+		for (int i = 3, j = 1; i < getLen; i+=2)
+			if (!get[i]) primes[j++] = i;
+
+		return primes;
+	}
+
+	private static class PrimeWork implements Runnable {
+		final int factor;
+		volatile int composite;
+		boolean[] get;
+		final int limit;
+		private Map<Integer, PrimeWork> works;
+
+		public PrimeWork(int factor, boolean[] get, int limit, Map<Integer, PrimeWork> works) {
+			this.factor = factor;
+			this.composite = factor;
+			this.get = get;
+			this.limit = limit;
+			this.works = works;
+		}
+
+		@Override
+		public void run() {
+			composite = factor * factor;
+			while (composite <= limit) {
+				get[composite] = true;
+				composite += factor;
+			}
+			works.remove(factor);
+		}
+	}
+
+	/**
+	 * 取 [2, limit] 内的质数.
+	 */
+	public static int[] genPrimeParallel(int limit) throws InterruptedException {
+		long s = System.nanoTime();
+		if (limit < 2) throw new IllegalArgumentException();
+		if (limit > 20_0000_0000) throw new IllegalArgumentException();
 
 		// 第 i 个值表示 i 是否合数
 		boolean[] get = new boolean[limit + 1];
 		get[0] = get[1] = true;
 
 		int factorLimit = (int) Math.sqrt(limit) + 1;
-		int composite;
+		ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		Map<Integer, PrimeWork> works = new ConcurrentHashMap<>();
 		for (int factor = 2; factor < factorLimit; factor++) {
 			if (!get[factor]) {
-				// 至此可确定 factor 一定是质数
-				composite = factor;
-				while ((composite += factor) <= limit)
-					get[composite] = true;
+				for (PrimeWork work : works.values()) {
+					while (work.composite < factor) Thread.sleep(1);
+				}
+				if (get[factor]) continue;
+
+				PrimeWork work = new PrimeWork(factor, get, limit, works);
+				exec.execute(work);
+				works.put(factor, work);
 			}
 		}
+		exec.shutdown();
+		if (!exec.awaitTermination(30, TimeUnit.MINUTES))
+			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
+		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
 
 		int primeCount = 0;
-		for (int i = 2; i < get.length; i++)
+		int getLen = get.length;
+		for (int i = 2; i < getLen; i++)
 			if (!get[i]) primeCount++;
 
 		int[] primes = new int[primeCount];
-		for (int i = 2, j = 0; i < get.length; i++)
+		for (int i = 2, j = 0; i < getLen; i++)
 			if (!get[i]) primes[j++] = i;
 
 		return primes;
@@ -89,8 +169,8 @@ public class Math2 {
 	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>质数定理</a>
 	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
 	 */
-	public static int[] genPrime(final int from, final int to) {
-
+	public static int[] genPrime(final int from, final int to) throws InterruptedException {
+		long s = System.nanoTime();
 		if (to < from || from < 10)
 			throw new IllegalArgumentException();
 
@@ -99,9 +179,10 @@ public class Math2 {
 		boolean[] get = new boolean[to - from + 1];
 		int factorLimit = (int) Math.sqrt(to) + 1;
 
-		int parts = Math.min(Runtime.getRuntime().availableProcessors(), factorLimit - 2);
+		int procCount = Runtime.getRuntime().availableProcessors();
+		int parts = Math.min(procCount * 3, factorLimit - 2);
 		int step = (factorLimit - 2) / parts + 1;
-		ForkJoinPool fjp = ForkJoinPool.commonPool();
+		ExecutorService fjp = Executors.newFixedThreadPool(procCount);
 
 		final int maxInt = Integer.MAX_VALUE;
 		for (int factor = 2; factor < factorLimit; factor += step) {
@@ -130,14 +211,16 @@ public class Math2 {
 				}
 			});
 		}
-		if (!fjp.awaitQuiescence(30, TimeUnit.MINUTES))
+		fjp.shutdown();
+		if (!fjp.awaitTermination(30, TimeUnit.MINUTES))
 			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
-
+		System.out.println("p:" + (System.nanoTime() - s) / 1000_000);
 		int primeCount = 0;
 		for (boolean g : get) if (!g) primeCount++;
 
 		int[] primes = new int[primeCount];
-		for (int i = 0, j = 0; i < get.length; i++)
+		int getL = get.length;
+		for (int i = 0, j = 0; i < getL; i++)
 			if (!get[i]) primes[j++] = from + i;
 
 		return primes;
@@ -150,7 +233,7 @@ public class Math2 {
 	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>质数定理</a>
 	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
 	 */
-	public static long[] genPrime(final long from, final long to) {
+	public static long[] genPrime(final long from, final long to) throws InterruptedException {
 
 		if (to < from || from < 10 || to - from > Integer.MAX_VALUE / 2)
 			throw new IllegalArgumentException();
@@ -160,9 +243,10 @@ public class Math2 {
 		boolean[] get = new boolean[getLen];
 		long factorLimit = (long) Math.sqrt(to) + 1;
 
-		int parts = (int) Math.min(Runtime.getRuntime().availableProcessors(), factorLimit - 2);
+		int procCount = Runtime.getRuntime().availableProcessors();
+		int parts = (int) Math.min(procCount * 3, factorLimit - 2);
 		long step = (factorLimit - 2) / parts + 1;
-		ForkJoinPool fjp = ForkJoinPool.commonPool();
+		ExecutorService fjp = Executors.newFixedThreadPool(procCount);
 
 		final long maxInt = Integer.MAX_VALUE;
 		for (long factor = 2; factor < factorLimit; factor += step) {
@@ -192,14 +276,16 @@ public class Math2 {
 				}
 			});
 		}
-		if (!fjp.awaitQuiescence(30, TimeUnit.MINUTES))
+		fjp.shutdown();
+		if (!fjp.awaitTermination(30, TimeUnit.MINUTES))
 			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
 
 		int primeCount = 0;
 		for (boolean g : get) if (!g) primeCount++;
 
 		long[] primes = new long[primeCount];
-		for (int i = 0, j = 0; i < get.length; i++)
+		int getL = get.length;
+		for (int i = 0, j = 0; i < getL; i++)
 			if (!get[i]) primes[j++] = from + i;
 
 		return primes;
