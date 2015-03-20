@@ -77,10 +77,9 @@ public class Math2Test {
 	}
 
 	@Test
-	@Ignore
 	public void genPrime1() throws InterruptedException {
 		long s = System.nanoTime();
-		int limit = 100_000_000;
+		int limit = 6_000_000;
 		int[] ps = Math2.genPrime(limit);
 		System.out.println("s: "+(System.nanoTime()-s)/1000_000);
 
