@@ -3,11 +3,7 @@ package mysh.algorithm;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class Math2 {
 
@@ -54,109 +50,84 @@ public class Math2 {
 	}
 
 	/**
-	 * 取 [2, limit] 内的质数.
+	 * 取 [2, 2_000_000_000] 内的质数.
+	 *
+	 * @param get 第 i 个值表示 i 是否合数, 偶数位无效, 需要至少 limit+1 长度.
 	 */
-	public static int[] genPrime(int limit) {
-		long s = System.nanoTime();
-		if (limit < 2) throw new IllegalArgumentException();
-		if (limit > 20_0000_0000) throw new IllegalArgumentException();
+	public static void genPrime(int limit, boolean[] get) throws InterruptedException {
 
-		// 第 i 个值表示 i 是否合数
-		boolean[] get = new boolean[limit + 1];
+		if (limit < 2) throw new IllegalArgumentException();
+		if (limit > 2_000_000_000) throw new IllegalArgumentException();
 
 		int factorLimit = (int) Math.sqrt(limit) + 1;
-		int composite;
-		for (int factor = 3, f2; factor < factorLimit; factor += 2) {
-			if (!get[factor]) {
-				// 至此可确定 factor 一定是质数
-				composite = factor * factor;
-				f2 = factor << 1;
-				while (composite <= limit) {
-					get[composite] = true;
-					composite += f2;
+		if (limit <= 5_000_000) {
+			int composite;
+			for (int factor = 3, f2; factor < factorLimit; factor += 2) {
+				if (!get[factor]) {
+					// 至此可确定 factor 一定是质数
+					composite = factor * factor;
+					f2 = factor << 1;
+					while (composite <= limit) {
+						get[composite] = true;
+						composite += f2;
+					}
 				}
 			}
-		}
-		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
-
-		int primeCount = 0;
-		int getLen = get.length;
-		for (int i = 3; i < getLen; i+=2)
-			if (!get[i]) primeCount++;
-
-		int[] primes = new int[primeCount+1];
-		primes[0]=2;
-		for (int i = 3, j = 1; i < getLen; i+=2)
-			if (!get[i]) primes[j++] = i;
-
-		return primes;
-	}
-
-	private static class PrimeWork implements Runnable {
-		final int factor;
-		volatile int composite;
-		boolean[] get;
-		final int limit;
-		private Map<Integer, PrimeWork> works;
-
-		public PrimeWork(int factor, boolean[] get, int limit, Map<Integer, PrimeWork> works) {
-			this.factor = factor;
-			this.composite = factor;
-			this.get = get;
-			this.limit = limit;
-			this.works = works;
-		}
-
-		@Override
-		public void run() {
-			composite = factor * factor;
-			while (composite <= limit) {
-				get[composite] = true;
-				composite += factor;
+		} else {
+			genPrime(factorLimit, get);
+			BlockingQueue<Integer> p = new ArrayBlockingQueue<>(
+							(int) (factorLimit / Math.log(factorLimit) * 1.2));
+			for (int i = 3; i <= factorLimit; i += 2) {
+				if (!get[i]) p.offer(i);
 			}
-			works.remove(factor);
+
+			int procCount = Runtime.getRuntime().availableProcessors();
+			ExecutorService exec = Executors.newFixedThreadPool(procCount);
+			Runnable primeTask = () -> {
+				Integer pp;
+				while ((pp = p.poll()) != null) {
+					int prime = pp;
+					int f = prime * prime;
+					if (f < factorLimit) {
+						f = factorLimit / prime;
+						if ((f & 1) == 0) f++;
+						f *= prime;
+					}
+					int composite = f, f2 = prime << 1;
+					while (composite <= limit) {
+						get[composite] = true;
+						composite += f2;
+					}
+				}
+			};
+			while (procCount-- > 0) {
+				exec.execute(primeTask);
+			}
+			exec.shutdown();
+			if (!exec.awaitTermination(30, TimeUnit.MINUTES))
+				throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
 		}
 	}
 
 	/**
-	 * 取 [2, limit] 内的质数.
+	 * 取 limit 内的质数. 传入参数需不小于10.<br/>
+	 * 使用并行计算, 若计算时间超过30分钟, 将抛异常.
+	 *
+	 * @see <a href='http://zh.wikipedia.org/zh/質數定理'>质数定理</a>
+	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
 	 */
-	public static int[] genPrimeParallel(int limit) throws InterruptedException {
-		long s = System.nanoTime();
-		if (limit < 2) throw new IllegalArgumentException();
-		if (limit > 20_0000_0000) throw new IllegalArgumentException();
-
-		// 第 i 个值表示 i 是否合数
+	public static int[] genPrime(int limit) throws InterruptedException {
 		boolean[] get = new boolean[limit + 1];
-		get[0] = get[1] = true;
-
-		int factorLimit = (int) Math.sqrt(limit) + 1;
-		ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-		Map<Integer, PrimeWork> works = new ConcurrentHashMap<>();
-		for (int factor = 2; factor < factorLimit; factor++) {
-			if (!get[factor]) {
-				for (PrimeWork work : works.values()) {
-					while (work.composite < factor) Thread.sleep(1);
-				}
-				if (get[factor]) continue;
-
-				PrimeWork work = new PrimeWork(factor, get, limit, works);
-				exec.execute(work);
-				works.put(factor, work);
-			}
-		}
-		exec.shutdown();
-		if (!exec.awaitTermination(30, TimeUnit.MINUTES))
-			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
-		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
+		genPrime(limit, get);
 
 		int primeCount = 0;
 		int getLen = get.length;
-		for (int i = 2; i < getLen; i++)
+		for (int i = 3; i < getLen; i += 2)
 			if (!get[i]) primeCount++;
 
-		int[] primes = new int[primeCount];
-		for (int i = 2, j = 0; i < getLen; i++)
+		int[] primes = new int[primeCount + 1];
+		primes[0] = 2;
+		for (int i = 3, j = 1; i < getLen; i += 2)
 			if (!get[i]) primes[j++] = i;
 
 		return primes;
@@ -170,7 +141,6 @@ public class Math2 {
 	 * @see <a href='http://michaelnielsen.org/polymath1/index.php?title=Bounded_gaps_between_primes#World_records'>质数差上界</a>
 	 */
 	public static int[] genPrime(final int from, final int to) throws InterruptedException {
-		long s = System.nanoTime();
 		if (to < from || from < 10)
 			throw new IllegalArgumentException();
 
@@ -214,7 +184,6 @@ public class Math2 {
 		fjp.shutdown();
 		if (!fjp.awaitTermination(30, TimeUnit.MINUTES))
 			throw new RuntimeException("genPrime doesn't complete in 30 minutes.");
-		System.out.println("p:" + (System.nanoTime() - s) / 1000_000);
 		int primeCount = 0;
 		for (boolean g : get) if (!g) primeCount++;
 

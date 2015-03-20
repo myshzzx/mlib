@@ -77,15 +77,21 @@ public class Math2Test {
 	}
 
 	@Test
-	public void genPrime() {
-		int limit = 100_000;
-		checkPrimeInt(0, limit, Math2.genPrime(limit));
+	@Ignore
+	public void genPrime1() throws InterruptedException {
+		long s = System.nanoTime();
+		int limit = 100_000_000;
+		int[] ps = Math2.genPrime(limit);
+		System.out.println("s: "+(System.nanoTime()-s)/1000_000);
+
+		checkPrimeInt(0, limit, ps);
 	}
 
 	@Test
-	public void genPrimeParallel() throws InterruptedException {
-		int limit = 1000_000_000;
-		checkPrimeInt(0, limit, Math2.genPrimeParallel(limit));
+	public void genPrime2() throws InterruptedException {
+		int limit = 1_000_000;
+		int[] ps = Math2.genPrime(limit);
+		checkPrimeInt(0, limit, ps);
 	}
 
 	@Test
@@ -93,9 +99,11 @@ public class Math2Test {
 
 		int from, to;
 
-		from = 10;
-		to = 1_000_000;
+		long s = System.nanoTime();
+		from = 100_000_000;
+		to = 100_000_100;
 		checkPrimeInt(from, to, Math2.genPrime(from, to));
+		System.out.println("s: "+(System.nanoTime()-s)/1000_000);
 
 		from = 100_000_000;
 		to = 100_111_000;
@@ -127,14 +135,14 @@ public class Math2Test {
 	@Test
 	public void genPrimeCost() throws InterruptedException {
 		int limit = 1_000_000;
-		Math2.genPrimeParallel(limit);
+		Math2.genPrime(limit);
 		Math2.genPrime(10, limit);
 
 		limit = 1000_000_000;
 		long s;
 
 		s = System.nanoTime();
-		Math2.genPrimeParallel(limit);
+		Math2.genPrime(limit);
 		System.out.println("s:" + (System.nanoTime() - s) / 1000_000);
 
 		System.gc();
