@@ -18,9 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * an application container. just like jsp container such as Tomcat or Jetty.<br/>
+ * An application container. Just like jsp container such as Tomcat or Jetty.<br/>
  * It's created to reduce memory usage in a multi-jvm env,
- * so that java apps can share one jvm, and make a better use of memory.
+ * so that java apps can share one jvm, and make a better use of memory.<br/>
+ * If several GUI-apps will run in the container, the container should use "single classloader",
+ * because the EDT(event dispatch thread) is singleton, and holds only one classloader, so
+ * jars of new apps need to be added to the unique classloader in case of "ClassNotFoundError",
+ * but use "single classloader" may cause class conflict, be careful of that.
  * <p/>
  * <pre>
  *   public static void shutdown() throws Exception{
@@ -38,7 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * which releases all resources the app applied, such as threads, sockets, files and so on.
  * this method will be invoked when the app killed by AppContainer, and this method
  * <b>SHOULD ALSO BE INVOKED WHEN THE APP EXITS ITSELF</b>.
- * the app should never invoke System.exit, it's obviously, but be careful of JFrame,
+ * the app should never invoke System.exit, it's obviously. But be careful of JFrame,
  * don't do JFrame.setDefaultCloseOperation(EXIT_ON_CLOSE).
  * <p/>
  * NOTICE that, the META-INF/MANIFEST.MF should be inside jar files and declares the main class,
@@ -54,10 +58,14 @@ public class AppContainer {
 	private final Map<Long, AppInfo> apps = new ConcurrentHashMap<>();
 	private final ConsoleHelper consoleHelper = new ConsoleHelper();
 
-	public AppContainer(int serverPort) throws IOException {
+	private final AcLoader singleAcLoader;
+
+	public AppContainer(int serverPort, boolean useSingleClassLoader) throws IOException {
 		ServerSocket sock = new ServerSocket(serverPort);
 
 		consoleHelper.startMonitor();
+		singleAcLoader = useSingleClassLoader ?
+						new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
 
 		Socket accept;
 		while ((accept = sock.accept()) != null) {
@@ -103,8 +111,8 @@ public class AppContainer {
 			}
 			AcLoader cl = new AcLoader(urls.toArray(new URL[urls.size()]),
 							AppContainer.class.getClassLoader().getParent());
-			Thread.currentThread().setContextClassLoader(cl);
 
+			// look for main class name
 			String mainClass = null, line;
 			Enumeration<URL> manifests = cl.getResources("META-INF/MANIFEST.MF");
 			SearchMainClass:
@@ -121,21 +129,31 @@ public class AppContainer {
 				}
 			}
 
+			if (singleAcLoader != null) {
+				cl.close();
+				synchronized (singleAcLoader) {
+					singleAcLoader.addURLs(urls);
+				}
+				cl = singleAcLoader;
+			}
+			AcLoader appLoader = cl;
+			Thread.currentThread().setContextClassLoader(appLoader);
+
 			try {
 				if (mainClass != null) {
-					Class<?> clazz = Class.forName(mainClass, true, cl);
+					Class<?> clazz = Class.forName(mainClass, true, appLoader);
 					Method mainMethod = clazz.getMethod("main", String[].class);
 					Method shutdownMethod = clazz.getMethod("shutdown");
 					if (0 == (shutdownMethod.getModifiers() & Modifier.STATIC))
 						throw new Exception("shutdown method should be static");
 
 					long id = appCount.incrementAndGet();
-					apps.put(id, new AppInfo(cl, id, cmd,
+					apps.put(id, new AppInfo(appLoader, id, cmd,
 									() -> {
 										try {
 											shutdownMethod.setAccessible(true);
 											shutdownMethod.invoke(clazz);
-											cl.close();
+											appLoader.close();
 										} catch (Exception e) {
 											log.error("shutdown " + clazz.getName() + " error", e);
 										}
@@ -144,11 +162,11 @@ public class AppContainer {
 					mainMethod.invoke(clazz, new Object[]{params.toArray(new String[params.size()])});
 				} else {
 					log.info("can't find mainClass:" + cmd);
-					cl.close();
+					appLoader.close();
 				}
 			} catch (Exception e) {
 				log.error("start app error: " + cmd, e);
-				cl.close();
+				appLoader.close();
 				Runtime.getRuntime().exec("javaw -jar " + cmd);
 			}
 		}
@@ -245,10 +263,24 @@ public class AppContainer {
 		}
 	}
 
-	private static class AcLoader extends URLClassLoader {
+	private class AcLoader extends URLClassLoader {
 
 		public AcLoader(URL[] urls, ClassLoader parent) {
 			super(urls, parent);
+		}
+
+		public void addURLs(ArrayList<URL> urls) {
+			urls.stream().forEach(this::addURL);
+		}
+
+		@Override
+		public void close() throws IOException {
+			if (this != singleAcLoader)
+				super.close();
+		}
+
+		public void forceClose() throws IOException {
+			super.close();
 		}
 	}
 
@@ -277,9 +309,11 @@ public class AppContainer {
 
 	public static void main(String[] args) throws IOException {
 		try {
-			new AppContainer(Integer.parseInt(args[0]));
+			new AppContainer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
 		} catch (Exception e) {
-			System.out.println("usage: serverPort - AppContainer listener port");
+			System.out.println("usage: serverPort useSingleClassLoader");
+			System.out.println("serverPort - AppContainer listener port");
+			System.out.println("useSingleClassLoader - is use only one class loader for all apps");
 		}
 	}
 }

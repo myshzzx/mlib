@@ -17,7 +17,7 @@ public class Math2Test {
 		int i = from;
 		for (int p : ps) {
 			while (i < p)
-				assertFalse(Math2.isPrime(i++));
+				assertFalse(i + "", Math2.isPrime(i++));
 
 			assertTrue(i + "", Math2.isPrime(i++));
 		}
@@ -81,7 +81,7 @@ public class Math2Test {
 		long s = System.nanoTime();
 		int limit = 6_000_000;
 		int[] ps = Math2.genPrime(limit);
-		System.out.println("s: "+(System.nanoTime()-s)/1000_000);
+		System.out.println("s: " + (System.nanoTime() - s) / 1000_000);
 
 		checkPrimeInt(0, limit, ps);
 	}
@@ -102,7 +102,7 @@ public class Math2Test {
 		from = 100_000_000;
 		to = 100_000_100;
 		checkPrimeInt(from, to, Math2.genPrime(from, to));
-		System.out.println("s: "+(System.nanoTime()-s)/1000_000);
+		System.out.println("s: " + (System.nanoTime() - s) / 1000_000);
 
 		from = 100_000_000;
 		to = 100_111_000;
