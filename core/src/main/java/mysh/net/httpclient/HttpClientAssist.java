@@ -70,7 +70,7 @@ public class HttpClientAssist implements Closeable {
 							conf.getProxyType());
 			hcBuilder.setProxy(proxyHost);
 
-			if (!Strings.isEmpty(conf.getProxyAuthName())) {
+			if (!Strings.isBlank(conf.getProxyAuthName())) {
 				CredentialsProvider cp = new BasicCredentialsProvider();
 				cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
 								new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));

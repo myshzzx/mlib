@@ -31,4 +31,23 @@ public class TimeUtil {
 
 		return false;
 	}
+
+	/**
+	 * check local time.
+	 *
+	 * @param hour   check hour, 0-23.
+	 * @param minute check minute, 0-59.
+	 */
+	public static boolean isTime(int hour, int minute) {
+		long now = (System.currentTimeMillis() + timeOffset) / 1000;
+
+		now /= 60;
+		if (now % 60 == minute) {
+			now /= 60;
+			if (now % 24 == hour)
+				return true;
+		}
+
+		return false;
+	}
 }

@@ -46,7 +46,7 @@ public class FileUtil {
 	}
 
 	/**
-	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度).<br/>
+	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度, 但之后文件不能被写入).<br/>
 	 * 失败则返回 null.
 	 *
 	 * @param filepath 文件路径.
@@ -61,6 +61,8 @@ public class FileUtil {
 			T obj = Serializer.buildIn.unSerialize(buf, null);
 			log.debug("load object from file: " + filepath);
 			return obj;
+		} finally {
+			System.gc();
 		}
 	}
 

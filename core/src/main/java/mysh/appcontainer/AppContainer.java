@@ -21,10 +21,10 @@ import java.util.concurrent.atomic.AtomicLong;
  * An application container. Just like jsp container such as Tomcat or Jetty.<br/>
  * It's created to reduce memory usage in a multi-jvm env,
  * so that java apps can share one jvm, and make a better use of memory.<br/>
- * If several GUI-apps will run in the container, the container should use "single classloader",
- * because the EDT(event dispatch thread) is singleton, and holds only one classloader, so
- * jars of new apps need to be added to the unique classloader in case of "ClassNotFoundError",
- * but use "single classloader" may cause class conflict, be careful of that.
+ * If GUI-apps will run in the container, the container should use "single classloader",
+ * because the EDT(event dispatch thread) is singleton, which holds only one classloader, so
+ * jars of new apps need to be added to the classloader in case of "ClassNotFoundError",
+ * but use "single classloader" may cause classes conflict, be careful of that.
  * <p/>
  * <pre>
  *   public static void shutdown() throws Exception{

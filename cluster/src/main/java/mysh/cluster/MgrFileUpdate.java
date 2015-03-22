@@ -7,8 +7,7 @@ import mysh.util.ExpUtil;
 import java.util.List;
 
 /**
- * When update USER or SU files, all files will be updated in all nodes, and applied immediately
- * .<br/>
+ * When update USER or SU files, all files will be updated in all nodes, and applied immediately.<br/>
  * But if update CORE files, changes will be applied only after a restart, so only master node will
  * be updated, because if there are some problem in updates, the node may be not able to start.
  * If all nodes update CORE files immediately, then entire cluster may be down and not able to

@@ -135,6 +135,8 @@ public class FilesMgr implements Closeable {
 			}
 			URLClassLoader cl = new URLClassLoader(urls.toArray(new URL[urls.size()]), getClass().getClassLoader());
 			loaders.put(ns, cl);
+// todo : if the NS needs to do init and destroy, a config file can be used to config the
+// life-cycle management, like specifying a LifeCycMgr, which will be executed when putFile and removeFile
 		}
 	}
 
