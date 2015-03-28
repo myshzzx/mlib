@@ -30,7 +30,7 @@
 		<!-- Tests run on modern PCs show that buffering related property -->
 		<!-- "ImmediateFlush" has negligible impact and will be ignored.  -->
 		<encoder>
-			<pattern>●%date{MM-dd HH:mm:ss}  %msg  ~%logger{5}-%L [%thread] %level%n</pattern>
+			<pattern>●%date{MM-dd HH:mm:ss} %msg ~%logger{5}-%L [%thread] %level%n</pattern>
 		</encoder>
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>DEBUG</level>
@@ -38,32 +38,32 @@
 	</appender>
 
 
-	<!--<appender name="DebugFile" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
-	<!--&lt;!&ndash;See also http://logback.qos.ch/manual/appenders.html#RollingFileAppender&ndash;&gt;-->
-	<!--<Append>true</Append>-->
-	<!--<File>l:/debug.html</File>-->
-	<!--<layout class="ch.qos.logback.classic.html.HTMLLayout">-->
-	<!--&lt;!&ndash;See http://logback.qos.ch/manual/layouts.html#ClassicHTMLLayout&ndash;&gt;-->
-	<!--&lt;!&ndash;for documentation&ndash;&gt;-->
-	<!--<LocationInfo>true</LocationInfo>-->
-	<!--<Pattern>%relative%thread%mdc%level%logger%msg</Pattern>-->
-	<!--</layout>-->
-	<!--<filter class="ch.qos.logback.classic.filter.ThresholdFilter">-->
-	<!--<level>DEBUG</level>-->
-	<!--</filter>-->
-	<!--<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">-->
-	<!--<maxIndex>50</maxIndex>-->
-	<!--<FileNamePattern>debug.%i.html</FileNamePattern>-->
-	<!--</rollingPolicy>-->
-	<!--<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">-->
-	<!--<MaxFileSize>4MB</MaxFileSize>-->
-	<!--</triggeringPolicy>-->
-	<!--</appender>-->
+	<appender name="DebugFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<!--See also http://logback.qos.ch/manual/appenders.html#RollingFileAppender-->
+		<Append>true</Append>
+		<File>${java.io.tmpdir}/debug.log</File>
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<!--See http://logback.qos.ch/manual/layouts.html#ClassicHTMLLayout-->
+			<!--for documentation-->
+			<LocationInfo>true</LocationInfo>
+			<pattern>●%date{MM-dd HH:mm:ss} %msg ~%logger{5}-%L [%thread] %level%n</pattern>
+		</layout>
+		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+			<level>DEBUG</level>
+		</filter>
+		<rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+			<maxIndex>50</maxIndex>
+			<FileNamePattern>debug.%i.html</FileNamePattern>
+		</rollingPolicy>
+		<triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+			<MaxFileSize>4MB</MaxFileSize>
+		</triggeringPolicy>
+	</appender>
 
 
 	<root level="debug">
 		<appender-ref ref="console"/>
-		<!--<appender-ref ref="DebugFile"/>-->
+		<appender-ref ref="DebugFile"/>
 	</root>
 
 </configuration>
