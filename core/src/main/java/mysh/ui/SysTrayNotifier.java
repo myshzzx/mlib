@@ -55,6 +55,9 @@ public class SysTrayNotifier implements Closeable {
 			String msg = getMsg();
 			return msg != null ? msg.hashCode() : super.hashCode();
 		}
+
+		@Override
+		public abstract String toString();
 	}
 
 	public static class ActionListener {
@@ -159,6 +162,8 @@ public class SysTrayNotifier implements Closeable {
 	}
 
 	public void newMsg(Msg msg) {
+		log.info("on receive new msg: " + msg);
+
 		msg.receivedTime = new Date();
 		if (msg.getMsg() != null)
 			this.icon.displayMessage(msg.getTitle(), msg.getMsg(),
