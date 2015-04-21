@@ -25,14 +25,15 @@ public class Pipe {
 			new Pusher(Pusher.Type.REMOTE, remoteSock, localSock, plugins, closeNotifier).start();
 		} catch (Exception e) {
 			log.info("连接到 [" + remoteHost + ": " + remotePort + "] 失败. 无法建立数据管道." + e);
-			closeNotifier.run();
-		} finally {
+
 			if (localSock != null) {
 				try {
 					localSock.close();
-				} catch (IOException e) {
+				} catch (IOException ex) {
 				}
 			}
+
+			closeNotifier.run();
 		}
 	}
 
