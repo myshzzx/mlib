@@ -7,23 +7,27 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Stream;
 
 /**
  * @author Mysh
  * @since 2014/9/25 15:37
  */
-public class WebDownloader implements CrawlerSeed {
+public class WebDownloader implements CrawlerSeed<UrlContext> {
 	private static final long serialVersionUID = 498361912566529068L;
 	private static final Logger log = LoggerFactory.getLogger(WebDownloader.class);
 	private static final File saveFile = new File("l:/wdStore");
 	private static final String v = "";
 
-	transient List<String> seeds = new ArrayList<>();
+	transient List<UrlCtxHolder<UrlContext>> seeds = new ArrayList<>();
 
-	Queue<String> unhandledSeeds = new ConcurrentLinkedQueue<>();
+	Queue<UrlCtxHolder<UrlContext>> unhandledSeeds = new ConcurrentLinkedQueue<>();
 	Map<String, Serializable> repo = new ConcurrentHashMap<>(8000);
 
 	private static final String ROOT = "http://www.geekonomics10000.com/";
@@ -36,7 +40,7 @@ public class WebDownloader implements CrawlerSeed {
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8087);
 
-		Crawler c = new Crawler(new WebDownloader(), hcc);
+		Crawler<UrlContext> c = new Crawler<>(new WebDownloader(), hcc);
 		c.start();
 
 		while (c.getStatus() != Crawler.Status.STOPPED) {
@@ -49,20 +53,20 @@ public class WebDownloader implements CrawlerSeed {
 
 	public WebDownloader() {
 		String u = ROOT;
-		seeds.add(u);
+		seeds.add(new UrlCtxHolder<>(u, null));
 	}
 
 	public static final int WAIT_TIME = 5000;
 
 	@Override
-	public boolean accept(String url) {
+	public boolean accept(String url, UrlContext ctx) {
 		return !repo.containsKey(url)
 						&& url.startsWith(ROOT)
 						;
 	}
 
 	@Override
-	public boolean onGet(HttpClientAssist.UrlEntity e) {
+	public boolean onGet(HttpClientAssist.UrlEntity e, UrlContext ctx) {
 		if (e.getContentLength() < 512) return false;
 
 		repo.put(e.getCurrentURL(), v);
@@ -104,7 +108,7 @@ public class WebDownloader implements CrawlerSeed {
 			if (tRepo != null && tRepo.size() > 0)
 				repo = tRepo;
 
-			Queue<String> tUnhandledSeeds = (Queue<String>) savedObj[1];
+			Queue<UrlCtxHolder<UrlContext>> tUnhandledSeeds = (Queue<UrlCtxHolder<UrlContext>>) savedObj[1];
 			if (tUnhandledSeeds != null && tUnhandledSeeds.size() > 0) {
 				seeds.clear();
 				seeds.addAll(tUnhandledSeeds);
@@ -115,7 +119,7 @@ public class WebDownloader implements CrawlerSeed {
 	}
 
 	@Override
-	public void onCrawlerStopped(Queue<String> unhandledSeeds) {
+	public void onCrawlerStopped(Queue<UrlCtxHolder<UrlContext>> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
 		try {
 			FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
@@ -126,8 +130,8 @@ public class WebDownloader implements CrawlerSeed {
 	}
 
 	@Override
-	public List<String> getSeeds() {
-		return seeds;
+	public Stream<UrlCtxHolder<UrlContext>> getSeeds() {
+		return seeds.stream();
 	}
 
 	@Override

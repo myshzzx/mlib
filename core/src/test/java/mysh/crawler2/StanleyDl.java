@@ -20,14 +20,14 @@ import java.util.zip.ZipOutputStream;
 /**
  * http://stanleychen.tuchong.com/
  */
-public class StanleyDl implements CrawlerSeed {
+public class StanleyDl implements CrawlerSeed<UrlContext> {
 	private static final long serialVersionUID = 498361912566529068L;
 	private static final Logger log = LoggerFactory.getLogger(StanleyDl.class);
 	private static final File saveFile = new File("l:/stanleyStore");
 	private static final String v = "";
 
-	transient List<String> seeds = new ArrayList<>();
-	Queue<String> unhandledSeeds = new ConcurrentLinkedQueue<>();
+	transient List<UrlCtxHolder<UrlContext>> seeds = new ArrayList<>();
+	Queue<UrlCtxHolder<UrlContext>> unhandledSeeds = new ConcurrentLinkedQueue<>();
 	Map<String, Serializable> repo = new ConcurrentHashMap<>(8000);
 	Map<String, String> titleMap = new ConcurrentHashMap<>(8000);
 
@@ -47,7 +47,7 @@ public class StanleyDl implements CrawlerSeed {
 		hcc.setProxyPort(8058);
 //		hcc.addHeader(new BasicHeader("Cookie", "cna=xK9HC+lDbjgCAd5PAMnmGDjc; mpp=; tlut=; l=; v=0; swfstore=205783; miid=4744219378233682223; lzstat_uv=29340845793270010233|3492151@1396907; lzstat_ss=769689425_0_1413928155_3492151|2603056175_0_1413928155_1396907; linezing_session=drO8ZtuEzA6JNzUEP2ZzWd9q_1413901792473cCHQ_1; uc3=nk2=CyKw3U3YEQ%3D%3D&id2=VyT0ay3c3OU%3D&vt3=F8dATSQF8mLV2FFyafQ%3D&lg2=WqG3DMC9VAQiUQ%3D%3D; existShop=MTQxMzk4NTA4NQ%3D%3D; lgc=hongzzx; tracknick=hongzzx; sg=x47; cookie2=15956220fa438b8be54d6dbe6ad5cc96; cookie1=BYS7%2B%2BW1Djg%2F%2FRE1tUce2Gx2LnUvmXlm8W5MGWMCaWw%3D; unb=48705304; t=1aa815451a36ca826e1b316fd37b2b76; _cc_=VT5L2FSpdA%3D%3D; tg=0; _l_g_=Ug%3D%3D; _nk_=hongzzx; cookie17=VyT0ay3c3OU%3D; mt=ci=4_1; _tb_token_=fb77eb6ee4535; isg=E680DAC2976940202E3D4873144FC8D9; uc1=lltime=1413973842&cookie14=UoW28FQE5LanJQ%3D%3D&existShop=false&cookie16=VT5L2FSpNgq6fDudInPRgavC%2BQ%3D%3D&cookie21=UIHiLt3xThN%2B&tag=1&cookie15=V32FPkk%2Fw0dUvg%3D%3D; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; whl=-1%260%260%260"));
 
-		Crawler c = new Crawler(new StanleyDl(), hcc);
+		Crawler<UrlContext> c = new Crawler<>(new StanleyDl(), hcc);
 		c.start();
 
 		while (c.getStatus() != Crawler.Status.STOPPED) {
@@ -62,18 +62,18 @@ public class StanleyDl implements CrawlerSeed {
 
 	public StanleyDl() {
 		String u = "http://stanleychen.tuchong.com/?page=";
-		seeds.add(u);
+		seeds.add(new UrlCtxHolder<>(u, null));
 
 		int n = 0;
 		while (++n < 11) {
-			seeds.add(u + n);
+			seeds.add(new UrlCtxHolder<>(u + n, null));
 		}
 	}
 
 	private static final List<String> blockDomain = Arrays.asList("blogspot.com", "wordpress.com");
 
 	@Override
-	public boolean accept(String url) {
+	public boolean accept(String url, UrlContext ctx) {
 //		if (1 == 1)
 //			return true;
 		return !url.contains("albums")
@@ -91,7 +91,7 @@ public class StanleyDl implements CrawlerSeed {
 	}
 
 	@Override
-	public boolean needToDistillUrls(HttpClientAssist.UrlEntity ue) {
+	public boolean needToDistillUrls(HttpClientAssist.UrlEntity ue, UrlContext ctx) {
 		try {
 			return true;
 		} catch (Exception e) {
@@ -102,7 +102,8 @@ public class StanleyDl implements CrawlerSeed {
 	static final Pattern titleP = Pattern.compile("<title>(.+?)</title>");
 
 	@Override
-	public Stream<String> afterDistillingUrls(HttpClientAssist.UrlEntity ue, Set<String> distilledUrl) {
+	public Stream<String> afterDistillingUrls(HttpClientAssist.UrlEntity ue, UrlContext ctx,
+	                                          Stream<String> distilledUrl) {
 		String title = "title";
 		try {
 			String html = ue.getEntityStr();
@@ -117,21 +118,20 @@ public class StanleyDl implements CrawlerSeed {
 		} catch (IOException e) {
 		}
 		String t = title;
-		return distilledUrl.stream().peek(u -> {
+		return distilledUrl.peek(u -> {
 			if (u.endsWith(".jpg"))
 				titleMap.put(u, t);
 		});
 	}
 
 	@Override
-	public boolean onGet(HttpClientAssist.UrlEntity e) {
+	public boolean onGet(HttpClientAssist.UrlEntity e, UrlContext ctx) {
 
 		repo.put(e.getCurrentURL(), v);
 		repo.put(e.getReqUrl(), v);
 
 		try {
-			if (e.getStatusLine().getStatusCode() == 200
-							&& e.isImage()) {
+			if (e.getStatusLine().getStatusCode() == 200 && e.isImage()) {
 
 				String imgName = titleMap.get(e.getReqUrl()) + ".jpg";
 				imgName = imgName.replace('*', '-')
@@ -179,10 +179,15 @@ public class StanleyDl implements CrawlerSeed {
 				if (tRepo != null && tRepo.size() > 0)
 					repo = tRepo;
 
-				Queue<String> tUnhandledSeeds = (Queue<String>) savedObj[1];
+				Queue<UrlCtxHolder<UrlContext>> tUnhandledSeeds = (Queue<UrlCtxHolder<UrlContext>>) savedObj[1];
 				if (tUnhandledSeeds != null && tUnhandledSeeds.size() > 0) {
 					seeds.clear();
-					tUnhandledSeeds.stream().filter(this::accept).map(this::unEscape).forEach(seeds::add);
+					tUnhandledSeeds.stream()
+									.filter(t -> this.accept(t.getUrl(), t.getCtx()))
+									.forEach(t -> {
+										t.setUrl(this.unEscape(t.getUrl()));
+										seeds.add(t);
+									});
 				}
 
 				titleMap = (Map<String, String>) savedObj[2];
@@ -206,7 +211,7 @@ public class StanleyDl implements CrawlerSeed {
 	}
 
 	@Override
-	public void onCrawlerStopped(Queue<String> unhandledSeeds) {
+	public void onCrawlerStopped(Queue<UrlCtxHolder<UrlContext>> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
 
 		try (ZipOutputStream zo = new ZipOutputStream(new FileOutputStream(saveFile))) {
@@ -221,8 +226,8 @@ public class StanleyDl implements CrawlerSeed {
 
 
 	@Override
-	public List<String> getSeeds() {
-		return seeds;
+	public Stream<UrlCtxHolder<UrlContext>> getSeeds() {
+		return seeds.stream();
 	}
 
 	@Override
@@ -239,6 +244,7 @@ public class StanleyDl implements CrawlerSeed {
 				Thread.sleep(5000);
 
 				File zipFile = FileUtil.getWritableFile(REPO_FILE);
+				zipFile.getParentFile().mkdirs();
 				Process process = Runtime.getRuntime().exec(
 								"zip -q -r \"" + zipFile.getAbsolutePath() + "\" \"" + SAVE_DIR + "\"");
 				process.waitFor();

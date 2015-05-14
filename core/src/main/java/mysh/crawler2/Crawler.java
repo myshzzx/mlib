@@ -4,7 +4,6 @@ import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
-import org.apache.http.ProtocolVersion;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
@@ -21,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import static java.lang.Math.max;
 
@@ -31,18 +31,18 @@ import static java.lang.Math.max;
  * @since 2014/9/24 12:50
  */
 @ThreadSafe
-public class Crawler {
+public class Crawler<CTX extends UrlContext> {
 	private final Logger log;
 
 	private final HttpClientAssist hca;
-	private final CrawlerSeed seed;
+	private final CrawlerSeed<CTX> seed;
 	private final String name;
 
 	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
 
 	private ThreadPoolExecutor e;
 	private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
-	private final Queue<String> unhandledUrls = new ConcurrentLinkedQueue<>();
+	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
 	/**
 	 * create a crawler, to start, invoke {@link #start()}. <br/>
@@ -50,7 +50,7 @@ public class Crawler {
 	 * which will cause race condition in connection resource,
 	 * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
 	 */
-	public Crawler(CrawlerSeed seed, HttpClientConfig hcc) throws Exception {
+	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
 		Objects.requireNonNull(seed, "need seed");
 		Objects.requireNonNull(hcc, "need http client config");
 
@@ -79,7 +79,7 @@ public class Crawler {
 					try {
 						Thread.sleep(5000);
 						log.debug("wq.size=" + wq.size() + ", e.actCount=" + e.getActiveCount()
-										+ ", unhandled.size=" + unhandledUrls.size());
+										+ ", unhandled.size=" + unhandledTasks.size());
 						if (wq.size() == 0 && e.getActiveCount() == 0) {
 							Crawler.this.stop();
 							return;
@@ -95,6 +95,7 @@ public class Crawler {
 	/**
 	 * start the crawler. a crawler can't be restarted.
 	 */
+	@SuppressWarnings("unchecked")
 	public void start() {
 		if (!status.compareAndSet(Status.INIT, Status.RUNNING)) {
 			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
@@ -106,34 +107,38 @@ public class Crawler {
 		log.info(toString() + " max thread size:" + threadSize);
 
 		AtomicInteger threadCount = new AtomicInteger(0);
+
 		e = new ThreadPoolExecutor(threadSize, threadSize, 15, TimeUnit.SECONDS, wq,
 						r -> {
 							Thread t = new Thread(r, name + "-" + threadCount.incrementAndGet());
 							t.setDaemon(true);
 							return t;
 						},
-						(r, executor) -> unhandledUrls.add(((Worker) r).url)
+						(work, executor) -> {
+							Worker w = (Worker) work;
+							unhandledTasks.add(new UrlCtxHolder<>(w.url, w.ctx));
+						}
 		);
 		e.allowCoreThreadTimeOut(true);
 
 		log.info(this.name + " started.");
 
-		seed.getSeeds().stream()
-						.forEach(url -> e.execute(new Worker(url)));
+		seed.getSeeds()
+						.forEach(ctxHolder -> e.execute(new Worker(ctxHolder)));
 
 		if (seed.autoStop())
 			startAutoStopChk();
 	}
 
 	/**
-	 * pause, until resumed. effective only in Running state.
+	 * pause, until resumed. effect only in Running state.
 	 */
 	public void pause() {
 		this.status.compareAndSet(Status.RUNNING, Status.PAUSED);
 	}
 
 	/**
-	 * resume to running state. effective only in pause state.
+	 * resume to running state. effect only in pause state.
 	 */
 	public void resume() {
 		this.status.compareAndSet(Status.PAUSED, Status.RUNNING);
@@ -143,20 +148,24 @@ public class Crawler {
 	 * stop the crawler, which release all the resources it took.
 	 * WARNING: can't restart after stopping.
 	 */
+	@SuppressWarnings("unchecked")
 	public void stop() {
 		Status oldStatus = status.getAndSet(Status.STOPPED);
 		if (oldStatus == Status.STOPPED) return;
 
 		try {
 			e.shutdownNow().stream()
-							.forEach(r -> unhandledUrls.add(((Worker) r).url));
+							.forEach(r -> {
+								Worker work = (Worker) r;
+								unhandledTasks.add(new UrlCtxHolder<>(work.url, work.ctx));
+							});
 			e.awaitTermination(2, TimeUnit.MINUTES);
 		} catch (InterruptedException ex) {
 			log.debug(this.name + " stopping interrupted.", ex);
 		} finally {
 			log.info(this.name + " stopped.");
 			hca.close();
-			seed.onCrawlerStopped(unhandledUrls);
+			seed.onCrawlerStopped(unhandledTasks);
 		}
 	}
 
@@ -187,14 +196,16 @@ public class Crawler {
 	@Immutable
 	private class Worker implements Runnable {
 		private final String url;
+		private final CTX ctx;
 
-		public Worker(String url) {
-			this.url = url;
+		public Worker(UrlCtxHolder<CTX> holder) {
+			this.url = holder.url;
+			this.ctx = holder.ctx;
 		}
 
 		@Override
 		public void run() {
-			if (!seed.accept(this.url)) return;
+			if (!seed.accept(this.url, this.ctx)) return;
 
 			try {
 				while (Crawler.this.status.get() == Status.PAUSED) {
@@ -202,39 +213,38 @@ public class Crawler {
 				}
 
 				try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
-					if (!seed.accept(ue.getCurrentURL()) || !seed.accept(ue.getReqUrl())) return;
+					if (!seed.accept(ue.getCurrentURL(), this.ctx) || !seed.accept(ue.getReqUrl(), this.ctx))
+						return;
 					if (status.get() == Status.STOPPED) {
-						unhandledUrls.offer(url);
+						unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 						return;
 					}
 
 					log.debug("onGet= " + ue.getCurrentURL() + ", reqUrl= " + ue.getReqUrl());
 
-					if (!seed.onGet(ue))
+					if (!seed.onGet(ue, this.ctx))
 						e.execute(this);
 
-					if (ue.isText() && seed.needToDistillUrls(ue)) {
-						Set<String> distilledUrls = distillUrl(ue);
-						seed.afterDistillingUrls(ue, distilledUrls)
-										.filter(seed::accept)
-										.forEach(dUrl -> e.execute(new Worker(dUrl)));
+					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
+						Stream<String> distilledUrls = seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue));
+						seed.distillUrlCtx(ue, this.ctx, distilledUrls)
+										.filter(h -> seed.accept(h.url, h.ctx))
+										.forEach(h -> e.execute(new Worker(h)));
 					}
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				e.execute(this);
 				log.debug(ex.toString() + " - " + this.url);
 			} catch (InterruptedException ex) {
-				unhandledUrls.offer(this.url);
+				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 			} catch (Exception ex) {
 				if (!isMalformedUrl(ex))
-					unhandledUrls.offer(this.url);
+					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 				log.error("on error handling url: " + this.url, ex);
 			}
 		}
 
-		private Set<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
-			ProtocolVersion protocol = ue.getProtocol();
-			String pageUrl = ue.getCurrentURL();
+		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
 			String pageContent = ue.getEntityStr();
 
 			Set<String> urls = new HashSet<>();
@@ -247,7 +257,7 @@ public class Crawler {
 				}
 
 				// 取得当前根目录
-				String currentRoot = pageUrl;
+				String currentRoot = ue.getCurrentURL();
 				int sepIndex;
 				// 取 ? 前面的串
 				if ((sepIndex = currentRoot.lastIndexOf('?')) != -1) {
@@ -263,7 +273,7 @@ public class Crawler {
 				// 查找 href 指向的地址
 				Matcher srcValueMatcher = srcValueExp.matcher(pageContent);
 				String tValue;
-				String protocolPrefix = protocol.getProtocol().toLowerCase() + ":";
+				String protocolPrefix = ue.getProtocol().getProtocol().toLowerCase() + ":";
 				while (srcValueMatcher.find()) {
 					tValue = srcValueMatcher.group(4);
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
@@ -279,20 +289,16 @@ public class Crawler {
 					}
 				}
 			} catch (Exception e) {
-				log.error("分析页面链接时异常: " + pageUrl, e);
+				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
 			}
 
-			Set<String> unEscapedUrls = new HashSet<>();
-			for (String url : urls) {
-				unEscapedUrls.add(url.replace('\\', '/')
-								.replace("////", "//")
-								.replace("&amp;", "&")
-								.replace("&lt;", "<")
-								.replace("&gt;", ">")
-								.replace("&quot;", "\""));
-			}
-
-			return unEscapedUrls;
+			return urls.stream().map(
+							url -> url.replace('\\', '/')
+											.replace("////", "//")
+											.replace("&amp;", "&")
+											.replace("&lt;", "<")
+											.replace("&gt;", ">")
+											.replace("&quot;", "\""));
 		}
 
 		private boolean isMalformedUrl(Exception ex) {
@@ -306,7 +312,7 @@ public class Crawler {
 	/**
 	 * crawler state.
 	 */
-	public static enum Status {
+	public enum Status {
 		INIT, RUNNING, PAUSED, STOPPED
 	}
 }
