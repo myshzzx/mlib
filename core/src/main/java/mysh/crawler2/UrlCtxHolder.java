@@ -20,7 +20,7 @@ public final class UrlCtxHolder<CTX extends UrlContext> implements Serializable{
 		this.ctx = ctx;
 	}
 
-	public static <T extends UrlContext> Stream<UrlCtxHolder<T>> of(Stream<String> urls) {
+	public static <T extends UrlContext> Stream<UrlCtxHolder<T>> ofAll(Stream<String> urls) {
 		return urls.map(UrlCtxHolder::new);
 	}
 

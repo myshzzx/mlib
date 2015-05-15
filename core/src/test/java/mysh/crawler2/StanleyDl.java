@@ -102,8 +102,8 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 	static final Pattern titleP = Pattern.compile("<title>(.+?)</title>");
 
 	@Override
-	public Stream<String> afterDistillingUrls(HttpClientAssist.UrlEntity ue, UrlContext ctx,
-	                                          Stream<String> distilledUrl) {
+	public Stream<UrlCtxHolder<UrlContext>> afterDistillingUrls(
+					HttpClientAssist.UrlEntity ue, UrlContext ctx, Stream<String> distilledUrl) {
 		String title = "title";
 		try {
 			String html = ue.getEntityStr();
@@ -118,10 +118,12 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 		} catch (IOException e) {
 		}
 		String t = title;
-		return distilledUrl.peek(u -> {
-			if (u.endsWith(".jpg"))
-				titleMap.put(u, t);
-		});
+		return distilledUrl
+						.peek(u -> {
+							if (u.endsWith(".jpg"))
+								titleMap.put(u, t);
+						})
+						.map(UrlCtxHolder::new);
 	}
 
 	@Override
@@ -251,7 +253,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 
 				if (zipFile.length() > folderSize / 2) {
 					File dir = new File(SAVE_DIR);
-					FileUtil.recurDir(dir, null, f -> f.delete());
+					FileUtil.recurDir(dir, null, EnumSet.of(FileUtil.HandleType.FoldersAndFiles), f -> f.delete());
 					dir.delete();
 				} else
 					c.stop();

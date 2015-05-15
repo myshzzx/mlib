@@ -9,8 +9,10 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 文件工具类.
@@ -171,15 +173,22 @@ public class FileUtil {
 		return new File(filePath).getAbsoluteFile();
 	}
 
+	public enum HandleType {FoldersAndFiles, FilesOnly}
+
 	/**
-	 * 递归处理(含子目录)目录下的所有文件.<br/>
+	 * 递归处理(含子目录)目录下的所有文件或目录.<br/>
 	 * 若处理器抛异常, 处理将中断.
 	 *
-	 * @param dirRoot 目录.
-	 * @param filter  文件过滤器. (为 null 表示不过滤文件)
-	 * @param handler 文件处理器.
+	 * @param dirRoot     起始目录.
+	 * @param filter      文件目录过滤器. (为 null 表示不过滤.)
+	 * @param handleTypes 处理类型
+	 * @param handler     处理器.
 	 */
-	public static void recurDir(File dirRoot, FileFilter filter, FileTask handler) {
+	public static void recurDir(File dirRoot, FileFilter filter,
+	                            EnumSet<HandleType> handleTypes, FileTask handler) {
+		Objects.requireNonNull(handleTypes, "handleTypes should not be null");
+		boolean chkFolder = handleTypes.contains(HandleType.FoldersAndFiles);
+
 		if (dirRoot == null || !dirRoot.isDirectory() || handler == null)
 			throw new IllegalArgumentException();
 
@@ -191,13 +200,27 @@ public class FileUtil {
 
 			if (children != null) {
 				for (File child : children) {
-					if (child.isDirectory()) dirs.add(child);
-					else if (filter == null || filter.accept(child)) {
+					if (child.isDirectory()) {
+						dirs.add(child);
+					}
+					if ((child.isFile() || chkFolder) && (filter == null || filter.accept(child))) {
 						handler.handle(child);
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * 递归处理(含子目录)目录下的所有文件.<br/>
+	 * 若处理器抛异常, 处理将中断.
+	 *
+	 * @param dirRoot 目录.
+	 * @param filter  文件过滤器. (为 null 表示不过滤文件.)
+	 * @param handler 文件处理器.
+	 */
+	public static void recurDir(File dirRoot, FileFilter filter, FileTask handler) {
+		recurDir(dirRoot, filter, EnumSet.of(HandleType.FilesOnly), handler);
 	}
 
 	public static long folderSize(String path) throws IOException {

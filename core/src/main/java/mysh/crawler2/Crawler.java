@@ -226,8 +226,7 @@ public class Crawler<CTX extends UrlContext> {
 						e.execute(this);
 
 					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
-						Stream<String> distilledUrls = seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue));
-						seed.distillUrlCtx(ue, this.ctx, distilledUrls)
+						seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
 										.filter(h -> seed.accept(h.url, h.ctx))
 										.forEach(h -> e.execute(new Worker(h)));
 					}

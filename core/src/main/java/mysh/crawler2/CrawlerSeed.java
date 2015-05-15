@@ -48,7 +48,7 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	}
 
 	/**
-	 * make the crawler auto stop.
+	 * make the crawler auto stop (when tasks finished).
 	 */
 	default boolean autoStop() {
 		return true;
@@ -67,17 +67,10 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	}
 
 	/**
-	 * after distilling urls from UrlEntity(text content), the results can be re-handled.
+	 * after distilling urls from UrlEntity(text content),
+	 * you can filter urls you need, and attach custom url context to each url.
 	 */
-	default Stream<String> afterDistillingUrls(
-					HttpClientAssist.UrlEntity ue, CTX ctx, Stream<String> distilledUrls) {
-		return distilledUrls;
-	}
-
-	/**
-	 * add custom url context to each url if you need.
-	 */
-	default Stream<UrlCtxHolder<CTX>> distillUrlCtx(
+	default Stream<UrlCtxHolder<CTX>> afterDistillingUrls(
 					HttpClientAssist.UrlEntity parentUe, CTX parentCtx, Stream<String> distilledUrls) {
 		return distilledUrls.map(url -> new UrlCtxHolder<>(url, parentCtx));
 	}
