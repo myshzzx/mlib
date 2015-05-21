@@ -1,6 +1,5 @@
 package mysh.ui;
 
-import com.sun.webkit.network.CookieManager;
 import javafx.application.Platform;
 import javafx.embed.swing.JFXPanel;
 import javafx.scene.Scene;
@@ -12,9 +11,12 @@ import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.net.CookieHandler;
+import java.net.CookieManager;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -26,6 +28,7 @@ import java.util.concurrent.CountDownLatch;
 public class CookieCatcher {
 	private final CountDownLatch closeLatch = new CountDownLatch(1);
 	private final String cookieUrl;
+	private volatile WebView browser;
 
 	/**
 	 * open a web browser to get cookie.
@@ -44,7 +47,7 @@ public class CookieCatcher {
 
 		JFXPanel fxPanel = new JFXPanel();
 		Platform.runLater(() -> {
-			WebView browser = new WebView();
+			browser = new WebView();
 			Scene scene = new Scene(browser);
 			fxPanel.setScene(scene);
 			WebEngine browserEngine = browser.getEngine();
@@ -57,13 +60,15 @@ public class CookieCatcher {
 			f.setBounds(0, 0, 1000, 700);
 			f.setLocationRelativeTo(null);
 			f.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-			f.addWindowListener(new WindowAdapter() {
-				@Override
-				public void windowClosing(WindowEvent e) {
-					Platform.setImplicitExit(false);
-					closeLatch.countDown();
-				}
-			});
+			f.addWindowListener(
+							new WindowAdapter() {
+								@Override
+								public void windowClosing(WindowEvent e) {
+									Platform.setImplicitExit(false);
+									closeLatch.countDown();
+								}
+							}
+			);
 			f.add(fxPanel);
 			f.setVisible(true);
 		});
@@ -78,18 +83,25 @@ public class CookieCatcher {
 
 	/**
 	 * get cookie that will be sent to {@link #cookieUrl}.
-	 * this method will be blocked until the browser closed. return may be null.
+	 * this method will be blocked until the browser closed. return won't be null.
 	 * <br/>
 	 * cookie can also be got by
 	 * <code>com.sun.webkit.network.CookieManager.getDefault().get("Cookie")</code>
 	 */
 	public List<String> getCookie() throws URISyntaxException, IOException, InterruptedException {
-		waitForClose();
+		this.waitForClose();
+
 		CookieHandler cookieHandler = CookieManager.getDefault();
-		if (cookieHandler == null) return Collections.emptyList();
+		if (cookieHandler == null) return emptyCookie;
 
 		Map<String, List<String>> cm = cookieHandler.get(new URI(cookieUrl), Collections.emptyMap());
-		return cm == null ? Collections.emptyList() : cm.get("Cookie");
+
+		if (cm == null)
+			return emptyCookie;
+		List<String> cookie = cm.get("Cookie");
+		return cookie == null || cookie.size() == 0 ? emptyCookie : cookie;
 	}
+
+	private static final List<String> emptyCookie = Collections.singletonList("");
 
 }
