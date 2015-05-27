@@ -3,8 +3,6 @@ package mysh.util;
 import mysh.annotation.Nullable;
 import mysh.annotation.ThreadSafe;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.Objects;
@@ -14,7 +12,6 @@ import java.util.Objects;
  * @since 2014/11/24 11:31
  */
 public abstract class Serializer {
-	static final Logger log = LoggerFactory.getLogger(Serializer.class);
 
 	/**
 	 * serialize object to byte array.

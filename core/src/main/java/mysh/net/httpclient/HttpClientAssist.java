@@ -343,7 +343,7 @@ public class HttpClientAssist implements Closeable {
 			try {
 				rsp.getEntity().getContent().close();
 			} catch (Exception e) {
-				log.debug("entity close error: " + getCurrentURL(), e);
+				log.debug("entity close error: " + e + " - " + getCurrentURL());
 			}
 		}
 

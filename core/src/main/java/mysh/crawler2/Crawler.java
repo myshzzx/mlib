@@ -11,10 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,7 +22,11 @@ import java.util.stream.Stream;
 import static java.lang.Math.max;
 
 /**
- * Web Crawler. Give it a seed, it will hunt for anything you need.
+ * Web Crawler. Give it a seed, it will hunt for anything you need.<p/>
+ * create a crawler, to start, invoke {@link #start()}. <br/>
+ * WARNING: thread pool size and connection pool size should not be a big diff,
+ * which will cause race condition in connection resource,
+ * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
  *
  * @author Mysh
  * @since 2014/9/24 12:50
@@ -34,7 +35,8 @@ import static java.lang.Math.max;
 public class Crawler<CTX extends UrlContext> {
 	private final Logger log;
 
-	private final HttpClientAssist hca;
+	private final HttpClientStore hcStore;
+	private final Map<HttpClientConfig, HttpClientAssist> hcaMap = new ConcurrentHashMap<>();
 	private final CrawlerSeed<CTX> seed;
 	private final String name;
 
@@ -44,15 +46,13 @@ public class Crawler<CTX extends UrlContext> {
 	private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
-	/**
-	 * create a crawler, to start, invoke {@link #start()}. <br/>
-	 * WARNING: thread pool size and connection pool size should not be a big diff,
-	 * which will cause race condition in connection resource,
-	 * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
-	 */
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
+		this(seed, HttpClientStore.of(hcc));
+	}
+
+	public Crawler(CrawlerSeed<CTX> seed, HttpClientStore hcStore) throws Exception {
 		Objects.requireNonNull(seed, "need seed");
-		Objects.requireNonNull(hcc, "need http client config");
+		Objects.requireNonNull(hcStore, "need http client store");
 
 		this.seed = seed;
 		this.seed.init();
@@ -65,7 +65,11 @@ public class Crawler<CTX extends UrlContext> {
 
 		this.log = LoggerFactory.getLogger(this.name);
 
-		this.hca = new HttpClientAssist(hcc);
+		this.hcStore = hcStore;
+		this.hcStore.listener = hcc -> {
+			HttpClientAssist hca = hcaMap.remove(hcc);
+			if (hca != null) hca.close();
+		};
 	}
 
 	/**
@@ -108,7 +112,7 @@ public class Crawler<CTX extends UrlContext> {
 
 		AtomicInteger threadCount = new AtomicInteger(0);
 
-		e = new ThreadPoolExecutor(threadSize, threadSize, 15, TimeUnit.SECONDS, wq,
+		e = new ThreadPoolExecutor(threadSize, threadSize, 15L, TimeUnit.SECONDS, wq,
 						r -> {
 							Thread t = new Thread(r, name + "-" + threadCount.incrementAndGet());
 							t.setDaemon(true);
@@ -164,9 +168,26 @@ public class Crawler<CTX extends UrlContext> {
 			log.debug(this.name + " stopping interrupted.", ex);
 		} finally {
 			log.info(this.name + " stopped.");
-			hca.close();
+			hcaMap.values().stream().forEach(HttpClientAssist::close);
 			seed.onCrawlerStopped(unhandledTasks);
 		}
+	}
+
+	/**
+	 * get hca from stored config.
+	 */
+	private HttpClientAssist getHca(String url) {
+		HttpClientConfig hcc = hcStore.getClientConfig(url);
+		HttpClientAssist hca = hcaMap.get(hcc);
+		if (hca == null) {
+			hca = new HttpClientAssist(hcc);
+			HttpClientAssist preHca = hcaMap.putIfAbsent(hcc, hca);
+			if (preHca != null) {
+				hca.close();
+				return preHca;
+			}
+		}
+		return hca;
 	}
 
 	/**
@@ -212,7 +233,7 @@ public class Crawler<CTX extends UrlContext> {
 					Thread.sleep(50);
 				}
 
-				try (HttpClientAssist.UrlEntity ue = hca.access(url)) {
+				try (HttpClientAssist.UrlEntity ue = getHca(url).access(url)) {
 					if (!seed.accept(ue.getCurrentURL(), this.ctx) || !seed.accept(ue.getReqUrl(), this.ctx))
 						return;
 					if (status.get() == Status.STOPPED) {
