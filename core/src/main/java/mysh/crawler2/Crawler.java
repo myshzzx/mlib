@@ -21,8 +21,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import static java.lang.Math.max;
-
 /**
  * Web Crawler. Give it a seed, it will hunt for anything you need.<p/>
  * create a crawler, to start, invoke {@link #start()}. <br/>
@@ -77,21 +75,21 @@ public class Crawler<CTX extends UrlContext> {
 					try {
 						Thread.sleep(5000);
 
-						StringBuilder ucStatus = new StringBuilder();
+						StringBuilder ucStatus = new StringBuilder("crawler current status: " + name);
 						AtomicBoolean crawlerRunning = new AtomicBoolean(false);
 						classifiers.values().stream()
 										.forEach(uc -> {
-											ucStatus.append("{Classifier:");
+											ucStatus.append("\n{Classifier:");
 											ucStatus.append(uc.name);
 											ucStatus.append(", queueSize=");
 											ucStatus.append(uc.wq.size());
 											ucStatus.append(", actCount=");
 											ucStatus.append(uc.exec.getActiveCount());
-											ucStatus.append("}\n");
+											ucStatus.append("}");
 											if (uc.wq.size() > 0 || uc.exec.getActiveCount() > 0)
 												crawlerRunning.set(true);
 										});
-						ucStatus.append("unhandled.size=");
+						ucStatus.append("\nunhandled.size=");
 						ucStatus.append(unhandledTasks.size());
 						log.debug(ucStatus.toString());
 
@@ -115,11 +113,6 @@ public class Crawler<CTX extends UrlContext> {
 		if (!this.status.compareAndSet(Status.INIT, Status.RUNNING)) {
 			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
 		}
-
-		int threadSize = seed.requestThreadSize();
-		int maxThreadSize = Runtime.getRuntime().availableProcessors() * 50;
-		threadSize = Math.min(max(1, threadSize), maxThreadSize);
-		log.info(toString() + " max thread size:" + threadSize);
 
 		log.info(this.name + " started.");
 

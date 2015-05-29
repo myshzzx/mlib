@@ -134,10 +134,6 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 		return seeds.stream();
 	}
 
-	@Override
-	public int requestThreadSize() {
-		return 10;
-	}
 }
 
 

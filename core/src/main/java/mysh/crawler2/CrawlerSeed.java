@@ -55,11 +55,6 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	}
 
 	/**
-	 * crawler thread pool size.
-	 */
-	int requestThreadSize();
-
-	/**
 	 * whether the urls in UrlEntity(text content) needs to be distilled.
 	 */
 	default boolean needToDistillUrls(HttpClientAssist.UrlEntity ue, CTX ctx) {

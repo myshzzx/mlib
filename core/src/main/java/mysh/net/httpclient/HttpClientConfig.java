@@ -326,16 +326,18 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 	}
 
 	public HttpClientConfig setMaxConnPerRoute(int maxConnPerRoute) {
-		this.maxConnPerRoute = maxConnPerRoute;
+		if (maxConnPerRoute > 0)
+			this.maxConnPerRoute = maxConnPerRoute;
 		return this;
 	}
 
 	public int getMaxConnTotal() {
-		return maxConnTotal;
+		return Math.max(maxConnTotal, this.maxConnPerRoute);
 	}
 
 	public HttpClientConfig setMaxConnTotal(int maxConnTotal) {
-		this.maxConnTotal = maxConnTotal;
+		if (maxConnTotal > 0)
+			this.maxConnTotal = Math.max(maxConnTotal, this.maxConnPerRoute);
 		return this;
 	}
 }

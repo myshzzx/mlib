@@ -34,7 +34,6 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 	public static final String SAVE_DIR = "l:/stanley/";
 	public static final String REPO_FILE = "F:/temp/stanley/stanley.zip";
 	public static final int MAX_CONN_PER_ROUTE = 4;
-	public static final int THREAD_SIZE = 15;
 	public static final int WAIT_TIME = 700;
 	public static final long folderSize = 800_000_000;
 
@@ -230,11 +229,6 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 	@Override
 	public Stream<UrlCtxHolder<UrlContext>> getSeeds() {
 		return seeds.stream();
-	}
-
-	@Override
-	public int requestThreadSize() {
-		return THREAD_SIZE;
 	}
 
 	private static void chkAndZipDir(Crawler c) {
