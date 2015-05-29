@@ -1,5 +1,6 @@
 package mysh.crawler2;
 
+import mysh.annotation.GuardedBy;
 import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
@@ -13,7 +14,8 @@ import java.io.IOException;
 import java.net.*;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,41 +37,33 @@ import static java.lang.Math.max;
 public class Crawler<CTX extends UrlContext> {
 	private final Logger log;
 
-	private final HttpClientStore hcStore;
-	private final Map<HttpClientConfig, HttpClientAssist> hcaMap = new ConcurrentHashMap<>();
 	private final CrawlerSeed<CTX> seed;
 	private final String name;
 
 	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
+	private final UrlClassifierConf.Factory<CTX> ccf;
 
-	private ThreadPoolExecutor e;
-	private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
-		this(seed, HttpClientStore.of(hcc));
+		this(seed, (url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(), Integer.MAX_VALUE, hcc));
 	}
 
-	public Crawler(CrawlerSeed<CTX> seed, HttpClientStore hcStore) throws Exception {
+	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
 		Objects.requireNonNull(seed, "need seed");
-		Objects.requireNonNull(hcStore, "need http client store");
+		Objects.requireNonNull(ccf, "need classifier config factory");
 
 		this.seed = seed;
 		this.seed.init();
 
 		String seedName = seed.getClass().getName();
 		int dotIdx = seedName.lastIndexOf('.');
-		this.name = "Crawler[" +
+		this.name = "Crawler(" +
 						(dotIdx > -1 ? seedName.substring(dotIdx + 1) : seedName)
-						+ "]";
+						+ ")";
 
 		this.log = LoggerFactory.getLogger(this.name);
-
-		this.hcStore = hcStore;
-		this.hcStore.listener = hcc -> {
-			HttpClientAssist hca = hcaMap.remove(hcc);
-			if (hca != null) hca.close();
-		};
+		this.ccf = ccf;
 	}
 
 	/**
@@ -82,9 +76,26 @@ public class Crawler<CTX extends UrlContext> {
 				while (true) {
 					try {
 						Thread.sleep(5000);
-						log.debug("wq.size=" + wq.size() + ", e.actCount=" + e.getActiveCount()
-										+ ", unhandled.size=" + unhandledTasks.size());
-						if (wq.size() == 0 && e.getActiveCount() == 0) {
+
+						StringBuilder ucStatus = new StringBuilder();
+						AtomicBoolean crawlerRunning = new AtomicBoolean(false);
+						classifiers.values().stream()
+										.forEach(uc -> {
+											ucStatus.append("{Classifier:");
+											ucStatus.append(uc.name);
+											ucStatus.append(", queueSize=");
+											ucStatus.append(uc.wq.size());
+											ucStatus.append(", actCount=");
+											ucStatus.append(uc.exec.getActiveCount());
+											ucStatus.append("}\n");
+											if (uc.wq.size() > 0 || uc.exec.getActiveCount() > 0)
+												crawlerRunning.set(true);
+										});
+						ucStatus.append("unhandled.size=");
+						ucStatus.append(unhandledTasks.size());
+						log.debug(ucStatus.toString());
+
+						if (!crawlerRunning.get()) {
 							Crawler.this.stop();
 							return;
 						}
@@ -101,7 +112,7 @@ public class Crawler<CTX extends UrlContext> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void start() {
-		if (!status.compareAndSet(Status.INIT, Status.RUNNING)) {
+		if (!this.status.compareAndSet(Status.INIT, Status.RUNNING)) {
 			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
 		}
 
@@ -110,25 +121,9 @@ public class Crawler<CTX extends UrlContext> {
 		threadSize = Math.min(max(1, threadSize), maxThreadSize);
 		log.info(toString() + " max thread size:" + threadSize);
 
-		AtomicInteger threadCount = new AtomicInteger(0);
-
-		e = new ThreadPoolExecutor(threadSize, threadSize, 15L, TimeUnit.SECONDS, wq,
-						r -> {
-							Thread t = new Thread(r, name + "-" + threadCount.incrementAndGet());
-							t.setDaemon(true);
-							return t;
-						},
-						(work, executor) -> {
-							Worker w = (Worker) work;
-							unhandledTasks.add(new UrlCtxHolder<>(w.url, w.ctx));
-						}
-		);
-		e.allowCoreThreadTimeOut(true);
-
 		log.info(this.name + " started.");
 
-		seed.getSeeds()
-						.forEach(ctxHolder -> e.execute(new Worker(ctxHolder)));
+		seed.getSeeds().forEach(ctxHolder -> classify(ctxHolder.url, ctxHolder.ctx));
 
 		if (seed.autoStop())
 			startAutoStopChk();
@@ -149,7 +144,7 @@ public class Crawler<CTX extends UrlContext> {
 	}
 
 	/**
-	 * stop the crawler, which release all the resources it took.
+	 * stop the crawler, which release all the resources it took. BLOCKED until entire crawler stopped.<br/>
 	 * WARNING: can't restart after stopping.
 	 */
 	@SuppressWarnings("unchecked")
@@ -158,36 +153,12 @@ public class Crawler<CTX extends UrlContext> {
 		if (oldStatus == Status.STOPPED) return;
 
 		try {
-			e.shutdownNow().stream()
-							.forEach(r -> {
-								Worker work = (Worker) r;
-								unhandledTasks.add(new UrlCtxHolder<>(work.url, work.ctx));
-							});
-			e.awaitTermination(2, TimeUnit.MINUTES);
-		} catch (InterruptedException ex) {
-			log.debug(this.name + " stopping interrupted.", ex);
+			classifiers.values().forEach(UrlClassifier::stop);
+			classifiers.values().forEach(c -> c.awaitTermination(2, TimeUnit.MINUTES));
 		} finally {
 			log.info(this.name + " stopped.");
-			hcaMap.values().stream().forEach(HttpClientAssist::close);
 			seed.onCrawlerStopped(unhandledTasks);
 		}
-	}
-
-	/**
-	 * get hca from stored config.
-	 */
-	private HttpClientAssist getHca(String url) {
-		HttpClientConfig hcc = hcStore.getClientConfig(url);
-		HttpClientAssist hca = hcaMap.get(hcc);
-		if (hca == null) {
-			hca = new HttpClientAssist(hcc);
-			HttpClientAssist preHca = hcaMap.putIfAbsent(hcc, hca);
-			if (preHca != null) {
-				hca.close();
-				return preHca;
-			}
-		}
-		return hca;
 	}
 
 	/**
@@ -218,10 +189,12 @@ public class Crawler<CTX extends UrlContext> {
 	private class Worker implements Runnable {
 		private final String url;
 		private final CTX ctx;
+		private final UrlClassifier classifier;
 
-		public Worker(UrlCtxHolder<CTX> holder) {
-			this.url = holder.url;
-			this.ctx = holder.ctx;
+		public Worker(String url, CTX ctx, UrlClassifier classifier) {
+			this.url = url;
+			this.ctx = ctx;
+			this.classifier = classifier;
 		}
 
 		@Override
@@ -229,11 +202,11 @@ public class Crawler<CTX extends UrlContext> {
 			if (!seed.accept(this.url, this.ctx)) return;
 
 			try {
-				while (Crawler.this.status.get() == Status.PAUSED) {
+				while (status.get() == Status.PAUSED) {
 					Thread.sleep(50);
 				}
 
-				try (HttpClientAssist.UrlEntity ue = getHca(url).access(url)) {
+				try (HttpClientAssist.UrlEntity ue = classifier.access(url)) {
 					if (!seed.accept(ue.getCurrentURL(), this.ctx) || !seed.accept(ue.getReqUrl(), this.ctx))
 						return;
 					if (status.get() == Status.STOPPED) {
@@ -244,17 +217,17 @@ public class Crawler<CTX extends UrlContext> {
 					log.debug("onGet= " + ue.getCurrentURL() + ", reqUrl= " + ue.getReqUrl());
 
 					if (!seed.onGet(ue, this.ctx))
-						e.execute(this);
+						classifier.crawl(this);
 
 					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
 						seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
 										.filter(h -> seed.accept(h.url, h.ctx))
-										.forEach(h -> e.execute(new Worker(h)));
+										.forEach(h -> classify(h.url, h.ctx));
 					}
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
-				e.execute(this);
-				log.debug(ex.toString() + " - " + this.url);
+				classifier.crawl(this);
+				log.debug("http access error: " + ex.toString() + " - " + this.url);
 			} catch (InterruptedException ex) {
 				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 			} catch (Exception ex) {
@@ -326,6 +299,147 @@ public class Crawler<CTX extends UrlContext> {
 							|| ex instanceof ClientProtocolException
 							|| ex instanceof MalformedURLException
 							;
+		}
+	}
+
+	private final Map<UrlClassifierConf, UrlClassifier> classifiers = new ConcurrentHashMap<>();
+
+	/**
+	 * classify the url and put it into working queue.
+	 */
+	private void classify(String url, CTX ctx) {
+		if (this.status.get() == Status.STOPPED)
+			throw new RuntimeException("crawler has been stopped");
+
+		UrlClassifierConf ucConf = ccf.get(url, ctx);
+		if (ucConf == null)
+			throw new RuntimeException("get null classifier config with param: url=" + url + ", ctx=" + ctx);
+		UrlClassifier classifier = classifiers.computeIfAbsent(ucConf, UrlClassifier::new);
+		classifier.crawl(url, ctx);
+	}
+
+	private static final AtomicLong classifierThreadCount = new AtomicLong(0);
+
+	class UrlClassifier {
+		private final String name;
+
+		private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
+		private final ThreadPoolExecutor exec;
+
+		private volatile int milliSecStep;
+		private final HttpClientAssist hca;
+
+		@SuppressWarnings("unchecked")
+		UrlClassifier(UrlClassifierConf conf) {
+			Objects.requireNonNull(conf, "conf should not be null");
+
+			this.name = Objects.requireNonNull(conf.name, "name can't be null");
+			Objects.requireNonNull(conf.hcc, "hcc should not be null");
+			this.hca = new HttpClientAssist(conf.hcc);
+
+			setRatePerMinute(conf.ratePerMinute);
+
+			exec = new ThreadPoolExecutor(conf.threadPoolSize, conf.threadPoolSize, 15L, TimeUnit.SECONDS, wq,
+							r -> {
+								Thread t = new Thread(r, this.name + "-T-" + classifierThreadCount.incrementAndGet());
+								t.setDaemon(true);
+								return t;
+							},
+							(work, executor) -> {
+								Worker w = (Worker) work;
+								unhandledTasks.add(new UrlCtxHolder<>(w.url, w.ctx));
+							}
+			);
+			exec.allowCoreThreadTimeOut(true);
+		}
+
+		/**
+		 * @param rate url max handle rate per minute. (the max accurate value
+		 *             is {@link UrlClassifierConf#maxAccRatePM}. if given value is larger than that,
+		 *             it will be regard as {@link Integer#MAX_VALUE}, because such a rate can't be
+		 *             accurately controlled)
+		 */
+		private void setRatePerMinute(int rate) {
+			rate = rate < 1 ? Integer.MAX_VALUE : rate;
+			rate = rate > UrlClassifierConf.maxAccRatePM ? Integer.MAX_VALUE : rate;
+			milliSecStep = 60_000 / rate;
+		}
+
+		/**
+		 * get accurate rate per minute, or {@link Integer#MAX_VALUE} if unlimited.<br/>
+		 * see {@link #setRatePerMinute(int)}
+		 */
+		private int getRatePerMinute() {
+			return milliSecStep == 0 ? Integer.MAX_VALUE : 60_000 / milliSecStep;
+		}
+
+		private void setThreadPoolSize(int size) {
+			this.exec.setMaximumPoolSize(size);
+		}
+
+		private int getThreadPoolSize() {
+			return this.exec.getMaximumPoolSize();
+		}
+
+		/**
+		 * stop classifier. release all resources, to wait for termination, call {@link #awaitTermination}
+		 */
+		@SuppressWarnings("unchecked")
+		public void stop() {
+			hca.close();
+			exec.shutdownNow().stream()
+							.forEach(r -> {
+								Worker work = (Worker) r;
+								unhandledTasks.add(new UrlCtxHolder<>(work.url, work.ctx));
+							});
+		}
+
+		/**
+		 * wait for termination.
+		 */
+		public void awaitTermination(int time, TimeUnit timeUnit) {
+			try {
+				exec.awaitTermination(time, timeUnit);
+			} catch (InterruptedException e) {
+				log.debug("interrupted when wait for termination of Classifier: " + this.name);
+			}
+		}
+
+		/**
+		 * crawl give url.
+		 */
+		private void crawl(String url, CTX ctx) {
+			this.crawl(new Worker(url, ctx, this));
+		}
+
+		public void crawl(Worker worker) {
+			exec.execute(worker);
+		}
+
+		/**
+		 * last access time, guarded by "this" monitor.
+		 */
+		@GuardedBy("this")
+		private long lastAccess;
+
+		/**
+		 * access url, with flow rate control.<br/>
+		 * see {@link HttpClientAssist#access(String)}
+		 */
+		public HttpClientAssist.UrlEntity access(String url) throws IOException, InterruptedException {
+			long timeStep = this.milliSecStep;
+			if (timeStep > 0) {
+				long waitTime;
+				synchronized (this) {
+					lastAccess += timeStep;
+					long now = System.currentTimeMillis();
+					lastAccess = Math.max(now, lastAccess);
+					waitTime = lastAccess - now;
+				}
+				if (waitTime > 0) Thread.sleep(waitTime);
+			}
+
+			return this.hca.access(url);
 		}
 	}
 

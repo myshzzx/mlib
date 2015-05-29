@@ -11,5 +11,5 @@ import java.lang.annotation.Target;
  */
 @Target({ ElementType.METHOD, ElementType.FIELD, ElementType.LOCAL_VARIABLE })
 public @interface GuardedBy {
-	public String value() default "";
+	String value() default "";
 }

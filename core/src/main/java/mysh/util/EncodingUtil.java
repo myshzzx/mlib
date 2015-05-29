@@ -8,6 +8,10 @@ import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
+import static java.lang.Character.UnicodeBlock.*;
 
 /**
  * 编码工具类. <br/>
@@ -16,6 +20,54 @@ import java.util.Arrays;
  */
 public class EncodingUtil {
 	private static final Logger log = LoggerFactory.getLogger(EncodingUtil.class);
+
+	private static final Set<Character.UnicodeBlock> chineseBlocks;
+
+	static {
+		chineseBlocks = new HashSet<>();
+		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS);
+		chineseBlocks.add(CJK_COMPATIBILITY_IDEOGRAPHS);
+		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A);
+		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B);
+		chineseBlocks.add(CJK_SYMBOLS_AND_PUNCTUATION);
+		chineseBlocks.add(HALFWIDTH_AND_FULLWIDTH_FORMS);
+		chineseBlocks.add(GENERAL_PUNCTUATION);
+	}
+
+	public static boolean isChinese(char c) {
+		return chineseBlocks.contains(Character.UnicodeBlock.of(c));
+	}
+
+	public static boolean hasChinese(String str){
+		if (str == null || str.length() == 0) return false;
+		int len = str.length();
+		for (int i = 0; i < len; i++) {
+			if (isChinese(str.charAt(i)))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * is char a pure japanese(Kana only)
+	 */
+	public static boolean isPureJapanese(char c) {
+		Character.UnicodeBlock block = of(c);
+		return block == HIRAGANA || block == KATAKANA;
+	}
+
+	/**
+	 * whether string has any pure japanese(Kana only)
+	 */
+	public static boolean hasPureJapanese(String str) {
+		if (str == null || str.length() == 0) return false;
+		int len = str.length();
+		for (int i = 0; i < len; i++) {
+			if (isPureJapanese(str.charAt(i)))
+				return true;
+		}
+		return false;
+	}
 
 	/**
 	 * 判断是否 utf8 编码串. <br/>

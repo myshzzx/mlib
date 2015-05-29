@@ -13,7 +13,7 @@ import java.util.List;
  *
  * @author ZhangZhx
  */
-public final class HttpClientConfig implements Serializable {
+public final class HttpClientConfig implements Serializable, Cloneable {
 
 	private static final long serialVersionUID = 9097930407282337575L;
 

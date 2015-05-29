@@ -1,10 +1,12 @@
 
 package mysh.util;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
+
+import static mysh.util.EncodingUtil.*;
+import static org.junit.Assert.*;
 
 public class EncodingUtilTest {
 
@@ -24,16 +26,16 @@ public class EncodingUtilTest {
 	public void test() throws UnsupportedEncodingException {
 
 		System.out.println("utf8NoBOM " + new String(utf8NoBOM, "utf8"));
-		Assert.assertTrue(EncodingUtil.isUTF8Bytes(utf8NoBOM));
+		assertTrue(isUTF8Bytes(utf8NoBOM));
 
 		System.out.println("utf8 " + new String(utf8, "utf8"));
-		Assert.assertTrue(EncodingUtil.isUTF8Bytes(utf8));
+		assertTrue(isUTF8Bytes(utf8));
 
 		System.out.println("gbk " + new String(gbk, "gbk"));
-		Assert.assertFalse(EncodingUtil.isUTF8Bytes(gbk));
+		assertFalse(isUTF8Bytes(gbk));
 
 		System.out.println("iso-8859-1 " + new String(ascii, "iso-8859-1"));
-		Assert.assertTrue(EncodingUtil.isUTF8Bytes(ascii));
+		assertTrue(isUTF8Bytes(ascii));
 	}
 
 	//	@Test
@@ -59,12 +61,39 @@ public class EncodingUtilTest {
 		byte[] utf8 = ori.getBytes("utf8");
 		byte[] gbk = ori.getBytes("gbk");
 
-		byte[] utf8ToGbk = EncodingUtil.encodeTrans(utf8, "utf8", "gbk");
-		byte[] gbkToUtf8 = EncodingUtil.encodeTrans(gbk, "gbk", "utf8");
+		byte[] utf8ToGbk = encodeTrans(utf8, "utf8", "gbk");
+		byte[] gbkToUtf8 = encodeTrans(gbk, "gbk", "utf8");
 
-		Assert.assertEquals(ori, new String(utf8ToGbk, "gbk"));
-		Assert.assertEquals(ori, new String(gbkToUtf8, "utf8"));
-		Assert.assertArrayEquals(utf8, gbkToUtf8);
-		Assert.assertArrayEquals(gbk, utf8ToGbk);
+		assertEquals(ori, new String(utf8ToGbk, "gbk"));
+		assertEquals(ori, new String(gbkToUtf8, "utf8"));
+		assertArrayEquals(utf8, gbkToUtf8);
+		assertArrayEquals(gbk, utf8ToGbk);
+	}
+
+
+	@Test
+	public void testisPureJapanese() throws Exception {
+		assertTrue(isPureJapanese('マ'));
+		assertTrue(isPureJapanese('輪'));
+		assertTrue(isPureJapanese('場'));
+		assertFalse(isPureJapanese('>'));
+	}
+
+	@Test
+	public void testHasJapanese() throws Exception {
+		assertTrue(hasPureJapanese("ラドクリフ、マラソン五輪代表に1万m出場にも含み"));
+		assertFalse(hasPureJapanese("pron. 两个中的哪一个"));
+	}
+
+	@Test
+	public void testIsChinese() throws Exception {
+		assertTrue(isChinese('輪'));
+		assertTrue(isChinese('两'));
+
+		assertFalse(isChinese('5'));
+		assertFalse(isChinese('a'));
+		assertFalse(isChinese('.'));
+		assertFalse(isChinese('>'));
+		assertFalse(isChinese('フ'));
 	}
 }
