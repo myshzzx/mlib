@@ -24,12 +24,16 @@ import java.util.stream.Stream;
 /**
  * Web Crawler. Give it a seed, it will hunt for anything you need.<p/>
  * create a crawler, to start, invoke {@link #start()}. <br/>
- * WARNING: thread pool size and connection pool size should not be a big diff,
+ * WARNING: <br/>
+ * 1) thread pool size and connection pool size should not be a big diff,
  * which will cause race condition in connection resource,
  * and prevent interrupted thread from leaving wait state in time when shutting down thread pool.
+ * <br/>
+ * 2) crawler only start daemon threads, so it will stop if there's no non-daemon thread running.
  *
  * @author Mysh
  * @since 2014/9/24 12:50
+ * @version 3.0
  */
 @ThreadSafe
 public class Crawler<CTX extends UrlContext> {
@@ -68,7 +72,14 @@ public class Crawler<CTX extends UrlContext> {
 	 * start auto-check-stop thread. if there's nothing to crawl, it will stop the crawler.
 	 */
 	private void startAutoStopChk() {
-		new Thread(name + "-autoStopChk") {
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				Crawler.this.stop();
+			}
+		});
+
+		Thread t = new Thread(name + "-autoStopChk") {
 			@Override
 			public void run() {
 				while (true) {
@@ -102,7 +113,9 @@ public class Crawler<CTX extends UrlContext> {
 					}
 				}
 			}
-		}.start();
+		};
+		t.setDaemon(true);
+		t.start();
 	}
 
 	/**
@@ -220,7 +233,7 @@ public class Crawler<CTX extends UrlContext> {
 				}
 			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
 				classifier.crawl(this);
-				log.debug("http access error: " + ex.toString() + " - " + this.url);
+				log.debug("network problem: " + ex.toString() + " - " + this.url);
 			} catch (InterruptedException ex) {
 				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 			} catch (Exception ex) {

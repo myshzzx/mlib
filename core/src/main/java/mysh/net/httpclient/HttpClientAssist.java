@@ -411,18 +411,20 @@ public class HttpClientAssist implements Closeable {
 		public synchronized String getEntityStr() throws IOException {
 			if (entityStr != null) return entityStr;
 
-			String enc = null;
+			Charset enc = null;
 			if (contentType != null) {
 				String c = contentType.toUpperCase();
-				enc = c.contains("UTF-8") ? "UTF-8" : enc;
-				enc = c.contains("GBK") ? "GBK" : enc;
+				if (c.contains("UTF-8"))
+					enc = EncodingUtil.UTF_8;
+				else if (c.contains("GBK"))
+					enc = EncodingUtil.GBK;
 			}
 			if (entityBuf == null) {
 				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
 			if (enc == null) {
-				enc = EncodingUtil.isUTF8Bytes(entityBuf) ? "UTF-8" : "GBK";
+				enc = EncodingUtil.isUTF8Bytes(entityBuf) ? EncodingUtil.UTF_8 : EncodingUtil.GBK;
 			}
 			entityStr = new String(entityBuf, enc);
 

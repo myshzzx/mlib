@@ -74,9 +74,17 @@ public class EncodingUtilTest {
 	@Test
 	public void testisPureJapanese() throws Exception {
 		assertTrue(isPureJapanese('マ'));
-		assertTrue(isPureJapanese('輪'));
-		assertTrue(isPureJapanese('場'));
+		assertTrue(isPureJapanese('フ'));
+
+		assertFalse(isPureJapanese('輪'));
+		assertFalse(isPureJapanese('两'));
+		assertFalse(isPureJapanese('。'));
+		assertFalse(isPureJapanese('，'));
+		assertFalse(isPureJapanese('5'));
+		assertFalse(isPureJapanese('a'));
+		assertFalse(isPureJapanese('.'));
 		assertFalse(isPureJapanese('>'));
+		assertFalse(isPureJapanese('해'));
 	}
 
 	@Test
@@ -89,11 +97,29 @@ public class EncodingUtilTest {
 	public void testIsChinese() throws Exception {
 		assertTrue(isChinese('輪'));
 		assertTrue(isChinese('两'));
+		assertTrue(isChinese('。'));
+		assertTrue(isChinese('，'));
 
 		assertFalse(isChinese('5'));
 		assertFalse(isChinese('a'));
 		assertFalse(isChinese('.'));
 		assertFalse(isChinese('>'));
 		assertFalse(isChinese('フ'));
+		assertFalse(isChinese('해'));
+	}
+
+	@Test
+	public void testIsPureKorean(){
+		assertTrue(isPureKorean('해'));
+
+		assertFalse(isPureKorean('輪'));
+		assertFalse(isPureKorean('两'));
+		assertFalse(isPureKorean('。'));
+		assertFalse(isPureKorean('，'));
+		assertFalse(isPureKorean('5'));
+		assertFalse(isPureKorean('a'));
+		assertFalse(isPureKorean('.'));
+		assertFalse(isPureKorean('>'));
+		assertFalse(isPureKorean('フ'));
 	}
 }

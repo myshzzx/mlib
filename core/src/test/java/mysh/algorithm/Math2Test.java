@@ -77,6 +77,7 @@ public class Math2Test {
 	}
 
 	@Test
+	@Ignore
 	public void genPrime1() throws InterruptedException {
 		long s = System.nanoTime();
 		int limit = 6_000_000;
@@ -132,6 +133,7 @@ public class Math2Test {
 	}
 
 	@Test
+	@Ignore
 	public void genPrimeCost() throws InterruptedException {
 		int limit = 1_000_000;
 		Math2.genPrime(limit);

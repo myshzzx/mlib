@@ -4,10 +4,11 @@ package mysh.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.Character.UnicodeBlock;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.Charset;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,24 +22,31 @@ import static java.lang.Character.UnicodeBlock.*;
 public class EncodingUtil {
 	private static final Logger log = LoggerFactory.getLogger(EncodingUtil.class);
 
-	private static final Set<Character.UnicodeBlock> chineseBlocks;
+	public static final Charset UTF_8 = StandardCharsets.UTF_8;
+	public static final Charset GBK = Charset.forName("GBK");
+
+	private static final Set<UnicodeBlock> chineseBlocks;
 
 	static {
 		chineseBlocks = new HashSet<>();
 		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS);
-		chineseBlocks.add(CJK_COMPATIBILITY_IDEOGRAPHS);
 		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A);
 		chineseBlocks.add(CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B);
-		chineseBlocks.add(CJK_SYMBOLS_AND_PUNCTUATION);
-		chineseBlocks.add(HALFWIDTH_AND_FULLWIDTH_FORMS);
-		chineseBlocks.add(GENERAL_PUNCTUATION);
+		chineseBlocks.add(CJK_SYMBOLS_AND_PUNCTUATION); // 判断中文的。号
+		chineseBlocks.add(HALFWIDTH_AND_FULLWIDTH_FORMS); // 判断中文的，号
+		chineseBlocks.add(GENERAL_PUNCTUATION); // 判断中文的“号
+		chineseBlocks.add(CJK_RADICALS_SUPPLEMENT);
+		chineseBlocks.add(CJK_COMPATIBILITY);
+		chineseBlocks.add(CJK_COMPATIBILITY_FORMS);
+		chineseBlocks.add(CJK_COMPATIBILITY_IDEOGRAPHS);
+		chineseBlocks.add(CJK_COMPATIBILITY_IDEOGRAPHS_SUPPLEMENT);
 	}
 
 	public static boolean isChinese(char c) {
-		return chineseBlocks.contains(Character.UnicodeBlock.of(c));
+		return chineseBlocks.contains(UnicodeBlock.of(c));
 	}
 
-	public static boolean hasChinese(String str){
+	public static boolean hasChinese(String str) {
 		if (str == null || str.length() == 0) return false;
 		int len = str.length();
 		for (int i = 0; i < len; i++) {
@@ -52,8 +60,8 @@ public class EncodingUtil {
 	 * is char a pure japanese(Kana only)
 	 */
 	public static boolean isPureJapanese(char c) {
-		Character.UnicodeBlock block = of(c);
-		return block == HIRAGANA || block == KATAKANA;
+		UnicodeBlock block = of(c);
+		return block == HIRAGANA || block == KATAKANA || block == KATAKANA_PHONETIC_EXTENSIONS;
 	}
 
 	/**
@@ -64,6 +72,27 @@ public class EncodingUtil {
 		int len = str.length();
 		for (int i = 0; i < len; i++) {
 			if (isPureJapanese(str.charAt(i)))
+				return true;
+		}
+		return false;
+	}
+
+	/**
+	 * is char a pure korean
+	 */
+	public static boolean isPureKorean(char c) {
+		UnicodeBlock block = of(c);
+		return block == HANGUL_SYLLABLES || block == HANGUL_JAMO || block == HANGUL_COMPATIBILITY_JAMO;
+	}
+
+	/**
+	 * whether string has any pure korean
+	 */
+	public static boolean hasPureKorean(String str){
+		if (str == null || str.length() == 0) return false;
+		int len = str.length();
+		for (int i = 0; i < len; i++) {
+			if (isPureKorean(str.charAt(i)))
 				return true;
 		}
 		return false;
@@ -114,82 +143,6 @@ public class EncodingUtil {
 		}
 
 		return true;
-	}
-
-	// /**
-	// * 取编码格式. <br/>
-	// * 用 mozilla univeral detector 检测编码类型.
-	// *
-	// * @param data
-	// * 编码串.
-	// * @return
-	// */
-	// public static String getCharsetByMozillaUniversalDetector(byte[] data) {
-	//
-	// UniversalDetector detector = new UniversalDetector(null);
-	// detector.handleData(data, 0, data.length);
-	// detector.dataEnd();
-	// return detector.getDetectedCharset();
-	// }
-
-	/**
-	 * 判断是否 utf8 编码串.<br/>
-	 * 用转换后对比的方式, 较慢.
-	 *
-	 * @param data 字节串
-	 */
-	public static boolean isUTF8Bytes2(byte[] data) {
-
-		try {
-			String utf8 = new String(data, "utf8");
-			return Arrays.equals(data, utf8.getBytes());
-		} catch (Exception e) {
-			return false;
-		}
-	}
-
-	/**
-	 * 判断是否 utf8 编码串. <br/>
-	 * 用 utf8 编码规则判断, 较快. 更多信息, 见 <a href=
-	 * "http://www.codeguru.com/cpp/misc/misc/multi-lingualsupport/article.php/c10451/The-Basics-of-UTF8.htm"
-	 * >The-Basics-of-UTF8</a>
-	 *
-	 * @param data 字节串
-	 */
-	@Deprecated
-	public static boolean isUTF8Bytes_ori(byte[] data) {
-
-		int i = 0;
-		int size = data.length;
-
-		while (i < size) {
-			int step;
-			if ((data[i] & 0x80) == 0x0) { // 0xxxxxxx
-				step = 1;
-			} else if ((data[i] & 0xe0) == 0xc0) { // 110xxxxx 10xxxxxx
-				if (i + 2 > size)
-					return false;
-				if ((data[i + 1] & 0xc0) != 0x80)
-					return false;
-
-				step = 2;
-			} else if ((data[i] & 0xf0) == 0xe0) { // 1110xxxx 10xxxxxx 10xxxxxx
-				if (i + 3 > size)
-					return false;
-				if ((data[i + 1] & 0xc0) != 0x80)
-					return false;
-				if ((data[i + 2] & 0xc0) != 0x80)
-					return false;
-
-				step = 3;
-			} else {
-				return false;
-			}
-
-			i += step;
-		}
-
-		return i == size;
 	}
 
 	public static byte[] encodeTrans(byte[] source, String sourceEncode, String desEncode) {
