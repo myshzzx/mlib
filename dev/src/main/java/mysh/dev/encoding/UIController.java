@@ -3,7 +3,6 @@ package mysh.dev.encoding;
 
 import mysh.util.EncodingUtil;
 import mysh.util.FileUtil;
-import org.apache.commons.io.FileUtils;
 
 import javax.swing.*;
 import java.io.File;
@@ -147,7 +146,7 @@ public class UIController {
 													+ "\n不是 UTF-8 编码, 仍然要把它当作 UTF-8 编码来转换吗?\n选 否 则直接复制源文件",
 									Encoding.TITLE, JOptionPane.YES_NO_OPTION
 					)) {
-						FileUtils.copyFile(srcDir, desFile);
+						Files.copy(srcDir.toPath(),desFile.toPath());
 						return true;
 					}
 				}
@@ -169,9 +168,8 @@ public class UIController {
 				}
 
 			}
-			FileUtils.writeStringToFile(desFile,
-							new String(fileByteArray, transType.getSrcEncoding()),
-							transType.getDesEncoding());
+			Files.write(desFile.toPath(),
+							new String(fileByteArray, transType.getSrcEncoding()).getBytes(transType.getDesEncoding()));
 		} else if (srcDir.isDirectory() && srcDir.canRead()) {
 			for (File childFile : srcDir.listFiles()) {
 				if (!isConsiderSubDirs && childFile.isDirectory())

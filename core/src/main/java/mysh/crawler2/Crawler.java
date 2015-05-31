@@ -6,15 +6,19 @@ import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.conn.ConnectTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.*;
+import java.io.InterruptedIOException;
+import java.net.MalformedURLException;
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
@@ -32,8 +36,8 @@ import java.util.stream.Stream;
  * 2) crawler only start daemon threads, so it will stop if there's no non-daemon thread running.
  *
  * @author Mysh
- * @since 2014/9/24 12:50
  * @version 3.0
+ * @since 2014/9/24 12:50
  */
 @ThreadSafe
 public class Crawler<CTX extends UrlContext> {
@@ -223,7 +227,7 @@ public class Crawler<CTX extends UrlContext> {
 					log.debug("onGet= " + ue.getCurrentURL() + ", reqUrl= " + ue.getReqUrl());
 
 					if (!seed.onGet(ue, this.ctx))
-						classifier.crawl(this);
+						classifier.recrawlWhenFail(this, null);
 
 					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
 						seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
@@ -231,8 +235,8 @@ public class Crawler<CTX extends UrlContext> {
 										.forEach(h -> classify(h.url, h.ctx));
 					}
 				}
-			} catch (SocketTimeoutException | SocketException | ConnectTimeoutException | UnknownHostException ex) {
-				classifier.crawl(this);
+			} catch (InterruptedIOException | SocketException | UnknownHostException ex) {
+				classifier.recrawlWhenFail(this, ex);
 				log.debug("network problem: " + ex.toString() + " - " + this.url);
 			} catch (InterruptedException ex) {
 				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
@@ -240,6 +244,8 @@ public class Crawler<CTX extends UrlContext> {
 				if (!isMalformedUrl(ex))
 					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 				log.error("on error handling url: " + this.url, ex);
+			} finally {
+				classifier.afterAccess();
 			}
 		}
 
@@ -324,26 +330,38 @@ public class Crawler<CTX extends UrlContext> {
 		classifier.crawl(url, ctx);
 	}
 
+	public void useUrlClassifierAdjuster(UrlClassifierConf ucc, boolean useOrNot) {
+		UrlClassifier urlClassifier = classifiers.get(ucc);
+		if (urlClassifier != null)
+			urlClassifier.useAdjuster = useOrNot;
+	}
+
 	private static final AtomicLong classifierThreadCount = new AtomicLong(0);
 
-	class UrlClassifier {
+	private class UrlClassifier {
 		private final String name;
-
-		private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
-		private final ThreadPoolExecutor exec;
 
 		private volatile int milliSecStep;
 		private final HttpClientAssist hca;
 
+		private volatile boolean useAdjuster;
+		private final UrlClassifierAdjuster adjuster = new UrlClassifierAdjuster(this);
+		private final UrlClassifierConf.BlockChecker blockChecker;
+
+		private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
+		private final ThreadPoolExecutor exec;
+
 		@SuppressWarnings("unchecked")
 		UrlClassifier(UrlClassifierConf conf) {
 			Objects.requireNonNull(conf, "conf should not be null");
-
 			this.name = Objects.requireNonNull(conf.name, "name can't be null");
+
+			setRatePerMinute(conf.ratePerMinute);
 			Objects.requireNonNull(conf.hcc, "hcc should not be null");
 			this.hca = new HttpClientAssist(conf.hcc);
 
-			setRatePerMinute(conf.ratePerMinute);
+			this.useAdjuster = conf.useAdjuster;
+			this.blockChecker = conf.blockChecker;
 
 			exec = new ThreadPoolExecutor(conf.threadPoolSize, conf.threadPoolSize, 15L, TimeUnit.SECONDS, wq,
 							r -> {
@@ -365,7 +383,7 @@ public class Crawler<CTX extends UrlContext> {
 		 *             it will be regard as {@link Integer#MAX_VALUE}, because such a rate can't be
 		 *             accurately controlled)
 		 */
-		private void setRatePerMinute(int rate) {
+		public void setRatePerMinute(int rate) {
 			rate = rate < 1 ? Integer.MAX_VALUE : rate;
 			rate = rate > UrlClassifierConf.maxAccRatePM ? Integer.MAX_VALUE : rate;
 			milliSecStep = 60_000 / rate;
@@ -375,15 +393,15 @@ public class Crawler<CTX extends UrlContext> {
 		 * get accurate rate per minute, or {@link Integer#MAX_VALUE} if unlimited.<br/>
 		 * see {@link #setRatePerMinute(int)}
 		 */
-		private int getRatePerMinute() {
+		public int getRatePerMinute() {
 			return milliSecStep == 0 ? Integer.MAX_VALUE : 60_000 / milliSecStep;
 		}
 
-		private void setThreadPoolSize(int size) {
+		public void setThreadPoolSize(int size) {
 			this.exec.setMaximumPoolSize(size);
 		}
 
-		private int getThreadPoolSize() {
+		public int getThreadPoolSize() {
 			return this.exec.getMaximumPoolSize();
 		}
 
@@ -414,11 +432,13 @@ public class Crawler<CTX extends UrlContext> {
 		/**
 		 * crawl give url.
 		 */
-		private void crawl(String url, CTX ctx) {
-			this.crawl(new Worker(url, ctx, this));
+		public void crawl(String url, CTX ctx) {
+			exec.execute(new Worker(url, ctx, this));
 		}
 
-		public void crawl(Worker worker) {
+		public void recrawlWhenFail(Worker worker, IOException ex) {
+			if (useAdjuster && ex != null)
+				adjuster.onException(ex);
 			exec.execute(worker);
 		}
 
@@ -445,7 +465,90 @@ public class Crawler<CTX extends UrlContext> {
 				if (waitTime > 0) Thread.sleep(waitTime);
 			}
 
-			return this.hca.access(url);
+			if (useAdjuster)
+				adjuster.beforeAccess();
+			HttpClientAssist.UrlEntity ue = this.hca.access(url);
+			if (useAdjuster && blockChecker != null && blockChecker.isBlocked(ue))
+				adjuster.onBlocked(ue);
+			return ue;
+		}
+
+		public void afterAccess() {
+			if (useAdjuster)
+				adjuster.afterAccess();
+		}
+	}
+
+	private static final long adjPeriod = 60_000;
+
+	private class UrlClassifierAdjuster {
+		private UrlClassifier classifier;
+		private volatile long periodStart = System.currentTimeMillis();
+
+		public UrlClassifierAdjuster(UrlClassifier classifier) {
+			this.classifier = classifier;
+		}
+
+		private final Queue<Long> accessRec = new ConcurrentLinkedQueue<>();
+
+		public void beforeAccess() {
+			accessRec.add(System.currentTimeMillis());
+		}
+
+		private final Semaphore analyzeRes = new Semaphore(1);
+		private final AtomicLong totalMilliSec = new AtomicLong(0);
+		private final AtomicInteger totalCount = new AtomicInteger(0);
+		private final AtomicInteger networkIssueCount = new AtomicInteger(0);
+		private final AtomicInteger blockCount = new AtomicInteger(0);
+
+		public void afterAccess() {
+			Long accTime = accessRec.poll();
+			long now = System.currentTimeMillis();
+			if (accTime != null) {
+				totalMilliSec.addAndGet(now - accTime);
+				totalCount.incrementAndGet();
+			}
+
+			if (periodStart + adjPeriod < now && analyzeRes.tryAcquire()) {
+				try {
+					long totals = totalCount.get();
+					if (totals > 0) {
+						periodStart = now;
+						// such Counts are not guarded, and may lose data here, but it's OK,
+						// analyzer needs to be lock free
+						long accAveMilli = totalMilliSec.get() / totals;
+						int networkIssues = networkIssueCount.get();
+						int blocks = blockCount.get();
+						totalMilliSec.set(0);
+						totalCount.set(0);
+						networkIssueCount.set(0);
+						blockCount.set(0);
+
+						analyze(totals, accAveMilli, networkIssues, blocks);
+					}
+				} finally {
+					analyzeRes.release();
+				}
+			}
+		}
+
+		private void analyze(long totals, long accAveMilli, int networkIssues, int blocks) {
+
+		}
+
+		public void onBlocked(HttpClientAssist.UrlEntity ue) {
+			blockCount.incrementAndGet();
+		}
+
+		private boolean isNetworkIssue(Throwable t) {
+			return t instanceof InterruptedIOException
+							|| t instanceof SocketException
+							|| t instanceof UnknownHostException;
+		}
+
+		public void onException(IOException ex) {
+			if (isNetworkIssue(ex))
+				networkIssueCount.incrementAndGet();
 		}
 	}
 

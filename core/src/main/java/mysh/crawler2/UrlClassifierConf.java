@@ -1,6 +1,7 @@
 package mysh.crawler2;
 
 import mysh.annotation.Immutable;
+import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 
 import java.io.Serializable;
@@ -19,6 +20,14 @@ public final class UrlClassifierConf implements Serializable {
 		UrlClassifierConf get(String url, CTX ctx);
 	}
 
+	public interface BlockChecker {
+		/**
+		 * whether access is blocked.
+		 * see <a href="http://zh.wikipedia.org/zh-cn/HTTP%E7%8A%B6%E6%80%81%E7%A0%81">status code</a>
+		 */
+		boolean isBlocked(HttpClientAssist.UrlEntity ue);
+	}
+
 	/**
 	 * max accurate flow control per minute: 30*60.
 	 */
@@ -28,6 +37,8 @@ public final class UrlClassifierConf implements Serializable {
 	final int threadPoolSize;
 	final int ratePerMinute;
 	final HttpClientConfig hcc;
+	volatile boolean useAdjuster = true;
+	volatile BlockChecker blockChecker;
 
 	/**
 	 * @param name           the name of url classifier.
@@ -43,6 +54,22 @@ public final class UrlClassifierConf implements Serializable {
 		this.threadPoolSize = Math.max(1, threadPoolSize);
 		this.ratePerMinute = ratePerMinute;
 		this.hcc = Objects.requireNonNull(hcc, "http client config can't be null");
+	}
+
+	/**
+	 * classifier adjustor will be used automatically, if you don't want it, call this.
+	 */
+	public UrlClassifierConf dontUseAdjuster() {
+		this.useAdjuster = false;
+		return this;
+	}
+
+	/**
+	 * BlockChecker is used to check whether current access is blocked.
+	 */
+	public UrlClassifierConf setBlockChecker(BlockChecker blockChecker) {
+		this.blockChecker = blockChecker;
+		return this;
 	}
 
 	@Override
