@@ -9,9 +9,9 @@
 	<bean id="_service1Factory" class="mysh.thrift.ThriftServerFactory"
 	      p:serverHost="localhost" p:serverPort="19090" p:serverPoolSize="1"
 	      p:useTLS="true"
-	      p:selfKeyStore="classpath:mysh/thrift/server.jks" p:selfKeyStorePw="server"
+	      p:selfKeyStore="mysh/thrift/server.jks" p:selfKeyStorePw="server"
 	      p:requireClientAuth="true"
-	      p:trustKeyStore="classpath:mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456">
+	      p:trustKeyStore="mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456">
 		<property name="processor">
 			<bean class="mysh.thrift.TService1$Processor">
 				<constructor-arg name="iface">

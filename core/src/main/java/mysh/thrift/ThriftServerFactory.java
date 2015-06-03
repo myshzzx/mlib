@@ -9,11 +9,12 @@ import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TServerSocket;
-import org.springframework.core.io.Resource;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.concurrent.*;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -31,10 +32,10 @@ public class ThriftServerFactory {
 	private int serverPoolSize;
 
 	private boolean useTLS;
-	private Resource selfKeyStore;
+	private String selfKeyStore;
 	private String selfKeyStorePw;
 	private boolean isRequireClientAuth = true;
-	private Resource trustKeyStore;
+	private String trustKeyStore;
 	private String trustKeyStorePw;
 
 	private TServerEventHandler serverEventHandler;
@@ -45,6 +46,7 @@ public class ThriftServerFactory {
 	 * @return build but not start server.
 	 * @throws Exception
 	 */
+	@SuppressWarnings("ConstantConditions")
 	public TServer build() throws Exception {
 		final TServer server;
 
@@ -62,10 +64,14 @@ public class ThriftServerFactory {
 
 		if (useTLS) { // TLS server
 			TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
-			transportParams.setKeyStore(this.selfKeyStore.getFile().getAbsolutePath(), this.selfKeyStorePw);
+			transportParams.setKeyStore(
+							ThriftServerFactory.class.getClassLoader().getResource(this.selfKeyStore).getPath(),
+							this.selfKeyStorePw);
 			transportParams.requireClientAuth(this.isRequireClientAuth);
 			if (this.isRequireClientAuth)
-				transportParams.setTrustStore(this.trustKeyStore.getFile().getAbsolutePath(), this.trustKeyStorePw);
+				transportParams.setTrustStore(
+								ThriftServerFactory.class.getClassLoader().getResource(this.trustKeyStore).getPath(),
+								this.trustKeyStorePw);
 			TServerSocket serverTransport = TSSLTransportFactory.getServerSocket(this.serverPort, this.clientTimeout,
 							InetAddress.getByName(this.serverHost), transportParams);
 
@@ -137,7 +143,7 @@ public class ThriftServerFactory {
 	/**
 	 * 服务端证书库。
 	 */
-	public void setSelfKeyStore(Resource selfKeyStore) {
+	public void setSelfKeyStore(String selfKeyStore) {
 		this.selfKeyStore = selfKeyStore;
 	}
 
@@ -158,7 +164,7 @@ public class ThriftServerFactory {
 	/**
 	 * 信任证书库。
 	 */
-	public void setTrustKeyStore(Resource trustKeyStore) {
+	public void setTrustKeyStore(String trustKeyStore) {
 		this.trustKeyStore = trustKeyStore;
 	}
 

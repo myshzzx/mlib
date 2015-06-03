@@ -14,9 +14,9 @@
 			      p:iface="mysh.thrift.TService1$Iface"
 			      p:TClientClass="mysh.thrift.TService1$Client"
 			      p:useTLS="true"
-			      p:trustKeyStore="classpath:mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456"
+			      p:trustKeyStore="mysh/thrift/rootPublic.jks" p:trustKeyStorePw="123456"
 			      p:requireClientAuth="true"
-			      p:selfKeyStore="classpath:mysh/thrift/client.jks" p:selfKeyStorePw="client"
+			      p:selfKeyStore="mysh/thrift/client.jks" p:selfKeyStorePw="client"
 							/>
 		</constructor-arg>
 	</bean>

@@ -10,7 +10,6 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.Resource;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -38,6 +37,7 @@ public class ThriftClientFactory<TI> {
 			rebuildClient();
 		}
 
+		@SuppressWarnings({"ConstantConditions"})
 		private void rebuildClient() throws TTransportException, IOException, NoSuchMethodException,
 						IllegalAccessException, InvocationTargetException, InstantiationException {
 
@@ -49,9 +49,13 @@ public class ThriftClientFactory<TI> {
 
 			if (conf.useTLS) {
 				TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
-				transportParams.setTrustStore(conf.trustKeyStore.getFile().getAbsolutePath(), conf.trustKeyStorePw);
+				transportParams.setTrustStore(
+								ThriftClientFactory.class.getClassLoader().getResource(conf.trustKeyStore).getPath(),
+								conf.trustKeyStorePw);
 				if (conf.isRequireClientAuth) {
-					transportParams.setKeyStore(conf.selfKeyStore.getFile().getAbsolutePath(), conf.selfKeyStorePw);
+					transportParams.setKeyStore(
+									ThriftClientFactory.class.getClassLoader().getResource(conf.selfKeyStore).getPath(),
+									conf.selfKeyStorePw);
 				}
 				transport = TSSLTransportFactory.getClientSocket(
 								conf.serverHost, conf.serverPort, conf.clientSocketTimeout, transportParams);
@@ -137,10 +141,10 @@ public class ThriftClientFactory<TI> {
 		private Class<? extends T> tClientClass;
 
 		private boolean useTLS;
-		private Resource trustKeyStore;
+		private String trustKeyStore;
 		private String trustKeyStorePw;
 		private boolean isRequireClientAuth;
-		private Resource selfKeyStore;
+		private String selfKeyStore;
 		private String selfKeyStorePw;
 
 		/**
@@ -188,7 +192,7 @@ public class ThriftClientFactory<TI> {
 		/**
 		 * CA key store.
 		 */
-		public void setTrustKeyStore(Resource trustKeyStore) {
+		public void setTrustKeyStore(String trustKeyStore) {
 			this.trustKeyStore = trustKeyStore;
 		}
 
@@ -209,7 +213,7 @@ public class ThriftClientFactory<TI> {
 		/**
 		 * client key store.
 		 */
-		public void setSelfKeyStore(Resource selfKeyStore) {
+		public void setSelfKeyStore(String selfKeyStore) {
 			this.selfKeyStore = selfKeyStore;
 		}
 
