@@ -17,8 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * WARNING: <br/>
  * 1. the implementation should not contain "heavy state" because
  * it will be serialized several times during cluster calculation.<br/>
- * 2. user created thread should be registered using {@link #regUserThread(Thread)},
- * and react for interruption, or you have to terminate them by yourself.
+ * 2. user should use {@link #threadFactory()} to created thread even if not limited.
  *
  * @param <T>  Task Type. should be Serializable.
  * @param <ST> SubTask Type. should be Serializable.
