@@ -56,20 +56,13 @@ public class Crawler<CTX extends UrlContext> {
 	}
 
 	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
-		Objects.requireNonNull(seed, "need seed");
-		Objects.requireNonNull(ccf, "need classifier config factory");
+		this.seed = Objects.requireNonNull(seed, "need seed");
+		this.ccf = Objects.requireNonNull(ccf, "need classifier config factory");
 
-		this.seed = seed;
-		this.seed.init();
-
-		String seedName = seed.getClass().getName();
-		int dotIdx = seedName.lastIndexOf('.');
-		this.name = "Crawler(" +
-						(dotIdx > -1 ? seedName.substring(dotIdx + 1) : seedName)
-						+ ")";
-
+		this.name = "Crawler(" + this.seed.getClass().getSimpleName() + ")";
 		this.log = LoggerFactory.getLogger(this.name);
-		this.ccf = ccf;
+
+		this.seed.init();
 	}
 
 	/**
@@ -326,7 +319,10 @@ public class Crawler<CTX extends UrlContext> {
 		UrlClassifierConf ucConf = ccf.get(url, ctx);
 		if (ucConf == null)
 			throw new RuntimeException("get null classifier config with param: url=" + url + ", ctx=" + ctx);
-		UrlClassifier classifier = classifiers.computeIfAbsent(ucConf, UrlClassifier::new);
+
+		UrlClassifier classifier = classifiers.get(ucConf);
+		if (classifier == null)
+			classifier = classifiers.computeIfAbsent(ucConf, UrlClassifier::new);
 		classifier.crawl(url, ctx);
 	}
 
