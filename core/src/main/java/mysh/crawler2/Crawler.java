@@ -316,20 +316,31 @@ public class Crawler<CTX extends UrlContext> {
 		if (this.status.get() == Status.STOPPED)
 			throw new RuntimeException("crawler has been stopped");
 
-		UrlClassifierConf ucConf = ccf.get(url, ctx);
-		if (ucConf == null)
+		final UrlClassifierConf ucc = ccf.get(url, ctx);
+		if (ucc == null)
 			throw new RuntimeException("get null classifier config with param: url=" + url + ", ctx=" + ctx);
 
-		UrlClassifier classifier = classifiers.get(ucConf);
-		if (classifier == null)
-			classifier = classifiers.computeIfAbsent(ucConf, UrlClassifier::new);
+		UrlClassifier classifier = classifiers.get(ucc);
+		if (classifier == null) {
+			/** synchronized here because: {@link #useUrlClassifierAdjuster} */
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
+			synchronized (ucc) {
+				classifier = classifiers.computeIfAbsent(ucc, UrlClassifier::new);
+			}
+		}
 		classifier.crawl(url, ctx);
 	}
 
 	public void useUrlClassifierAdjuster(UrlClassifierConf ucc, boolean useOrNot) {
-		UrlClassifier urlClassifier = classifiers.get(ucc);
-		if (urlClassifier != null)
-			urlClassifier.useAdjuster = useOrNot;
+		// synchronized here because: this method will fail when ucc's prop hasn't been changed, and
+		// the classifier.initer has read ucc's old prop, but hasn't completed initialization
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (ucc) {
+			ucc.useAdjuster = useOrNot;
+			UrlClassifier urlClassifier = classifiers.get(ucc);
+			if (urlClassifier != null)
+				urlClassifier.useAdjuster = useOrNot;
+		}
 	}
 
 	private static final AtomicLong classifierThreadCount = new AtomicLong(0);
