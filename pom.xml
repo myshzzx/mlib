@@ -70,7 +70,16 @@
 					<source>1.8</source>
 					<target>1.8</target>
 					<encoding>${sourceEncoding}</encoding>
+					<compilerId>javac-with-errorprone</compilerId>
+					<forceJavacCompilerUse>true</forceJavacCompilerUse>
 				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.codehaus.plexus</groupId>
+						<artifactId>plexus-compiler-javac-errorprone</artifactId>
+						<version>2.5</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 
 			<plugin>

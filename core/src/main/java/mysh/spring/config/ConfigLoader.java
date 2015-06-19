@@ -89,7 +89,7 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	}
 
 	@Override
-	public void setLocations(Resource[] locations) {
+	public void setLocations(Resource... locations) {
 
 		if (!isTestState() || this.testLocations == null)
 			super.setLocations(locations);

@@ -14,9 +14,23 @@ public class Strings {
 	}
 
 	/**
+	 * opposite to {@link #isEmpty(String)}
+	 */
+	public static boolean isNotEmpty(String str) {
+		return !isEmpty(str);
+	}
+
+	/**
 	 * check whether str is null or "", or consists of \s.
 	 */
 	public static boolean isBlank(String str) {
 		return str == null || str.trim().length() == 0;
+	}
+
+	/**
+	 * opposite to {@link #isBlank(String)}
+	 */
+	public static boolean isNotBlank(String str) {
+		return !isBlank(str);
 	}
 }

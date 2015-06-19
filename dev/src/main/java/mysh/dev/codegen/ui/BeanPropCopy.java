@@ -6,6 +6,7 @@
 package mysh.dev.codegen.ui;
 
 import mysh.dev.codegen.CodeUtil;
+import mysh.util.Strings;
 import mysh.util.UIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,10 +91,14 @@ public class BeanPropCopy extends javax.swing.JFrame {
 					codeResult.append(decorator);
 					codeResult.append('(');
 				}
-				codeResult.append(src);
-				codeResult.append(".get");
-				codeResult.append(propName);
-				codeResult.append("()");
+				if (Strings.isNotBlank(src)) {
+					codeResult.append(src);
+					codeResult.append(".get");
+					codeResult.append(propName);
+					codeResult.append("()");
+				} else {
+					codeResult.append("xxxxx");
+				}
 				if (decorator.length() > 0) {
 					codeResult.append(')');
 				}
@@ -103,6 +108,7 @@ public class BeanPropCopy extends javax.swing.JFrame {
 			this.code.setText(codeResult.toString());
 		} catch (Exception e) {
 			log.error("gen code error.", e);
+			this.code.setText(e.toString());
 		}
 	}
 
