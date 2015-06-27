@@ -69,10 +69,24 @@ public final class Tick {
 	}
 
 	/**
+	 * time costs from creation.
+	 */
+	public String nip2String(String comment) {
+		return this.name + " (" + comment + "): " + nip() + " " + this.unit.desc;
+	}
+
+	/**
 	 * print time costs from creation.
 	 */
 	public void nipAndPrint() {
 		System.out.println(nip2String());
+	}
+
+	/**
+	 * print time costs from creation.
+	 */
+	public void nipAndPrint(String comment) {
+		System.out.println(nip2String(comment));
 	}
 
 	@Override
