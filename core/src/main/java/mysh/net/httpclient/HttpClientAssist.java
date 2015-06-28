@@ -50,7 +50,7 @@ public class HttpClientAssist implements Closeable {
 
 		HttpClientBuilder hcBuilder = HttpClientBuilder.create();
 
-		Header connection = new BasicHeader("Connection", conf.isKeepAlive() ? "keep-alive" : "close");
+		Header connection = new BasicHeader(HttpHeaders.Connection, conf.isKeepAlive() ? "keep-alive" : "close");
 		conf.addHeader(connection);
 		hcBuilder.setDefaultHeaders(conf.headers);
 
