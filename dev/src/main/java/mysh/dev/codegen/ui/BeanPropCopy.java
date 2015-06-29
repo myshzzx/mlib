@@ -5,7 +5,7 @@
  */
 package mysh.dev.codegen.ui;
 
-import mysh.dev.codegen.CodeUtil;
+import mysh.codegen.CodeUtil;
 import mysh.util.Strings;
 import mysh.util.UIUtil;
 import org.slf4j.Logger;

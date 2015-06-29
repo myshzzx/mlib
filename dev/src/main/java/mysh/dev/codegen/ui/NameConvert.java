@@ -5,11 +5,10 @@
  */
 package mysh.dev.codegen.ui;
 
+import mysh.codegen.CodeUtil;
 import mysh.util.UIUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import mysh.dev.codegen.CodeUtil;
 
 import javax.swing.*;
 
