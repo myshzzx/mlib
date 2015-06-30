@@ -17,15 +17,20 @@ public class CodeUtilTest {
 		Assert.assertEquals("MyshZzx", underline2hump("mysh_zzx"));
 		Assert.assertEquals("MyshZZX", underline2hump("mysh_z_z_x"));
 		Assert.assertEquals("Mysh", underline2hump("MYSH"));
+		Assert.assertEquals("MZZx", underline2hump("M_Z_ZX"));
 	}
 
 	@Test
 	public void testHump2underline() {
 		Assert.assertEquals("MYSH_ZZX", hump2underline("MyshZzx"));
-		Assert.assertEquals("MYSH_ZZX", hump2underline("MyshZZX"));
-		Assert.assertEquals("MYSH_ZZX", hump2underline("MYSHZzx"));
+		Assert.assertEquals("MYSH_Z_Z_X", hump2underline("MyshZZX"));
+		Assert.assertEquals("M_Y_S_H_ZZX", hump2underline("MYSHZzx"));
 		Assert.assertEquals("M_YSH_Z_ZX", hump2underline("MYshZZx"));
 		Assert.assertEquals("MYSH_Z_ZX", hump2underline("myshZZx"));
+		Assert.assertEquals("MY_Z_ZX", hump2underline("myZZx"));
+		Assert.assertEquals("M_Z_ZX", hump2underline("mZZx"));
+		Assert.assertEquals("M_Z_X", hump2underline("mZX"));
+		Assert.assertEquals("MY_Z", hump2underline("myZ"));
 	}
 
 	@Test

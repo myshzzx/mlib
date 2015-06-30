@@ -33,20 +33,15 @@ public class CodeUtil {
 		char[] chars = hump.trim().toCharArray();
 
 		for (int i = 0; i < chars.length; i++) {
-			if (i == 0 || i == chars.length - 1)
-				underline.append(toUpperCase(chars[i]));
+			char c = chars[i];
+			if (i == 0)
+				underline.append(toUpperCase(c));
 			else {
-				if (!isUpperCase(chars[i]) && isUpperCase(chars[i + 1])) {
-					// test: StringBuilder -> STRING_BUILDER
-					underline.append(toUpperCase(chars[i]));
+				if (isUpperCase(c)) {
 					underline.append('_');
-				} else if (isUpperCase(chars[i - 1]) && isUpperCase(chars[i]) && !isUpperCase(chars[i + 1])) {
-					// test: MYSHZzx -> MYSH_ZZX
-					underline.append('_');
-					underline.append(toUpperCase(chars[i]));
-				} else {
-					underline.append(toUpperCase(chars[i]));
-				}
+					underline.append(c);
+				} else
+					underline.append(toUpperCase(c));
 			}
 		}
 
@@ -54,11 +49,11 @@ public class CodeUtil {
 	}
 
 	public static boolean isUpperCase(char c) {
-		return c <= 'Z' && c >= 'A';
+		return c >= 'A' && c <= 'Z';
 	}
 
 	public static boolean isLowerCase(char c) {
-		return c <= 'z' && c >= 'a';
+		return c >= 'a' && c <= 'z';
 	}
 
 	public static char toUpperCase(char c) {
