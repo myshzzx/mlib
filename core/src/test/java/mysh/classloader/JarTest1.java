@@ -1,5 +1,6 @@
 package mysh.classloader;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ public class JarTest1 {
 	}
 
 	@Test
+	@Ignore
 	public void t1() throws IOException {
 		final URL url = new URL("jar:file:///L:/javafx-mx.jar!/");
 		final JarURLConnection jar = (JarURLConnection) url.openConnection();

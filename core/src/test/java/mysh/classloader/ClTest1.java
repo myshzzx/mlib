@@ -12,7 +12,7 @@ import java.util.Base64;
 public class ClTest1 {
 
 	/**
-	 * a Runnable class T witch prints aaa
+	 * a Runnable class T which prints aaa
 	 */
 	static byte[] a = Base64.getDecoder().decode(
 					"yv66vgAAADQAJQoABgAVCQAWABcIABgKABkAGgcAGwcAHAcAHQcAHgEAEHNlcmlhbFZlcnNpb25VSUQBAAFKAQANQ29uc3RhbnRWYWx1ZQXy7oCx6xcr6wEABjxpbml0PgEAAygpVgEABENvZGUBAA9MaW5lTnVtYmVyVGFibGUBAANydW4BAApTb3VyY2VGaWxlAQAGVC5qYXZhDAAOAA8HAB8MACAAIQEAA2FhYQcAIgwAIwAkAQABVAEAEGphdmEvbGFuZy9PYmplY3QBABJqYXZhL2xhbmcvUnVubmFibGUBABRqYXZhL2lvL1NlcmlhbGl6YWJsZQEAEGphdmEvbGFuZy9TeXN0ZW0BAANvdXQBABVMamF2YS9pby9QcmludFN0cmVhbTsBABNqYXZhL2lvL1ByaW50U3RyZWFtAQAHcHJpbnRsbgEAFShMamF2YS9sYW5nL1N0cmluZzspVgAhAAUABgACAAcACAABABoACQAKAAEACwAAAAIADAACAAEADgAPAAEAEAAAAB0AAQABAAAABSq3AAGxAAAAAQARAAAABgABAAAAAwABABIADwABABAAAAAlAAIAAQAAAAmyAAISA7YABLEAAAABABEAAAAKAAIAAAAIAAgACQABABMAAAACABQ=");
@@ -34,9 +34,6 @@ public class ClTest1 {
 		r.run();
 		r = Serializer.buildIn.unSerialize(s, cl2);
 		r.run();
-
-		final Class<?> t = Class.forName("T");
-		System.out.println(t);
 	}
 
 	private static class MyCl extends ClassLoader {

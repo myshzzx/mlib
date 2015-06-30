@@ -19,7 +19,7 @@ public class SQLHelperTest {
 						.setTableAlias("tt")
 						.in("seat", 1, "ab")
 						.notIn("set", 2)
-						.append("cc > :cc ", "cc", 100)
+						.append("cc > :cc", "cc", 100)
 						.between("height", 170, 180)
 						.notBetween("height", "hf", 10, "ht", 21)
 						.isNull("officeAddress")

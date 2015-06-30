@@ -1,5 +1,6 @@
 package mysh.thrift;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import java.util.Date;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:mysh/thrift/client.xml")
+@Ignore
 public class ClientTest2 {
 	private static final Logger log = LoggerFactory.getLogger(ClientTest2.class);
 

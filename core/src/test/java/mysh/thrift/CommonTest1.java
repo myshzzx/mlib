@@ -5,12 +5,14 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.transport.*;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
  * @author Mysh
  * @since 2014/11/11 1:39
  */
+@Ignore
 public class CommonTest1 {
 	@Test
 	public void server() {

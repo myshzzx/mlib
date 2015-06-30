@@ -3,6 +3,7 @@ package mysh.benchmark;
 import com.alibaba.fastjson.JSON;
 import mysh.util.Serializer;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 
@@ -42,6 +43,7 @@ public class SerializationTest1 {
 	private static byte[] tb;
 
 	@Test
+	@Ignore
 	public void ts() throws Exception {
 		test(new Java(), t);
 		test(new Json(), t);

@@ -8,6 +8,7 @@ import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
 import org.apache.thrift.transport.TNonblockingSocket;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ import java.nio.ByteBuffer;
  * @author Mysh
  * @since 2014/11/21 15:08
  */
+@Ignore
 public class AsyncTest1 {
 	private static final Logger log = LoggerFactory.getLogger(AsyncTest1.class);
 

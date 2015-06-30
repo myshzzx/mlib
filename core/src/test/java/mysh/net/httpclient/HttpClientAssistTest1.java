@@ -1,8 +1,8 @@
 package mysh.net.httpclient;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
