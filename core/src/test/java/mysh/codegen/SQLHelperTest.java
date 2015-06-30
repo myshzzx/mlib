@@ -31,7 +31,7 @@ public class SQLHelperTest {
 										":title  AND TITLE LIKE :title22  AND TITLE NOT LIKE :title2  AND TITLE NOT LIKE :title3  AND tt.SEAT IN (1,'ab')  AND tt.SET NOT IN (2)  AND cc > :cc  AND tt.HEIGHT BETWEEN :heightfrom AND :heightto  AND tt.HEIGHT NOT BETWEEN :hf AND :ht  AND tt.OFFICE_ADDRESS IS NULL  AND tt.HOME_ADD IS NOT NULL  ORDER BY tt.CREATE_TIME  GROUP BY NAME ",
 						sql.getCond().toString());
 		assertEquals("{cc=100, givenName=mysh, title2=%ste%, heightto=180, title3=st%, name2=zzx, " +
-						"title=%sde%, title22=sd%, heightfrom=170, ht=21, hf=10}", sql.getParams().toString());
+						"title=%sde%, title22=sd%, heightfrom=170, ht=21, hf=10}", sql.getParamMap().toString());
 	}
 
 	@Test(expected = RuntimeException.class)
@@ -49,7 +49,32 @@ public class SQLHelperTest {
 						.on(2 < 1).bi("age", ">", 10)
 						.on(2 < 1).groupBy("age");
 		assertEquals("1=1  AND NAME = :name ", sql.getCond().toString());
-		assertEquals("{name=abc}", sql.getParams().toString());
+		assertEquals("{name=abc}", sql.getParamMap().toString());
+	}
+
+	@Test
+	public void conditionTest2() {
+		SQLHelper sql = SQLHelper.create();
+		sql
+						.onNotBlank("abc").eq("name", "abc")
+						.onNotBlank("").bi("age", ">", 10)
+						.on(2 < 1).groupBy("age");
+		assertEquals("1=1  AND NAME = :name ", sql.getCond().toString());
+		assertEquals("{name=abc}", sql.getParamMap().toString());
+	}
+
+	@Test
+	public void ignoreTest() {
+		SQLHelper sql = SQLHelper.create();
+		sql
+						.eq("name", "   ")
+						.like("address", " ")
+						.in("age", 1, 2, 3, null)
+						.between("length", null, 20)
+						.append("cc= :cc ", "cc", " ")
+						.eq("age", null);
+		assertEquals("1=1 ", sql.getCond().toString());
+		assertEquals("{}", sql.getParamMap().toString());
 	}
 
 }

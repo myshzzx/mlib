@@ -23,8 +23,16 @@ public class Strings {
 	/**
 	 * check whether str is null or "", or consists of \s.
 	 */
-	public static boolean isBlank(String str) {
-		return str == null || str.trim().length() == 0;
+	public static boolean isBlank(String s) {
+		if (s == null) {
+			return true;
+		}
+		for (int i = 0; i < s.length(); i++) {
+			if (!Character.isWhitespace(s.charAt(i))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**

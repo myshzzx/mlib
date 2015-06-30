@@ -11,10 +11,12 @@ import java.util.WeakHashMap;
  * make it possible to write java code just like writing sql.
  * Or even more comfortable, if you are using JetBrains IntelliJ IDEA, by which you can get col name
  * from code completion wisely.
+ * notice that null or blank value will cause current expression ignored.
  * for example:
  * <pre>
  *   sql.eq("max_Value", 10)
  *      .on(isNotEmpty(name())).like("GivenName", name())
+ *      .like("address", "")
  *      .orderBy("createTime");
  * </pre>
  * and which you get is:
@@ -62,56 +64,64 @@ public class SQLHelper {
 	/**
 	 * col like %value%
 	 */
-	public SQLHelper like(String col, Object value) {
+	public SQLHelper like(String col, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "LIKE", col, "%" + value + "%");
 	}
 
 	/**
 	 * col like %value%
 	 */
-	public SQLHelper like(String col, String valueName, Object value) {
+	public SQLHelper like(String col, String valueName, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "LIKE", valueName, "%" + value + "%");
 	}
 
 	/**
 	 * col not like %value%
 	 */
-	public SQLHelper notLike(String col, Object value) {
+	public SQLHelper notLike(String col, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "NOT LIKE", col, "%" + value + "%");
 	}
 
 	/**
 	 * col not like %value%
 	 */
-	public SQLHelper notLike(String col, String valueName, Object value) {
+	public SQLHelper notLike(String col, String valueName, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "NOT LIKE", valueName, "%" + value + "%");
 	}
 
 	/**
 	 * col like value%
 	 */
-	public SQLHelper likeLeft(String col, Object value) {
+	public SQLHelper likeLeft(String col, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "LIKE", col, value + "%");
 	}
 
 	/**
 	 * col like value%
 	 */
-	public SQLHelper likeLeft(String col, String valueName, Object value) {
+	public SQLHelper likeLeft(String col, String valueName, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "LIKE", valueName, value + "%");
 	}
 
 	/**
 	 * col not like value%
 	 */
-	public SQLHelper notLikeLeft(String col, Object value) {
+	public SQLHelper notLikeLeft(String col, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "NOT LIKE", col, value + "%");
 	}
 
 	/**
 	 * col not like value%
 	 */
-	public SQLHelper notLikeLeft(String col, String valueName, Object value) {
+	public SQLHelper notLikeLeft(String col, String valueName, String value) {
+		if (ignoreChk(value)) return this;
 		return bi(col, "NOT LIKE", valueName, value + "%");
 	}
 
@@ -191,7 +201,7 @@ public class SQLHelper {
 	 * @param paramValue 参数值
 	 */
 	public SQLHelper bi(String col, String op, String paramName, Object paramValue) {
-		if (ignoreChk()) return this;
+		if (ignoreChk(paramValue)) return this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -239,7 +249,7 @@ public class SQLHelper {
 	 */
 	private SQLHelper betweenExp(boolean flag,
 	                             String col, String fromName, Object from, String toName, Object to) {
-		if (ignoreChk()) return this;
+		if (ignoreChk(from, to)) return this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -282,7 +292,7 @@ public class SQLHelper {
 	 * params should be [paramName, paramValue] pairs.
 	 */
 	public SQLHelper append(String sql, Object... params) {
-		if (ignoreChk()) return this;
+		if (ignoreChk(params)) return this;
 
 		cond.append(" AND ");
 		cond.append(sql);
@@ -312,7 +322,7 @@ public class SQLHelper {
 	}
 
 	private SQLHelper inExp(boolean flag, String col, Object[] enums) {
-		if (ignoreChk()) return this;
+		if (ignoreChk(enums)) return this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -432,13 +442,59 @@ public class SQLHelper {
 	}
 
 	/**
-	 * should current expression been ignored.
-	 * the flag will be reset after this invoke.
+	 * same as on(isNotBlank(value). see {@link #on(boolean)}
+	 */
+	public SQLHelper onNotBlank(String value) {
+		ignoreNext = Strings.isBlank(value);
+		return this;
+	}
+
+	/**
+	 * see {@link #ignoreChk(Object...)}
 	 */
 	private boolean ignoreChk() {
-		boolean oldValue = ignoreNext;
+		boolean ignore = ignoreNext;
 		ignoreNext = false;
-		return oldValue;
+
+		return ignore;
+	}
+
+	/**
+	 * see {@link #ignoreChk(Object...)}
+	 */
+	private boolean ignoreChk(Object param) {
+		boolean ignore = ignoreNext;
+		ignoreNext = false;
+
+		return ignore || isBlank(param);
+	}
+
+	/**
+	 * should current expression been ignored.
+	 * if previous on-condition is true, or any param is null(or blank), this will return true.
+	 * the flag will be reset after this invoke.
+	 */
+	private boolean ignoreChk(Object... params) {
+		boolean ignore = ignoreNext;
+		ignoreNext = false;
+
+		if (!ignore && params != null) {
+			for (Object param : params) {
+				if (isBlank(param)) return true;
+			}
+		}
+		return ignore;
+	}
+
+	/**
+	 * param==null or param is a blank string
+	 */
+	private boolean isBlank(Object param) {
+		if (param == null) return true;
+		if (param instanceof String) {
+			if (Strings.isBlank((String) param)) return true;
+		}
+		return false;
 	}
 
 	// ignoreNext above ===========================
@@ -457,10 +513,10 @@ public class SQLHelper {
 	}
 
 	private void putParam(String name, Object value) {
-		if (!ignoreParamOverwritten && params.containsKey(name)) {
+		if (!ignoreParamOverwritten && paramMap.containsKey(name)) {
 			throw new RuntimeException("param[" + name + "] overwritten with value:" + value);
 		}
-		params.put(name, value);
+		paramMap.put(name, value);
 	}
 
 	// ignoreParamOverwritten above ==============================
@@ -483,18 +539,18 @@ public class SQLHelper {
 	}
 
 	private StringBuilder cond;
-	private Map<String, Object> params;
+	private Map<String, Object> paramMap;
 
-	private SQLHelper(StringBuilder cond, Map<String, Object> params) {
+	private SQLHelper(StringBuilder cond, Map<String, Object> paramMap) {
 		this.cond = cond;
-		this.params = params;
+		this.paramMap = paramMap;
 	}
 
 	public StringBuilder getCond() {
 		return cond;
 	}
 
-	public Map<String, Object> getParams() {
-		return params;
+	public Map<String, Object> getParamMap() {
+		return paramMap;
 	}
 }
