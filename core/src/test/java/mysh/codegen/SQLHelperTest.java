@@ -7,7 +7,7 @@ import static org.junit.Assert.assertEquals;
 public class SQLHelperTest {
 
 	@Test
-	public void all() {
+	public void full() {
 		SQLHelper sql = SQLHelper.create();
 		sql
 						.bi("givenName", "=", "mysh")
@@ -41,6 +41,19 @@ public class SQLHelperTest {
 						.like("name", "abc");
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void wrongAppendParams() {
+		SQLHelper sql = SQLHelper.create();
+		sql.eq("name", 2)
+						.append("name= :abc ", "abc");
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void blankCol() {
+		SQLHelper sql = SQLHelper.create();
+		sql.eq(" ", 1);
+	}
+
 	@Test
 	public void conditionTest() {
 		SQLHelper sql = SQLHelper.create();
@@ -70,10 +83,14 @@ public class SQLHelperTest {
 						.eq("name", "   ")
 						.like("address", " ")
 						.in("age", 1, 2, 3, null)
+						.in("age", null)
+						.in("age", " ", 2)
+						.in("age", new Object[0])
 						.between("length", null, 20)
 						.append("cc= :cc ", "cc", " ")
+						.append("cc= 1")
 						.eq("age", null);
-		assertEquals("1=1 ", sql.getCond().toString());
+		assertEquals("1=1  AND cc= 1 ", sql.getCond().toString());
 		assertEquals("{}", sql.getParamMap().toString());
 	}
 

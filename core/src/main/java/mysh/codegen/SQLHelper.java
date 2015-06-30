@@ -249,7 +249,7 @@ public class SQLHelper {
 	 */
 	private SQLHelper betweenExp(boolean flag,
 	                             String col, String fromName, Object from, String toName, Object to) {
-		if (ignoreChk(from, to)) return this;
+		if (ignoreChk(fromName, from, toName, to)) return this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -296,6 +296,7 @@ public class SQLHelper {
 
 		cond.append(" AND ");
 		cond.append(sql);
+		cond.append(' ');
 
 		if (params != null) {
 			if (params.length % 2 != 0)
@@ -322,7 +323,7 @@ public class SQLHelper {
 	}
 
 	private SQLHelper inExp(boolean flag, String col, Object[] enums) {
-		if (ignoreChk(enums)) return this;
+		if (enums == null || enums.length == 0 || ignoreChk(enums)) return this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -399,10 +400,13 @@ public class SQLHelper {
 	 * auto convert hump col name to underline connected name,
 	 * like maxValue -> MAX_VALUE.
 	 */
-	private String autoConvertCol(String col) {
+	private String autoConvertCol(final String col) {
 		String underLine = hump2UnderlineCols.get(col);
 
 		if (underLine == null) {
+			if (Strings.isBlank(col))
+				throw new IllegalArgumentException("column name is blank");
+
 			for (int i = 0; i < col.length(); i++) {
 				if (col.charAt(i) == '_') {
 					underLine = col;
