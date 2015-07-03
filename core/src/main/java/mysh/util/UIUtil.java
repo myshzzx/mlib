@@ -11,6 +11,10 @@ import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
 import java.awt.datatransfer.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -39,6 +43,27 @@ public class UIUtil {
 						| UnsupportedLookAndFeelException ex) {
 			log.error("use Nimbus L&F failed.", ex);
 		}
+	}
+
+	/**
+	 * set tray icon popup menu.
+	 */
+	public static void trayIconPopupMenu(TrayIcon icon, JPopupMenu menu) {
+		icon.addMouseListener(new MouseAdapter() {
+			public void mouseReleased(MouseEvent e) {
+				if (e.isPopupTrigger()) {
+					menu.setLocation(e.getX(), e.getY());
+					menu.setInvoker(menu);
+					menu.setVisible(true);
+				}
+			}
+		});
+		menu.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				menu.setVisible(false);
+			}
+		});
 	}
 
 	/**
