@@ -34,6 +34,15 @@ public class SQLHelperTest {
 						"title=%sde%, title22=sd%, heightfrom=170, ht=21, hf=10}", sql.getParamMap().toString());
 	}
 
+	@Test
+	public void inSep() {
+		SQLHelper sql = SQLHelper.create();
+		sql.inSepStr("abc", "a, b ,c", "[,\\s]+");
+
+		assertEquals("1=1  AND ABC IN ('a','b','c') ", sql.getCondStr());
+		assertEquals("{}", sql.getParamMap().toString());
+	}
+
 	@Test(expected = RuntimeException.class)
 	public void paramOverwriteTest() {
 		SQLHelper sql = SQLHelper.create();
@@ -68,12 +77,9 @@ public class SQLHelperTest {
 	@Test
 	public void conditionTest2() {
 		SQLHelper sql = SQLHelper.create();
-		sql
-						.onNotBlank("abc").eq("name", "abc")
-						.onNotBlank("").bi("age", ">", 10)
-						.on(2 < 1).groupBy("age");
-		assertEquals("1=1  AND NAME = :name ", sql.getCond().toString());
-		assertEquals("{name=abc}", sql.getParamMap().toString());
+		sql.on(2 < 1).groupBy("age");
+		assertEquals("1=1 ", sql.getCond().toString());
+		assertEquals("{}", sql.getParamMap().toString());
 	}
 
 	@Test

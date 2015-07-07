@@ -316,10 +316,26 @@ public class SQLHelper {
 	}
 
 	/**
+	 * col in (e1, e2)
+	 */
+	public SQLHelper inSepStr(String col, String enumStr, String sepRegex) {
+		if (enumStr == null) return this;
+		return inExp(true, col, enumStr.split(sepRegex));
+	}
+
+	/**
 	 * col not in (e1, e2)
 	 */
 	public SQLHelper notIn(String col, Object... enums) {
 		return inExp(false, col, enums);
+	}
+
+	/**
+	 * col not in (e1, e2)
+	 */
+	public SQLHelper notInSepStr(String col, String enumStr, String sepRegex) {
+		if (enumStr == null) return this;
+		return inExp(false, col, enumStr.split(sepRegex));
 	}
 
 	private SQLHelper inExp(boolean flag, String col, Object[] enums) {
@@ -446,14 +462,6 @@ public class SQLHelper {
 	}
 
 	/**
-	 * same as on(isNotBlank(value). see {@link #on(boolean)}
-	 */
-	public SQLHelper onNotBlank(String value) {
-		ignoreNext = Strings.isBlank(value);
-		return this;
-	}
-
-	/**
 	 * see {@link #ignoreChk(Object...)}
 	 */
 	private boolean ignoreChk() {
@@ -552,6 +560,10 @@ public class SQLHelper {
 
 	public StringBuilder getCond() {
 		return cond;
+	}
+
+	public String getCondStr() {
+		return cond.toString();
 	}
 
 	public Map<String, Object> getParamMap() {
