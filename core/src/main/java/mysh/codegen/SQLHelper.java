@@ -5,6 +5,7 @@ import mysh.util.Strings;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * SQL generator.
@@ -403,6 +404,7 @@ public class SQLHelper {
 	// col convert below =============================
 	private String tableAlias;
 	private static final WeakHashMap<String, String> hump2UnderlineCols = new WeakHashMap<>();
+	private static final ReentrantReadWriteLock hump2UnderlineColsLock = new ReentrantReadWriteLock();
 
 	/**
 	 * set table alias. to clean old alias, use null.
@@ -417,14 +419,20 @@ public class SQLHelper {
 	 * like maxValue -> MAX_VALUE.
 	 */
 	private String autoConvertCol(final String col) {
-		String underLine = hump2UnderlineCols.get(col);
+		String underLine = null;
+		hump2UnderlineColsLock.readLock().lock();
+		try {
+			underLine = hump2UnderlineCols.get(col);
+		} finally {
+			hump2UnderlineColsLock.readLock().unlock();
+		}
 
 		if (underLine == null) {
 			if (Strings.isBlank(col))
 				throw new IllegalArgumentException("column name is blank");
 
 			for (int i = 0; i < col.length(); i++) {
-				if (col.charAt(i) == '_') {
+				if (!CodeUtil.isLowerCase(col.charAt(i))) {
 					underLine = col;
 					break;
 				}
@@ -435,7 +443,13 @@ public class SQLHelper {
 
 			if (tableAlias != null)
 				underLine = tableAlias + underLine;
-			hump2UnderlineCols.put(col, underLine);
+
+			hump2UnderlineColsLock.writeLock().lock();
+			try {
+				hump2UnderlineCols.put(col, underLine);
+			} finally {
+				hump2UnderlineColsLock.writeLock().unlock();
+			}
 			return underLine;
 		} else
 			return underLine;
@@ -545,15 +559,15 @@ public class SQLHelper {
 	}
 
 	public static SQLHelper create(StringBuilder cond, Map<String, Object> params) {
-		if (cond == null) cond = new StringBuilder("1=1 ");
-		if (params == null) params = new HashMap<>();
 		return new SQLHelper(cond, params);
 	}
 
 	private StringBuilder cond;
 	private Map<String, Object> paramMap;
 
-	private SQLHelper(StringBuilder cond, Map<String, Object> paramMap) {
+	protected SQLHelper(StringBuilder cond, Map<String, Object> paramMap) {
+		if (cond == null) cond = new StringBuilder("1=1 ");
+		if (paramMap == null) paramMap = new HashMap<>();
 		this.cond = cond;
 		this.paramMap = paramMap;
 	}
