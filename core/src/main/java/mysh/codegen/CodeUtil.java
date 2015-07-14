@@ -69,7 +69,7 @@ public class CodeUtil {
 		else if (mSign.charAt(0) > 'Z') return mSign;
 		else {
 			char[] chars = mSign.toCharArray();
-			chars[0] += alphaStep;
+			chars[0] = (char) (chars[0] + alphaStep);
 			return new String(chars);
 		}
 	}
@@ -83,7 +83,7 @@ public class CodeUtil {
 		else if (fSign.charAt(0) < 'a') return fSign;
 		else {
 			char[] chars = fSign.toCharArray();
-			chars[0] -= alphaStep;
+			chars[0] = (char) (chars[0] - alphaStep);
 			return new String(chars);
 		}
 	}

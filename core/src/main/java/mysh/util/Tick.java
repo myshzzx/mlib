@@ -28,7 +28,7 @@ public final class Tick {
 		return new Tick(name, unit);
 	}
 
-	enum Unit {
+	public enum Unit {
 		// doesn't include nano-sec here because its accuracy can't reach that level.
 		MicroSec("μs", 1000L),
 		MilliSec("ms", 1000_000L),

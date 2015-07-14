@@ -431,9 +431,10 @@ public class SQLHelper {
 			if (Strings.isBlank(col))
 				throw new IllegalArgumentException("column name is blank");
 
+			underLine = col;
 			for (int i = 0; i < col.length(); i++) {
-				if (!CodeUtil.isLowerCase(col.charAt(i))) {
-					underLine = col;
+				if (CodeUtil.isLowerCase(col.charAt(i))) {
+					underLine = null;
 					break;
 				}
 			}
