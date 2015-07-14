@@ -4,7 +4,7 @@
  */
 package mysh.dev.clj.interpreter;
 
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 
 import javax.swing.*;
 import java.awt.*;
@@ -92,7 +92,7 @@ public class CLJInterpreterFrame extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 
-		UIUtil.resetFont(null);
+		UIs.resetFont(null);
         /*
          * Create and display the form
          */

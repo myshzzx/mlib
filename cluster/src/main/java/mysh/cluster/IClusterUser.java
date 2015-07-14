@@ -2,8 +2,7 @@ package mysh.cluster;
 
 import mysh.annotation.GuardedBy;
 import mysh.annotation.Nullable;
-import mysh.cluster.FilesMgr;
-import mysh.util.ExpUtil;
+import mysh.util.Exps;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -284,7 +283,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 							(PrivilegedExceptionAction<FileInputStream>) () ->
 											new FileInputStream(f), null, filesPerm, folderPerm);
 		} catch (PrivilegedActionException e) {
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 
@@ -300,7 +299,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 								return new FileOutputStream(f);
 							}, null, filesPerm, folderPerm);
 		} catch (PrivilegedActionException e) {
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 
@@ -315,7 +314,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 								return null;
 							}, null, filesPerm, folderPerm);
 		} catch (PrivilegedActionException e) {
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 
@@ -328,7 +327,7 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 							(PrivilegedExceptionAction<File[]>) () -> parent.listFiles(filter),
 							null, filesPerm, folderPerm);
 		} catch (PrivilegedActionException e) {
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 

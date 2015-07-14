@@ -477,6 +477,15 @@ public class SQLHelper {
 	}
 
 	/**
+	 * the same as on(isNotBlank(obj).
+	 * see {@link #on(boolean)}
+	 */
+	public SQLHelper onNonBlank(Object obj) {
+		ignoreNext = isBlank(obj);
+		return this;
+	}
+
+	/**
 	 * see {@link #ignoreChk(Object...)}
 	 */
 	private boolean ignoreChk() {

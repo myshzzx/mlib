@@ -1,12 +1,11 @@
 
 package mysh.dev.encoding;
 
-import mysh.util.EncodingUtil;
-import mysh.util.FileUtil;
+import mysh.util.Encodings;
+import mysh.util.FilesUtil;
 
 import javax.swing.*;
 import java.io.File;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.regex.Pattern;
@@ -134,11 +133,11 @@ public class UIController {
 		File desFile = new File(desDir.getAbsolutePath() + "/" + srcDir.getName());
 		if (srcDir.isFile() && srcDir.canRead()
 						&& fileNamePattern.matcher(srcDir.getName().toLowerCase()).matches()) {
-			byte[] fileByteArray = Files.readAllBytes(Paths.get(srcDir.getAbsolutePath()));
+			byte[] fileByteArray = java.nio.file.Files.readAllBytes(Paths.get(srcDir.getAbsolutePath()));
 
 			if (transType == TransType.UTF82GBK) {
 
-				if (!EncodingUtil.isUTF8Bytes(fileByteArray)) {
+				if (!Encodings.isUTF8Bytes(fileByteArray)) {
 					if (this.ui.autoRecognize.isSelected()
 									|| JOptionPane.NO_OPTION == JOptionPane.showConfirmDialog(
 									this.ui,
@@ -146,14 +145,14 @@ public class UIController {
 													+ "\n不是 UTF-8 编码, 仍然要把它当作 UTF-8 编码来转换吗?\n选 否 则直接复制源文件",
 									Encoding.TITLE, JOptionPane.YES_NO_OPTION
 					)) {
-						Files.copy(srcDir.toPath(),desFile.toPath());
+						java.nio.file.Files.copy(srcDir.toPath(), desFile.toPath());
 						return true;
 					}
 				}
 
 				fileByteArray = getUTF8WithoutBOM(fileByteArray);
 			} else if (transType == TransType.GBK2UTF8WithoutBOM) {
-				if (EncodingUtil.isUTF8Bytes(fileByteArray)) {
+				if (Encodings.isUTF8Bytes(fileByteArray)) {
 					if (this.ui.autoRecognize.isSelected()
 									|| JOptionPane.NO_OPTION == JOptionPane.showConfirmDialog(
 									this.ui,
@@ -162,14 +161,14 @@ public class UIController {
 									Encoding.TITLE, JOptionPane.YES_NO_OPTION
 					)) {
 						fileByteArray = getUTF8WithoutBOM(fileByteArray);
-						FileUtil.writeFile(desFile.getAbsolutePath(), fileByteArray);
+						FilesUtil.writeFile(desFile.getAbsolutePath(), fileByteArray);
 						return true;
 					}
 				}
 
 			}
-			Files.write(desFile.toPath(),
-							new String(fileByteArray, transType.getSrcEncoding()).getBytes(transType.getDesEncoding()));
+			java.nio.file.Files.write(desFile.toPath(),
+					new String(fileByteArray, transType.getSrcEncoding()).getBytes(transType.getDesEncoding()));
 		} else if (srcDir.isDirectory() && srcDir.canRead()) {
 			for (File childFile : srcDir.listFiles()) {
 				if (!isConsiderSubDirs && childFile.isDirectory())

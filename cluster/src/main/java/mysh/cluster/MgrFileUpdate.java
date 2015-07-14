@@ -2,7 +2,7 @@ package mysh.cluster;
 
 import mysh.cluster.FilesMgr.FileType;
 import mysh.cluster.FilesMgr.UpdateType;
-import mysh.util.ExpUtil;
+import mysh.util.Exps;
 
 import java.util.List;
 
@@ -54,7 +54,7 @@ final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
 			else if (updateType == UpdateType.DELETE)
 				filesMgr.removeFile(fileType, ns, fileName);
 		} catch (Throwable e) {
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 

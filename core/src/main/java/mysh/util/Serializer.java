@@ -51,7 +51,7 @@ public abstract class Serializer {
 			try (ObjectOutputStream out = new ObjectOutputStream(arrOut)) {
 				out.writeObject(obj);
 			} catch (Exception e) {
-				throw ExpUtil.unchecked(e);
+				throw Exps.unchecked(e);
 			}
 			return arrOut.toByteArray();
 		}
@@ -63,7 +63,7 @@ public abstract class Serializer {
 			try (CustObjIS in = new CustObjIS(new ByteArrayInputStream(buf, offset, length), cl)) {
 				return (T) in.readObject();
 			} catch (Exception e) {
-				throw ExpUtil.unchecked(e);
+				throw Exps.unchecked(e);
 			}
 		}
 

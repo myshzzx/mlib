@@ -4,7 +4,7 @@
  */
 package mysh.dev.clj.interpreter;
 
-import mysh.util.HotKeyUtil;
+import mysh.util.HotKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,7 +121,7 @@ public class CLJInterpreterMain extends JPanel {
 		showErrThread.setDaemon(true);
 
 		// 清空结果热键.
-		HotKeyUtil.registerHotKey(KeyEvent.VK_F1, 0, new AbstractAction() {
+		HotKeys.registerHotKey(KeyEvent.VK_F1, 0, new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				result.text.setText("");
 			}
@@ -129,7 +129,7 @@ public class CLJInterpreterMain extends JPanel {
 
 
 		//复位热键.
-		HotKeyUtil.registerHotKey(KeyEvent.VK_ESCAPE, 0, new AbstractAction() {
+		HotKeys.registerHotKey(KeyEvent.VK_ESCAPE, 0, new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				input.text.setText("");
 				input.text.requestFocus();
@@ -138,14 +138,14 @@ public class CLJInterpreterMain extends JPanel {
 
 
 		// 提交热键.
-		HotKeyUtil.registerHotKey(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK, new AbstractAction() {
+		HotKeys.registerHotKey(KeyEvent.VK_ENTER, InputEvent.CTRL_DOWN_MASK, new AbstractAction() {
 			public void actionPerformed(ActionEvent e) {
 				String text = input.text.getText().trim();
 				if (text.length() == 0)
 					return;
 
 				if (commitHistory.size() < 1
-								|| !commitHistory.get(commitHistory.size() - 1).equals(text)) {
+						|| !commitHistory.get(commitHistory.size() - 1).equals(text)) {
 					commitHistory.add(text);
 					commitHistoryPosition = commitHistory.size();
 				}

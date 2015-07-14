@@ -17,8 +17,8 @@ import java.security.spec.RSAPublicKeySpec;
  * @author Mysh
  * @since 2014/10/20 17:53
  */
-public class RSAUtil {
-	private static final Logger log = LoggerFactory.getLogger(RSAUtil.class);
+public class RSAs {
+	private static final Logger log = LoggerFactory.getLogger(RSAs.class);
 
 	private static final String UN_SUPPORTED_MSG = "RSA unsupported.";
 	private static KeyFactory keyFact;

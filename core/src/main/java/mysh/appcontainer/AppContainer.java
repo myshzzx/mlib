@@ -1,7 +1,7 @@
 package mysh.appcontainer;
 
-import mysh.util.OSUtil;
-import mysh.util.ThreadUtil;
+import mysh.util.OSs;
+import mysh.util.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class AppContainer {
 	private static final Logger log = LoggerFactory.getLogger(AppContainer.class);
-	private static final String fileSep = OSUtil.getOS() == OSUtil.OS.Windows ? ";" : ":";
+	private static final String fileSep = OSs.getOS() == OSs.OS.Windows ? ";" : ":";
 	private final AtomicLong appCount = new AtomicLong(1);
 	private final Map<Long, AppInfo> apps = new ConcurrentHashMap<>();
 	private final ConsoleHelper consoleHelper = new ConsoleHelper();
@@ -102,7 +102,7 @@ public class AppContainer {
 
 	private void handleCmd(String cmd) throws IOException {
 		if (cmd != null && cmd.length() > 0) {
-			List<String> params = OSUtil.parseCmdLine(cmd);
+			List<String> params = OSs.parseCmdLine(cmd);
 			String[] files = params.get(0).split(fileSep);
 
 			ArrayList<URL> urls = new ArrayList<>();
@@ -182,7 +182,7 @@ public class AppContainer {
 							Thread.sleep(15000);
 							Set<AcLoader> acLoaders = new HashSet<>();
 							ClassLoader cl;
-							for (Thread thread : ThreadUtil.allThreads()) {
+							for (Thread thread : Threads.allThreads()) {
 								cl = thread.getContextClassLoader();
 								if (cl instanceof AcLoader)
 									acLoaders.add((AcLoader) cl);
@@ -215,7 +215,7 @@ public class AppContainer {
 			while ((line = reader.readLine()) != null) {
 				line = line.trim();
 				if (line.length() == 0) continue;
-				List<String> params = OSUtil.parseCmdLine(line);
+				List<String> params = OSs.parseCmdLine(line);
 				switch (params.get(0)) {
 					case "l":
 						consoleList(writer);

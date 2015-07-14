@@ -2,7 +2,7 @@ package mysh.crawler2;
 
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
-import mysh.util.FileUtil;
+import mysh.util.FilesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +102,7 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 	@Override
 	public void init() throws IOException, ClassNotFoundException {
 		if (saveFile.exists()) {
-			Map[] savedObj = FileUtil.getObjectFromFile(saveFile.getAbsolutePath());
+			Map[] savedObj = FilesUtil.getObjectFromFile(saveFile.getAbsolutePath());
 
 			Map tRepo = savedObj[0];
 			if (tRepo != null && tRepo.size() > 0)
@@ -122,8 +122,8 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 	public void onCrawlerStopped(Queue<UrlCtxHolder<UrlContext>> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
 		try {
-			FileUtil.writeObjectToFile(saveFile.getAbsolutePath(),
-							new Object[]{this.repo, this.unhandledSeeds});
+			FilesUtil.writeObjectToFile(saveFile.getAbsolutePath(),
+					new Object[]{this.repo, this.unhandledSeeds});
 		} catch (IOException e) {
 			log.error("save unhandled seeds failed.", e);
 		}

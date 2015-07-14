@@ -17,7 +17,7 @@ import java.security.spec.KeySpec;
  * @author Mysh
  * @since 13-7-2 下午4:10
  */
-public class AESUtil {
+public class AESes {
 
 	/**
 	 * AES128 加密。

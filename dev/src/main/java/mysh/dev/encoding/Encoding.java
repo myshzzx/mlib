@@ -1,7 +1,7 @@
 package mysh.dev.encoding;
 
 import mysh.ui.JTextFieldWithTips;
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 
 /*
  * To change this template, choose Tools | Templates and open the template in
@@ -169,8 +169,8 @@ public class Encoding extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
 
-        UIUtil.useNimbusLookAndFeel();
-        UIUtil.resetFont(null);
+        UIs.useNimbusLookAndFeel();
+        UIs.resetFont(null);
 
         /*
          * Create and display the form

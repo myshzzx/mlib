@@ -12,10 +12,10 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
-import static mysh.util.RSAUtil.*;
+import static mysh.util.RSAs.*;
 import static org.junit.Assert.*;
 
-public class RSAUtilTest {
+public class RSAsTest {
 
 	byte[] kPairByte;
 	byte[] c = "mysh is a great man".getBytes();

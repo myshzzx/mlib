@@ -2,7 +2,7 @@
 package mysh.net.httpclient;
 
 import mysh.annotation.ThreadSafe;
-import mysh.util.EncodingUtil;
+import mysh.util.Encodings;
 import mysh.util.Strings;
 import org.apache.http.*;
 import org.apache.http.auth.AuthScope;
@@ -415,16 +415,16 @@ public class HttpClientAssist implements Closeable {
 			if (contentType != null) {
 				String c = contentType.toUpperCase();
 				if (c.contains("UTF-8"))
-					enc = EncodingUtil.UTF_8;
+					enc = Encodings.UTF_8;
 				else if (c.contains("GBK"))
-					enc = EncodingUtil.GBK;
+					enc = Encodings.GBK;
 			}
 			if (entityBuf == null) {
 				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
 			if (enc == null) {
-				enc = EncodingUtil.isUTF8Bytes(entityBuf) ? EncodingUtil.UTF_8 : EncodingUtil.GBK;
+				enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
 			}
 			entityStr = new String(entityBuf, enc);
 

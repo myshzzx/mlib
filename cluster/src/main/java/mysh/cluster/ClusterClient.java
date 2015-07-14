@@ -4,7 +4,7 @@ import mysh.cluster.FilesMgr.FileType;
 import mysh.cluster.FilesMgr.UpdateType;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
-import mysh.util.ExpUtil;
+import mysh.util.Exps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -239,8 +239,8 @@ public final class ClusterClient implements Closeable {
 	private static boolean isClusterUnready(Throwable e) {
 		return ClusterNode.isNodeUnavailable(e)
 						||
-						ExpUtil.isCausedBy(e, ClusterExp.NotMaster.class, ClusterExp.NoWorkers.class,
-										InterruptedException.class) != null
+						Exps.isCausedBy(e, ClusterExp.NotMaster.class, ClusterExp.NoWorkers.class,
+								InterruptedException.class) != null
 						;
 	}
 

@@ -12,7 +12,7 @@ import java.io.StringWriter;
  * 关于异常的工具类.
  * 
  */
-public class ExpUtil {
+public class Exps {
 
 	/**
 	 * 将CheckedException转换为UncheckedException.

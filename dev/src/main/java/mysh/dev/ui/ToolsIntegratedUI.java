@@ -11,7 +11,7 @@ import mysh.dev.encoding.Encoding;
 import mysh.dev.filesearch.FileSearchFrame;
 import mysh.dev.regexp.RegExpTestFrame;
 import mysh.dev.tcpportscanner.TcpPortScannerUI;
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -138,7 +138,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 			java.util.logging.Logger.getLogger(ToolsIntegratedUI.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
 		}
 		//</editor-fold>
-		UIUtil.resetFont(null);
+		UIs.resetFont(null);
         /* Create and display the form */
 		java.awt.EventQueue.invokeLater(() -> {
 			frame = new ToolsIntegratedUI();

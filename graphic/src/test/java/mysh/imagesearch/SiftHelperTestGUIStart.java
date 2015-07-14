@@ -1,7 +1,7 @@
 package mysh.imagesearch;
 
 import de.neotos.imageanalyzer.ImageFeatureManager;
-import mysh.util.FileUtil;
+import mysh.util.FilesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,7 +84,7 @@ public class SiftHelperTestGUIStart {
 			} else if (new File(sampleDir).exists()) {
 
 				final ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-				FileUtil.recurDir(new File(sampleDir), null, new FileUtil.FileTask() {
+				FilesUtil.recurDir(new File(sampleDir), null, new FilesUtil.FileTask() {
 					@Override
 					public void handle(final File f) {
 						exec.submit(new Runnable() {

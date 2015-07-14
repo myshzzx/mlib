@@ -1,7 +1,7 @@
 
 package mysh.dev.filesearch;
 
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 
 import javax.swing.*;
 import java.awt.*;
@@ -187,8 +187,8 @@ public class FileSearchFrame extends javax.swing.JFrame implements FileSearch.Re
 	 * @param args the command line arguments
 	 */
 	public static void main(String args[]) {
-		UIUtil.useNimbusLookAndFeel();
-		UIUtil.resetFont(null);
+		UIs.useNimbusLookAndFeel();
+		UIs.resetFont(null);
 
 		java.awt.EventQueue.invokeLater(() -> {
 

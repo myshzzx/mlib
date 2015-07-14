@@ -459,7 +459,7 @@ class Master implements IMaster {
 
 			int taskCount = subTasks.length;
 			Asserts.require(referredNodeIds == null || referredNodeIds.length == taskCount,
-							"referredNodeIds must have a length of subTasks");
+					"referredNodeIds must have a length of subTasks");
 			this.referredNodeIds = referredNodeIds == null ? new String[taskCount] : referredNodeIds;
 			assignedNodeIds = new String[taskCount];
 			results = (SR[]) Array.newInstance(cUser.getSubResultType(), taskCount);

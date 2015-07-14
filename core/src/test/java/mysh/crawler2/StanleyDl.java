@@ -2,7 +2,7 @@ package mysh.crawler2;
 
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
-import mysh.util.FileUtil;
+import mysh.util.FilesUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,7 +145,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 								.replace('?', '-')
 								.replace('/', '-');
 
-				File f = FileUtil.getWritableFile(new File(SAVE_DIR, imgName).getAbsolutePath());
+				File f = FilesUtil.getWritableFile(new File(SAVE_DIR, imgName).getAbsolutePath());
 				if (!f.getAbsoluteFile().getParentFile().exists())
 					f.getAbsoluteFile().getParentFile().mkdirs();
 				if (f.exists() && f.length() > 0) return true;
@@ -235,11 +235,11 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 		try {
 			new File(SAVE_DIR).mkdirs();
 
-			if (FileUtil.folderSize(SAVE_DIR) > folderSize) {
+			if (FilesUtil.folderSize(SAVE_DIR) > folderSize) {
 				c.pause();
 				Thread.sleep(5000);
 
-				File zipFile = FileUtil.getWritableFile(REPO_FILE);
+				File zipFile = FilesUtil.getWritableFile(REPO_FILE);
 				zipFile.getParentFile().mkdirs();
 				Process process = Runtime.getRuntime().exec(
 								"zip -q -r \"" + zipFile.getAbsolutePath() + "\" \"" + SAVE_DIR + "\"");
@@ -247,7 +247,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 
 				if (zipFile.length() > folderSize / 2) {
 					File dir = new File(SAVE_DIR);
-					FileUtil.recurDir(dir, null, EnumSet.of(FileUtil.HandleType.FoldersAndFiles), f -> f.delete());
+					FilesUtil.recurDir(dir, null, EnumSet.of(FilesUtil.HandleType.FoldersAndFiles), f -> f.delete());
 					dir.delete();
 				} else
 					c.stop();

@@ -4,7 +4,7 @@ import mysh.cluster.rpc.IFaceHolder;
 import mysh.thrift.ThriftClientFactory;
 import mysh.thrift.ThriftClientFactory.ClientHolder;
 import mysh.thrift.ThriftServerFactory;
-import mysh.util.ExpUtil;
+import mysh.util.Exps;
 import mysh.util.Serializer;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -142,7 +142,7 @@ public class RpcUtil {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
 			log.error("unSerialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);
-			throw ExpUtil.unchecked(e);
+			throw Exps.unchecked(e);
 		}
 	}
 

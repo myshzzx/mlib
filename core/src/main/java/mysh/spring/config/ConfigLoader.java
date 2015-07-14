@@ -1,7 +1,7 @@
 
 package mysh.spring.config;
 
-import mysh.util.AESUtil;
+import mysh.util.AESes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
@@ -56,9 +56,9 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	 * @param content     配置明文内容。
 	 */
 	public static String aesEncrypt(String placeholder, String content) throws Exception {
-		return AESUtil.encrypt(
-						content.getBytes(), (AES_ENCRYPT_SEED + placeholder).toCharArray(),
-						AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE);
+		return AESes.encrypt(
+				content.getBytes(), (AES_ENCRYPT_SEED + placeholder).toCharArray(),
+				AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE);
 	}
 
 	/**
@@ -68,9 +68,9 @@ public class ConfigLoader extends PropertyPlaceholderConfigurer {
 	 * @param secContent  配置密文内容。
 	 */
 	public static String aesDecrypt(String placeholder, String secContent) throws Exception {
-		return new String(AESUtil.decrypt(
-						secContent, (AES_ENCRYPT_SEED + placeholder).toCharArray(),
-						AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE));
+		return new String(AESes.decrypt(
+				secContent, (AES_ENCRYPT_SEED + placeholder).toCharArray(),
+				AES_ENCRYPT_SEED.getBytes(), AES_KEY_SIZE));
 	}
 
 	public void setTestLocations(Resource[] locations) {

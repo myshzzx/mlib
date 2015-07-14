@@ -2,8 +2,8 @@ package mysh.cluster;
 
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
-import mysh.util.ExpUtil;
-import mysh.util.OSUtil;
+import mysh.util.Exps;
+import mysh.util.OSs;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class ClusterNode {
 	 */
 	public ClusterNode(ClusterConf conf) throws Throwable {
 		try {
-			OSUtil.changePriority(OSUtil.getPid(), OSUtil.OsProcPriority.BelowNormal);
+			OSs.changePriority(OSs.getPid(), OSs.OsProcPriority.BelowNormal);
 		} catch (Throwable e) {
 			log.info("change process failed.", e);
 		}
@@ -310,8 +310,8 @@ public class ClusterNode {
 	 * @param e remote invoke exception.
 	 */
 	static boolean isNodeUnavailable(Throwable e) {
-		return ExpUtil.isCausedBy(e, SocketException.class, UnknownHostException.class,
-						SocketTimeoutException.class) != null;
+		return Exps.isCausedBy(e, SocketException.class, UnknownHostException.class,
+				SocketTimeoutException.class) != null;
 	}
 
 	@Deprecated
@@ -513,7 +513,7 @@ public class ClusterNode {
 					} catch (IOException e) {
 						log.error("restartVM cluster node error, try restartVM process", e);
 						try {
-							OSUtil.restart(true);
+							OSs.restart(true);
 						} catch (IOException ex) {
 							log.error("restartVM process error, the cluster node need manual start.", ex);
 						}

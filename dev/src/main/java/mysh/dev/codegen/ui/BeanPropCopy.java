@@ -7,7 +7,7 @@ package mysh.dev.codegen.ui;
 
 import mysh.codegen.CodeUtil;
 import mysh.util.Strings;
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,7 +200,7 @@ public class BeanPropCopy extends javax.swing.JFrame {
 	}// </editor-fold>//GEN-END:initComponents
 
 	private void codeMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_codeMouseClicked
-		UIUtil.copyToSystemClipboard(code.getText());
+		UIs.copyToSystemClipboard(code.getText());
 	}//GEN-LAST:event_codeMouseClicked
 
 	/**
@@ -230,7 +230,7 @@ public class BeanPropCopy extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 
-		UIUtil.resetFont(null);
+		UIs.resetFont(null);
 
         /* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {

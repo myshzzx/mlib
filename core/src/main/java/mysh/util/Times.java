@@ -6,7 +6,7 @@ import java.util.TimeZone;
  * @author Mysh
  * @since 2015/1/7 13:30
  */
-public class TimeUtil {
+public class Times {
 
 	private static int timeOffset = TimeZone.getDefault().getRawOffset();
 

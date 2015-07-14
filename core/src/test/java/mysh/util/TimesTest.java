@@ -3,12 +3,12 @@ package mysh.util;
 import org.junit.Ignore;
 import org.junit.Test;
 
-public class TimeUtilTest {
+public class TimesTest {
 
 	@Test
 	@Ignore
 	public void testIsTime() throws Exception {
-		System.out.println(TimeUtil.isTime(13,18));
+		System.out.println(Times.isTime(13, 18));
 	}
 
 }

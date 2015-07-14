@@ -3,7 +3,7 @@ package mysh.util;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
-public class ThreadUtil {
+public class Threads {
 	/**
 	 * get all threads running in current JVM.
 	 */

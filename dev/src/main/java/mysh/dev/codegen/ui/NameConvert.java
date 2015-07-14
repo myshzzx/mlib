@@ -6,7 +6,7 @@
 package mysh.dev.codegen.ui;
 
 import mysh.codegen.CodeUtil;
-import mysh.util.UIUtil;
+import mysh.util.UIs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,7 +192,7 @@ public class NameConvert extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 
-		UIUtil.resetFont(null);
+		UIs.resetFont(null);
 
         /* Create and display the form */
 		java.awt.EventQueue.invokeLater(new Runnable() {

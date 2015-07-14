@@ -83,6 +83,22 @@ public class SQLHelperTest {
 	}
 
 	@Test
+	public void conditionTest3() {
+		SQLHelper sql = SQLHelper.create();
+		sql.onNonBlank(null).groupBy("age");
+		assertEquals("1=1 ", sql.getCond().toString());
+		assertEquals("{}", sql.getParamMap().toString());
+	}
+
+	@Test
+	public void conditionTest4() {
+		SQLHelper sql = SQLHelper.create();
+		sql.onNonBlank(" ").groupBy("age");
+		assertEquals("1=1 ", sql.getCond().toString());
+		assertEquals("{}", sql.getParamMap().toString());
+	}
+
+	@Test
 	public void ignoreTest() {
 		SQLHelper sql = SQLHelper.create();
 		sql

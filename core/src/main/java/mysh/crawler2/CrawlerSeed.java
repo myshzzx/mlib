@@ -70,30 +70,6 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 		return distilledUrls.map(url -> new UrlCtxHolder<>(url, parentCtx));
 	}
 
-	/**
-	 * return html title (encapsulated by "title" tag).
-	 * return blank string if fails.
-	 */
-	default String getHtmlTitle(String html) {
-		int from = html.indexOf("<title>");
-		if (from < 0) return "";
-		int end = html.indexOf("</title>", from);
-		if (end < 0) return "";
-		return unEscapeXml(html.substring(from + 7, end));
-	}
-
-	/**
-	 * unescape xml
-	 */
-	default String unEscapeXml(String xml) {
-		return xml
-						.replace("&amp;", "&")
-						.replace("&lt;", "<")
-						.replace("&gt;", ">")
-						.replace("&quot;", "\"")
-						.replace("&apos;", "'");
-	}
-
 	default String winFileNameEscape(String fileName, String replacer) {
 		return fileName.replaceAll("[\\\\/:*?\"><|]", replacer);
 	}

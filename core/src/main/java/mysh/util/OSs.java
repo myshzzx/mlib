@@ -15,10 +15,10 @@ import java.util.*;
  * @author Mysh
  * @since 2014/10/12 18:37
  */
-public class OSUtil {
-	private static final Logger log = LoggerFactory.getLogger(OSUtil.class);
+public class OSs {
+	private static final Logger log = LoggerFactory.getLogger(OSs.class);
 
-	public static enum OS {
+	public enum OS {
 		Windows, Linux, Mac, Unix, Unknown
 	}
 

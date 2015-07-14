@@ -4,7 +4,7 @@ import de.neotos.imageanalyzer.*;
 import edu.wlu.cs.levy.CG.KDTree;
 import edu.wlu.cs.levy.CG.KDUtil;
 import mysh.imagesearch.preproc.GrayScaleLimit;
-import mysh.util.FileUtil;
+import mysh.util.FilesUtil;
 import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 import javax.imageio.ImageIO;
 import java.io.*;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,7 +54,7 @@ public class SiftHelperTest {
 		} else {
 			final ExecutorService exec = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 			for (String dir : dirs)
-				FileUtil.recurDir(new File(dir), null, new FileUtil.FileTask() {
+				FilesUtil.recurDir(new File(dir), null, new FilesUtil.FileTask() {
 					@Override
 					public void handle(final File f) {
 						exec.submit(new Runnable() {
@@ -180,7 +179,7 @@ public class SiftHelperTest {
 
 				if (resultDir.exists()) {
 					String dir = sampleDir + "/" + result.getUserObj();
-					Files.copy(Paths.get(dir), Paths.get(resultDir.getPath() + "/" + (i++) + " " + result.getUserObj()));
+					java.nio.file.Files.copy(Paths.get(dir), Paths.get(resultDir.getPath() + "/" + (i++) + " " + result.getUserObj()));
 				}
 			}
 			System.out.println();

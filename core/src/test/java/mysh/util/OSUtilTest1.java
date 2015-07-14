@@ -14,25 +14,25 @@ public class OSUtilTest1 {
 
 	@Test
 	public void testGetOS() throws Exception {
-		System.out.println(OSUtil.getOS());
+		System.out.println(OSs.getOS());
 	}
 
 	@Test
 	public void testGetPid() throws Exception {
-		System.out.println(OSUtil.getPid());
+		System.out.println(OSs.getPid());
 	}
 
 
 	@Test
 	public void testGetCmdLine() throws Exception {
-		System.out.println(OSUtil.getCmdLine());
+		System.out.println(OSs.getCmdLine());
 	}
 
 	@Test
 	public void testRestart() throws Exception {
-		JOptionPane.showMessageDialog(null, "testRestart.pid=" + OSUtil.getPid());
+		JOptionPane.showMessageDialog(null, "testRestart.pid=" + OSs.getPid());
 		Thread.sleep(5000);
-		OSUtil.restart(true);
+		OSs.restart(true);
 	}
 
 	@Test
@@ -48,19 +48,19 @@ public class OSUtilTest1 {
 
 	@Test
 	public void testParseCmdLine() throws Exception {
-		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 p2 p3"));
-		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine(" p1 p2 p3"));
-		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 p2 p3 "));
-		assertEquals(Arrays.asList("p1", "p2", "p3"), OSUtil.parseCmdLine("p1 'p2' p3 "));
-		assertEquals(Arrays.asList("p1", "p2  p3"), OSUtil.parseCmdLine("   p1  'p2  p3' "));
-		assertEquals(Arrays.asList("p1", "p2  p3"), OSUtil.parseCmdLine("   p1  \"p2  p3\" "));
-		assertEquals(Arrays.asList("p1", "p2 \\ p3"), OSUtil.parseCmdLine("   p1  \"p2 \\ p3\" "));
-		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 ' p3\" "));
-		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSUtil.parseCmdLine("   p1  'p2 \" p3' "));
-		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSUtil.parseCmdLine("   p1  \"p2 \\\" p3\" "));
-		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 \\' p3\" "));
-		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSUtil.parseCmdLine("   p1  \"p2 ' p3 "));
-		assertEquals(Arrays.asList("p1", "p2 ' p3 2"), OSUtil.parseCmdLine("   p1  \"p2 \\' p3 2"));
-		assertEquals(Arrays.asList("  p1  \"p2 ' p3\""), OSUtil.parseCmdLine(" '  p1  \"p2 \\' p3\"' "));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSs.parseCmdLine("p1 p2 p3"));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSs.parseCmdLine(" p1 p2 p3"));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSs.parseCmdLine("p1 p2 p3 "));
+		assertEquals(Arrays.asList("p1", "p2", "p3"), OSs.parseCmdLine("p1 'p2' p3 "));
+		assertEquals(Arrays.asList("p1", "p2  p3"), OSs.parseCmdLine("   p1  'p2  p3' "));
+		assertEquals(Arrays.asList("p1", "p2  p3"), OSs.parseCmdLine("   p1  \"p2  p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 \\ p3"), OSs.parseCmdLine("   p1  \"p2 \\ p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSs.parseCmdLine("   p1  \"p2 ' p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSs.parseCmdLine("   p1  'p2 \" p3' "));
+		assertEquals(Arrays.asList("p1", "p2 \" p3"), OSs.parseCmdLine("   p1  \"p2 \\\" p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSs.parseCmdLine("   p1  \"p2 \\' p3\" "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3"), OSs.parseCmdLine("   p1  \"p2 ' p3 "));
+		assertEquals(Arrays.asList("p1", "p2 ' p3 2"), OSs.parseCmdLine("   p1  \"p2 \\' p3 2"));
+		assertEquals(Arrays.asList("  p1  \"p2 ' p3\""), OSs.parseCmdLine(" '  p1  \"p2 \\' p3\"' "));
 	}
 }
