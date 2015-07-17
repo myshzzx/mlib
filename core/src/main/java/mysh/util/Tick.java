@@ -64,39 +64,85 @@ public final class Tick {
 		this.from = System.nanoTime();
 	}
 
+	private long total;
+
 	/**
-	 * time costs from creation.
+	 * time costs from creation/reset.
 	 */
 	public long nip() {
-		return (System.nanoTime() - this.from) / this.unit.fact;
+		long nip = (System.nanoTime() - this.from) / this.unit.fact;
+		total += nip;
+		return nip;
 	}
 
 	/**
-	 * time costs from creation.
+	 * time costs from creation/reset.
 	 */
 	public String nip2String() {
 		return this.name + ": " + nip() + " " + this.unit.desc;
 	}
 
 	/**
-	 * time costs from creation.
+	 * time costs from creation/reset.
 	 */
 	public String nip2String(String comment) {
 		return this.name + " (" + comment + "): " + nip() + " " + this.unit.desc;
 	}
 
 	/**
-	 * print time costs from creation.
+	 * print time costs from creation/reset.
 	 */
 	public void nipAndPrint() {
 		System.out.println(nip2String());
 	}
 
 	/**
-	 * print time costs from creation.
+	 * print time costs from creation/reset.
 	 */
 	public void nipAndPrint(String comment) {
 		System.out.println(nip2String(comment));
+	}
+
+	/**
+	 * clear counted total.
+	 */
+	public void clearTotal() {
+		total = 0;
+	}
+
+	/**
+	 * sum of all nips.
+	 */
+	public long total() {
+		return total;
+	}
+
+	/**
+	 * sum of all nips.
+	 */
+	public String total2String() {
+		return this.name + " (TOTAL): " + total() + " " + this.unit.desc;
+	}
+
+	/**
+	 * sum of all nips.
+	 */
+	public void totalAndPrint() {
+		System.out.println(total2String());
+	}
+
+	/**
+	 * sum of all nips.
+	 */
+	public String total2String(String comment) {
+		return this.name + " (" + comment + ") (TOTAL): " + total() + " " + this.unit.desc;
+	}
+
+	/**
+	 * sum of all nips.
+	 */
+	public void totalAndPrint(String comment) {
+		System.out.println(total2String(comment));
 	}
 
 	@Override
@@ -104,7 +150,6 @@ public final class Tick {
 		return "Tick{" +
 						"name='" + name + '\'' +
 						", unit=" + unit +
-						", from=" + from +
 						'}';
 	}
 }

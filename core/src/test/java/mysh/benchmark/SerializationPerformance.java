@@ -52,12 +52,12 @@ public class SerializationPerformance {
 	@Ignore
 	public void benchmarkSuite() throws Exception {
 		test(new FST(), t);
-//		test(new Java(), t); // 76%-90% slower than fst
+//		test(new Java(), t); // 87% slower than fst
 		test(new KRYO(), t);
-//		test(new Json(), t); // 30%-55% slower than fst
+//		test(new Json(), t); // 42% slower than fst
 
 		test(new FST(), f);
-//		test(new Java(), f); // about 18%-50% slower than fst
+//		test(new Java(), f); // about 40% slower than fst
 		test(new KRYO(), f);
 //		test(new Json(), f); // costs too much time, which unacceptable
 	}
@@ -107,6 +107,8 @@ public class SerializationPerformance {
 		tick.reset();
 		ti.ds(o, times);
 		tick.nipAndPrint("ds");
+
+		tick.totalAndPrint();
 	}
 
 	private static class Java implements TI {
