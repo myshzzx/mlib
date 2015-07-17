@@ -25,7 +25,7 @@ public class FstTest {
 		t.a = 10;
 		t.b = 20;
 		final byte[] buf = Serializer.fst.serialize(t);
-		final T tt = Serializer.fst.unSerialize(buf, null);
+		final T tt = Serializer.fst.deserialize(buf, null);
 		Assert.assertEquals(0, tt.a);
 		Assert.assertEquals(20, tt.b);
 	}
@@ -67,7 +67,7 @@ public class FstTest {
 						l.await();
 						long a = r.nextLong();
 						byte[] buf = Serializer.fst.serialize(a);
-						long b = Serializer.fst.unSerialize(buf);
+						long b = Serializer.fst.deserialize(buf);
 						Assert.assertEquals(a, b);
 					} catch (InterruptedException e) {
 					}

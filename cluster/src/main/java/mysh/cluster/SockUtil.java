@@ -16,7 +16,7 @@ class SockUtil {
 	static Cmd receiveCmd(DatagramSocket cmdSock, final DatagramPacket reusePack) throws Throwable {
 		synchronized (reusePack) {
 			cmdSock.receive(reusePack);
-			return RpcUtil.s.unSerialize(reusePack.getData(), reusePack.getOffset(), reusePack.getLength(), null);
+			return RpcUtil.s.deserialize(reusePack.getData(), reusePack.getOffset(), reusePack.getLength(), null);
 		}
 	}
 

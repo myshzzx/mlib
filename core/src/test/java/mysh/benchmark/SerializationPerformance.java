@@ -1,7 +1,12 @@
 package mysh.benchmark;
 
 import com.alibaba.fastjson.JSON;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import mysh.annotation.NotThreadSafe;
 import mysh.util.Serializer;
+import mysh.util.Tick;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -14,18 +19,19 @@ import java.util.Random;
 
 /**
  * conclusions:
- * json fit for small common POJO and readable result, but need default constructor
- * java serialization fit for large complex object
- * fast-serialization is a good candidate for java-build-in, if no bugs
+ * 1) json fit for small common POJO and readable result, but need default constructor
+ * 2) java serialization fit for large complex object
+ * 3) fast-serialization is a good candidate for java-build-in.
+ * 4) kryo has NO customized class loader support.
  *
  * @author Mysh
  * @since 2014/11/21 18:55
  */
-public class SerializationTest1 {
+public class SerializationPerformance {
 	private static interface TI {
 		void s(Serializable o, int times) throws Exception;
 
-		void us(Serializable o, int times) throws Exception;
+		void ds(Serializable o, int times) throws Exception;
 	}
 
 	private static TC t = new TC();
@@ -44,16 +50,23 @@ public class SerializationTest1 {
 
 	@Test
 	@Ignore
-	public void ts() throws Exception {
-		test(new Java(), t);
-		test(new Json(), t);
+	public void benchmarkSuite() throws Exception {
 		test(new FST(), t);
+//		test(new Java(), t); // 76%-90% slower than fst
+		test(new KRYO(), t);
+//		test(new Json(), t); // 30%-55% slower than fst
 
-		test(new Java(), f);
-//		test(new Json(), f); // costs too much time, which unacceptable
 		test(new FST(), f);
+//		test(new Java(), f); // about 18%-50% slower than fst
+		test(new KRYO(), f);
+//		test(new Json(), f); // costs too much time, which unacceptable
 	}
 
+	@Test
+	public void kryoTest() throws Exception {
+		KRYO k = new KRYO();
+		k.s(null, 1);
+	}
 
 	@Test
 	public void fstTest() throws IOException, ClassNotFoundException {
@@ -62,34 +75,38 @@ public class SerializationTest1 {
 
 		// common test
 		byte[] bb = Serializer.fst.serialize(tt);
-		TC ftt = Serializer.fst.unSerialize(bb);
+		TC ftt = Serializer.fst.deserialize(bb);
 		Assert.assertEquals(tt.name, ftt.name);
 
 		// lambda test
 		String msg = "ok";
 		Serializable r = (Runnable & Serializable) () -> System.out.println(msg);
 		bb = Serializer.fst.serialize(r);
-		Runnable ft = Serializer.fst.unSerialize(bb);
+		Runnable ft = Serializer.fst.deserialize(bb);
 		ft.run();
 		System.out.println(Base64.getEncoder().encodeToString(bb));
 	}
 
 	public void test(TI ti, Serializable o) throws Exception {
-		int times = 20_000;
+		int times = 100_000;
 		ti.s(o, times);
-		ti.us(o, times);
-
-		Thread.sleep(3000);
+		ti.ds(o, times);
 		System.out.println("byte size = " + tb.length + " : " + ti.getClass().getSimpleName());
 
-		times = 1000_000;
-		long s = System.nanoTime();
-		ti.s(o, times);
-		System.out.println((System.nanoTime() - s) / 1000_000);
+		System.gc();
+		Thread.sleep(3000);
 
-		s = System.nanoTime();
-		ti.us(o, times);
-		System.out.println((System.nanoTime() - s) / 1000_000);
+		times = 1_000_000;
+		Tick tick = Tick.tick(ti.getClass().getSimpleName());
+		ti.s(o, times);
+		tick.nipAndPrint("s");
+
+		System.gc();
+		Thread.sleep(3000);
+
+		tick.reset();
+		ti.ds(o, times);
+		tick.nipAndPrint("ds");
 	}
 
 	private static class Java implements TI {
@@ -99,9 +116,9 @@ public class SerializationTest1 {
 				tb = Serializer.buildIn.serialize(o);
 		}
 
-		public void us(Serializable o, int times) throws Exception {
+		public void ds(Serializable o, int times) throws Exception {
 			while (times-- > 0)
-				o = Serializer.buildIn.unSerialize(tb);
+				o = Serializer.buildIn.deserialize(tb);
 		}
 
 	}
@@ -110,36 +127,65 @@ public class SerializationTest1 {
 
 		@Override
 		public void s(Serializable o, int times) {
-			while (times-- > 0)
-				tb = JSON.toJSONString(o).getBytes();
+			String jsonStr = "";
+			while (times-- > 0) {
+				jsonStr = JSON.toJSONString(o);
+			}
+			tb = jsonStr.getBytes();
 		}
 
 		@Override
-		public void us(Serializable o, int times) {
+		public void ds(Serializable o, int times) {
 			final Class<? extends Serializable> clazz = o.getClass();
+			String jsonStr = new String(tb);
 			while (times-- > 0) {
-				o = JSON.parseObject(new String(tb), clazz);
+				o = JSON.parseObject(jsonStr, clazz);
 			}
 		}
-
 	}
 
 	private static class FST implements TI {
+		DefaultCoder coder = new DefaultCoder();
 
 		@Override
 		public void s(Serializable o, int times) throws Exception {
-			DefaultCoder coder = new DefaultCoder();
+
 			while (times-- > 0)
 				tb = coder.toByteArray(o);
 		}
 
 		@Override
-		public void us(Serializable o, int times) throws Exception {
-			DefaultCoder coder = new DefaultCoder();
+		public void ds(Serializable o, int times) throws Exception {
 			while (times-- > 0)
 				coder.toObject(tb);
 		}
+	}
 
+	private static class KRYO implements TI {
+		@NotThreadSafe
+		Kryo kryo = new Kryo();
+		private final byte[] buffer = new byte[100_000];
+		@NotThreadSafe
+		private final Output out = new Output(buffer, -1);
+
+		@Override
+		public void s(Serializable o, int times) throws Exception {
+
+			while (times-- > 0) {
+				out.setBuffer(buffer, -1);
+				kryo.writeClassAndObject(out, o);
+				tb = out.toBytes();
+			}
+		}
+
+		@Override
+		public void ds(Serializable o, int times) throws Exception {
+			Input in = new Input();
+			while (times-- > 0) {
+				in.setBuffer(tb, 0, tb.length);
+				kryo.readClassAndObject(in);
+			}
+		}
 	}
 
 	private static class TC implements Serializable {

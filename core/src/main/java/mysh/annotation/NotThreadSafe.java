@@ -10,4 +10,5 @@ import java.lang.annotation.Target;
  */
 @Target({ElementType.TYPE, ElementType.METHOD, ElementType.FIELD})
 public @interface NotThreadSafe {
+	String value() default "";
 }

@@ -8,68 +8,103 @@ import java.io.*;
 import java.util.Objects;
 
 /**
+ * multi serializer collection.
+ * Kryo 3.0 was tested and obsoleted, which was slower than fst and less compatible.
+ *
  * @author Mysh
  * @since 2014/11/24 11:31
  */
-public abstract class Serializer {
+public interface Serializer {
 
 	/**
 	 * serialize object to byte array.
 	 */
-	public abstract byte[] serialize(Serializable obj);
+	byte[] serialize(Serializable obj);
 
-	public final <T extends Serializable> T unSerialize(byte[] buf) {
-		return unSerialize(buf, 0, buf.length, null);
+	/**
+	 * serialize object to output stream.
+	 */
+	void serialize(Serializable obj, OutputStream out);
+
+	/**
+	 * deserialize obj from buf using default class loader.
+	 */
+	default <T extends Serializable> T deserialize(byte[] buf) {
+		return deserialize(buf, 0, buf.length, null);
 	}
 
 	/**
-	 * unSerialize obj from buf.
+	 * deserialize obj from buf.
 	 *
 	 * @param cl nullable
 	 */
-	public final <T extends Serializable> T unSerialize(
-					byte[] buf, @Nullable ClassLoader cl) {
-		return unSerialize(buf, 0, buf.length, cl);
+	default <T extends Serializable> T deserialize(byte[] buf, @Nullable ClassLoader cl) {
+		return deserialize(buf, 0, buf.length, cl);
 	}
 
 	/**
-	 * unSerialize obj from buf.
+	 * deserialize obj from buf.
 	 *
 	 * @param cl nullable
 	 */
-	public abstract <T extends Serializable> T unSerialize(
-					byte[] buf, int offset, int length, @Nullable ClassLoader cl);
+	<T extends Serializable> T deserialize(byte[] buf, int offset, int length, @Nullable ClassLoader cl);
+
+	/**
+	 * deserialize obj from input stream.
+	 *
+	 * @param cl nullable
+	 */
+	<T extends Serializable> T deserialize(InputStream is, ClassLoader cl);
+
+	/**
+	 * deserialize obj from input stream.
+	 */
+	<T extends Serializable> T deserialize(InputStream is);
 
 	/**
 	 * java build-in serializer.
 	 */
 	@ThreadSafe
-	public static final Serializer buildIn = new Serializer() {
+	Serializer buildIn = new Serializer() {
 
 		public byte[] serialize(Serializable obj) {
 			ByteArrayOutputStream arrOut = new ByteArrayOutputStream();
-			try (ObjectOutputStream out = new ObjectOutputStream(arrOut)) {
-				out.writeObject(obj);
-			} catch (Exception e) {
-				throw Exps.unchecked(e);
-			}
+			serialize(obj, arrOut);
 			return arrOut.toByteArray();
 		}
 
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] buf, int offset, int length, ClassLoader cl) {
+		public void serialize(Serializable obj, OutputStream out) {
+			try {
+				ObjectOutputStream oos = new ObjectOutputStream(out);
+				oos.writeObject(obj);
+			} catch (Exception e) {
+				throw Exps.unchecked(e);
+			}
+		}
+
+		public <T extends Serializable> T deserialize(byte[] buf, int offset, int length, ClassLoader cl) {
 			Objects.requireNonNull(buf);
 
-			try (CustObjIS in = new CustObjIS(new ByteArrayInputStream(buf, offset, length), cl)) {
+			ByteArrayInputStream bis = new ByteArrayInputStream(buf, offset, length);
+			return deserialize(bis, cl);
+		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+			try {
+				CustObjIS in = new CustObjIS(is, cl);
 				return (T) in.readObject();
 			} catch (Exception e) {
 				throw Exps.unchecked(e);
 			}
 		}
 
+		public <T extends Serializable> T deserialize(InputStream is) {
+			return deserialize(is, null);
+		}
 	};
 
-	private static class CustObjIS extends ObjectInputStream {
+	class CustObjIS extends ObjectInputStream {
 
 		private ClassLoader cl;
 
@@ -90,7 +125,7 @@ public abstract class Serializer {
 	 * fast-serialization.
 	 */
 	@ThreadSafe
-	public static final Serializer fst = new Serializer() {
+	Serializer fst = new Serializer() {
 		private ThreadLocal<DefaultCoder> coder = new ThreadLocal<>();
 
 		private DefaultCoder getCoder() {
@@ -103,11 +138,39 @@ public abstract class Serializer {
 			return getCoder().toByteArray(obj);
 		}
 
+		@Override
+		public void serialize(Serializable obj, OutputStream out) {
+			try {
+				out.write(serialize(obj));
+			} catch (IOException e) {
+				throw Exps.unchecked(e);
+			}
+		}
+
 		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T unSerialize(byte[] b, int offset, int length, ClassLoader cl) {
+		public <T extends Serializable> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
 			final DefaultCoder c = getCoder();
 			c.getConf().setClassLoader(cl == null ? getClass().getClassLoader() : cl);
 			return (T) c.toObject(b, offset, length);
 		}
+
+		@SuppressWarnings("unchecked")
+		public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+			throw new UnsupportedOperationException("doesn't support multi-object now");
+
+//			final DefaultCoder c = getCoder();
+//			c.getConf().setClassLoader(cl == null ? getClass().getClassLoader() : cl);
+//			try {
+//				return (T) c.getConf().getObjectInput(is).readObject();
+//			} catch (Exception e) {
+//				throw Exps.unchecked(e);
+//			}
+		}
+
+		public <T extends Serializable> T deserialize(InputStream is) {
+			return deserialize(is, null);
+		}
 	};
+
+
 }

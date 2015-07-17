@@ -61,7 +61,9 @@ public class RpcUtil {
 
 			{
 				for (Method method : svIf.getMethods()) {
-					methods.put(method.getName(), method);
+					Method previous = methods.put(method.getName(), method);
+					if (previous != null)
+						throw new IllegalArgumentException("method overload is not allowed: " + method.getName());
 				}
 			}
 
@@ -137,11 +139,11 @@ public class RpcUtil {
 		if (buf == null) return null;
 
 		try {
-			return s.unSerialize(buf.array(), buf.position(), buf.limit() - buf.position(), cl);
+			return s.deserialize(buf.array(), buf.position(), buf.limit() - buf.position(), cl);
 		} catch (Throwable e) {
 			byte[] b = new byte[buf.capacity() - buf.position()];
 			System.arraycopy(buf.array(), buf.position(), b, 0, b.length);
-			log.error("unSerialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);
+			log.error("deserialize obj error, byte=" + Base64.getEncoder().encodeToString(b), e);
 			throw Exps.unchecked(e);
 		}
 	}

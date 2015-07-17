@@ -30,7 +30,7 @@
 		<!-- Tests run on modern PCs show that buffering related property -->
 		<!-- "ImmediateFlush" has negligible impact and will be ignored.  -->
 		<encoder>
-			<pattern>●%date{MM-dd HH:mm:ss} %msg ~%logger{5}-L%L [%thread] %level%n</pattern>
+			<pattern>●%date{MM-dd HH:mm:ss} %msg ~%logger{5}-%L [%thread] %level%n</pattern>
 		</encoder>
 		<filter class="ch.qos.logback.classic.filter.ThresholdFilter">
 			<level>DEBUG</level>

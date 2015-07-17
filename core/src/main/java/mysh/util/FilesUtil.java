@@ -60,7 +60,7 @@ public class FilesUtil {
 			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, f.length());
 			byte[] buf = new byte[(int) f.length()];
 			fileMap.get(buf);
-			T obj = Serializer.buildIn.unSerialize(buf, null);
+			T obj = Serializer.buildIn.deserialize(buf, null);
 			log.debug("load object from file: " + filepath);
 			return obj;
 		} finally {

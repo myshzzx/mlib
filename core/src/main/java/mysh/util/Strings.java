@@ -41,4 +41,13 @@ public class Strings {
 	public static boolean isNotBlank(String str) {
 		return !isBlank(str);
 	}
+
+	private static final String EMPTY_STR = "";
+
+	/**
+	 * return str.intern(), or null for str==null
+	 */
+	public static String intern(String str) {
+		return str == null ? null : (str.length() == 0 ? EMPTY_STR : str.intern());
+	}
 }

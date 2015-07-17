@@ -30,9 +30,9 @@ public class ClTest1 {
 		final MyCl cl1 = new MyCl(tLoader, a);
 		final MyCl cl2 = new MyCl(tLoader, b);
 
-		Runnable r = Serializer.buildIn.unSerialize(s, cl1);
+		Runnable r = Serializer.buildIn.deserialize(s, cl1);
 		r.run();
-		r = Serializer.buildIn.unSerialize(s, cl2);
+		r = Serializer.buildIn.deserialize(s, cl2);
 		r.run();
 	}
 

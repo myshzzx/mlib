@@ -1,11 +1,14 @@
 package mysh.util;
 
+import mysh.annotation.NotThreadSafe;
+
 import java.util.Objects;
 
 /**
  * execution timer. call nip funcs to get time costs.<br/>
  * WARNING: should NOT implements Serializable.
  */
+@NotThreadSafe
 public final class Tick {
 	/**
 	 * start an execution timer(milli-sec) now.
@@ -46,11 +49,18 @@ public final class Tick {
 
 	private final String name;
 	private final Unit unit;
-	private final long from;
+	private long from;
 
 	public Tick(String name, Unit unit) {
 		this.name = name == null ? "tick" : name;
 		this.unit = Objects.requireNonNull(unit, "tick unit can't be null");
+		this.from = System.nanoTime();
+	}
+
+	/**
+	 * reset tick to current time.
+	 */
+	public void reset() {
 		this.from = System.nanoTime();
 	}
 

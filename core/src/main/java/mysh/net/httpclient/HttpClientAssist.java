@@ -1,6 +1,7 @@
 
 package mysh.net.httpclient;
 
+import mysh.annotation.NotThreadSafe;
 import mysh.annotation.ThreadSafe;
 import mysh.util.Encodings;
 import mysh.util.Strings;
@@ -95,7 +96,6 @@ public class HttpClientAssist implements Closeable {
 		return access(new HttpGet(url), null);
 	}
 
-
 	/**
 	 * get url entity by get method.<br/>
 	 * WARNING: the entity must be closed in time,
@@ -112,6 +112,33 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
+	 * get url entity by get method.<br/>
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers, can be null.
+	 * @throws InterruptedException 线程中断.
+	 * @throws IOException          连接异常.
+	 */
+	public UrlEntity accessGet(String url, Map<String, String> params, Map<String, String> headers)
+					throws InterruptedException, IOException {
+		if (params != null && params.size() > 0) {
+			StringBuilder usb = new StringBuilder(url);
+			if (!url.contains("?"))
+				usb.append('?');
+			else
+				usb.append('&');
+			for (Map.Entry<String, String> pe : params.entrySet()) {
+				usb.append(pe.getKey()).append('=').append(pe.getValue()).append('&');
+			}
+			if (usb.charAt(usb.length() - 1) == '&') usb.deleteCharAt(usb.length() - 1);
+			url = usb.toString();
+		}
+		HttpGet req = new HttpGet(url);
+		return access(req, headers);
+	}
+
+	/**
 	 * get url entity by post method.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
@@ -121,8 +148,8 @@ public class HttpClientAssist implements Closeable {
 	 * @throws InterruptedException 线程中断.
 	 * @throws IOException          连接异常.
 	 */
-	public UrlEntity access(String url, List<NameValuePair> postParams, Charset charset,
-	                        Map<String, String> headers) throws IOException, InterruptedException {
+	public UrlEntity accessPost(String url, List<NameValuePair> postParams, Charset charset,
+	                            Map<String, String> headers) throws IOException, InterruptedException {
 		HttpPost post = new HttpPost(url);
 		HttpEntity reqEntity = new UrlEncodedFormEntity(postParams, charset);
 		post.setEntity(reqEntity);
@@ -151,19 +178,7 @@ public class HttpClientAssist implements Closeable {
 				req.setHeader(he.getKey(), he.getValue());
 			}
 		}
-		return new UrlEntity(req.getURI().toString(), hc.execute(req, ctx), ctx);
-	}
-
-	/**
-	 * get input stream of the entity.
-	 * WARNING: the InputStream must be closed in time,
-	 * because an unclosed entity will hold a connection from connection-pool.
-	 *
-	 * @param headers request headers, can be null.
-	 */
-	public InputStream getInputStream(String url, Map<String, String> headers) throws IOException, InterruptedException {
-		UrlEntity newEntity = access(url, headers);
-		return newEntity.rsp.getEntity().getContent();
+		return new UrlEntity(req, hc.execute(req, ctx), ctx);
 	}
 
 	/**
@@ -313,9 +328,10 @@ public class HttpClientAssist implements Closeable {
 
 	private static final byte[] EMPTY_BUF = new byte[0];
 
-	@ThreadSafe
+	@NotThreadSafe("because http client component is non-thread-safe")
 	public final class UrlEntity implements Closeable {
 
+		private final HttpUriRequest req;
 		private String reqUrl;
 		private CloseableHttpResponse rsp;
 		private HttpContext ctx;
@@ -325,8 +341,8 @@ public class HttpClientAssist implements Closeable {
 		private byte[] entityBuf;
 		private String entityStr;
 
-		public UrlEntity(String reqUrl, CloseableHttpResponse rsp, HttpContext ctx) {
-			this.reqUrl = reqUrl;
+		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpContext ctx) {
+			this.req = req;
 			this.rsp = rsp;
 			this.ctx = ctx;
 
@@ -338,8 +354,16 @@ public class HttpClientAssist implements Closeable {
 				this.contentType = rsp.getEntity().getContentType().getValue();
 		}
 
+		/**
+		 * close the request immediately, unfinished download will be aborted.
+		 */
 		@Override
 		public void close() {
+			try {
+				req.abort();
+			} catch (Exception e) {
+				log.debug("abort req error. " + e);
+			}
 			try {
 				rsp.getEntity().getContent().close();
 			} catch (Exception e) {
@@ -351,6 +375,9 @@ public class HttpClientAssist implements Closeable {
 		 * @return original request url.
 		 */
 		public String getReqUrl() {
+			if (reqUrl == null) {
+				reqUrl = req.getURI().toString();
+			}
 			return reqUrl;
 		}
 
@@ -419,10 +446,7 @@ public class HttpClientAssist implements Closeable {
 				else if (c.contains("GBK"))
 					enc = Encodings.GBK;
 			}
-			if (entityBuf == null) {
-				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
-				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
-			}
+			downloadEntity2Buf();
 			if (enc == null) {
 				enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
 			}
@@ -432,13 +456,20 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
-		 * buf then write. the buf is saved and can be reused.
+		 * download entity to buf. download will run only once.
 		 */
-		public synchronized void bufWriteTo(OutputStream out) throws IOException {
+		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
 				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
+		}
+
+		/**
+		 * buf then write. the buf is saved and can be reused.
+		 */
+		public synchronized void bufWriteTo(OutputStream out) throws IOException {
+			downloadEntity2Buf();
 			out.write(entityBuf);
 			out.flush();
 		}
