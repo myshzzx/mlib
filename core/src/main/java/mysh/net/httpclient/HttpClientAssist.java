@@ -15,13 +15,12 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.ProxyAuthenticationStrategy;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
@@ -172,7 +171,7 @@ public class HttpClientAssist implements Closeable {
 			throw new InterruptedException();
 		}
 
-		HttpContext ctx = new BasicHttpContext();
+		HttpClientContext ctx = new HttpClientContext();
 		if (headers != null) {
 			for (Map.Entry<String, String> he : headers.entrySet()) {
 				req.setHeader(he.getKey(), he.getValue());
@@ -334,14 +333,14 @@ public class HttpClientAssist implements Closeable {
 		private final HttpUriRequest req;
 		private String reqUrl;
 		private CloseableHttpResponse rsp;
-		private HttpContext ctx;
+		private HttpClientContext ctx;
 
 		private String currentUrl;
 		private String contentType;
 		private byte[] entityBuf;
 		private String entityStr;
 
-		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpContext ctx) {
+		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpClientContext ctx) {
 			this.req = req;
 			this.rsp = rsp;
 			this.ctx = ctx;
@@ -393,10 +392,25 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public String getCurrentURL() {
 			if (this.currentUrl == null) {
-				HttpUriRequest currReq = (HttpUriRequest) ctx.getAttribute(HttpCoreContext.HTTP_REQUEST);
-				HttpHost currHost = (HttpHost) ctx.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
-				this.currentUrl = (currReq.getURI().isAbsolute()) ?
-								currReq.getURI().toString() : (currHost.toURI() + currReq.getURI());
+				List<URI> redirects = ctx.getRedirectLocations();
+				if (redirects != null && redirects.size() > 0) {
+					// test link : http://www.google.com/chrome/eula.html?system=true&standalone=1
+					this.currentUrl = redirects.get(redirects.size() - 1).toString();
+				} else {
+					HttpRequest reqAttr = ctx.getRequest();
+					if (reqAttr instanceof HttpUriRequest) {
+						HttpUriRequest currReq = (HttpUriRequest) reqAttr;
+						HttpHost currHost = (HttpHost) ctx.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
+						this.currentUrl = (currReq.getURI().isAbsolute()) ?
+										currReq.getURI().toString() : (currHost.toURI() + currReq.getURI());
+//				} else if (reqAttr instanceof BasicHttpRequest) {
+//					BasicHttpRequest currReq = (BasicHttpRequest) reqAttr;
+//					// could be like "4.bp.blogspot.com:443" when jump from http to https
+//					this.currentUrl = currReq.getRequestLine().getUri();
+					} else {
+						this.currentUrl = getReqUrl();
+					}
+				}
 			}
 
 			return this.currentUrl;

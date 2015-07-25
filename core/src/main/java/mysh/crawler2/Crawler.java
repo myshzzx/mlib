@@ -52,7 +52,8 @@ public class Crawler<CTX extends UrlContext> {
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
-		this(seed, (url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(), Integer.MAX_VALUE, hcc));
+		this(seed,
+						(url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(), Integer.MAX_VALUE, hcc));
 	}
 
 	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
@@ -372,7 +373,7 @@ public class Crawler<CTX extends UrlContext> {
 
 			exec = new ThreadPoolExecutor(conf.threadPoolSize, conf.threadPoolSize, 15L, TimeUnit.SECONDS, wq,
 							r -> {
-								Thread t = new Thread(r, this.name + "-T-" + classifierThreadCount.incrementAndGet());
+								Thread t = new Thread(r, this.name + "-UrlClassifier-" + classifierThreadCount.incrementAndGet());
 								t.setDaemon(true);
 								return t;
 							},

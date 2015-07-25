@@ -23,6 +23,7 @@
 			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
+		<!--for SIFT-->
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
@@ -36,14 +37,20 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!--aparapi-->
+		<!--for captcha-->
+		<dependency>
+			<groupId>com.jhlabs</groupId>
+			<artifactId>filters</artifactId>
+			<version>2.0.235-1</version>
+			<scope>provided</scope>
+		</dependency>
+
 		<dependency>
 			<groupId>com.amd</groupId>
 			<artifactId>aparapi</artifactId>
 			<version>1.0</version>
 			<scope>provided</scope>
 		</dependency>
-		<!--aparapi-->
 
 	</dependencies>
 </project>
