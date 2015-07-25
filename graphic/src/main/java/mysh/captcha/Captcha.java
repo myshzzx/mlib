@@ -2,7 +2,6 @@ package mysh.captcha;
 
 import com.jhlabs.image.RippleFilter;
 import com.jhlabs.image.TransformFilter;
-import com.jhlabs.image.WaterFilter;
 
 import java.awt.*;
 import java.awt.font.FontRenderContext;
@@ -13,7 +12,6 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
@@ -21,40 +19,42 @@ public class Captcha {
 	private int width;
 	private int height;
 	private Random r = new Random();
-	private int textFontSize = 40;
-	private List<Font> textFonts = new ArrayList<>(Arrays.asList(
-					new Font("Times New Roman", Font.BOLD, textFontSize)
-//					,
-//					new Font("Arial", Font.BOLD, textFontSize)
-	));
+	private int textFontSize = 30;
+	private List<Font> textFonts = new ArrayList<>();
 	private Color textFontColor = Color.black;
 	private Color backgroundColorFrom = Color.LIGHT_GRAY;
 	private Color backgroundColorTo = Color.white;
 	private Color noiseColor = Color.black;
 	private int textCharLengthMin = 5;
 	private char[] textCharString = "eghkmpqwyBEFGHKPQRS".toCharArray();
-	private int charSpace = -5;
+	private int charSpace = -4;
+	private boolean useNoise = false;
 
 	public Captcha(int width, int height) {
 		this.width = width;
 		this.height = height;
+		addTextFont("Times New Roman");
 	}
 
 	public BufferedImage createImage(String text) {
-
 		BufferedImage bi = renderWord(text);
-//		makeNoise(bi, .1f + r.nextFloat() / 6, r.nextFloat() / 2, r.nextFloat() / 2, .7f + r.nextFloat() / 4);
+		if (useNoise)
+			makeNoise(bi, .1f, .1f, .9f, .9f);
 		bi = getDistortedImage(bi);
 		bi = addBackground(bi);
 		return bi;
 	}
 
 	public String createText(int addRandom) {
-		int length = textCharLengthMin + r.nextInt(addRandom);
-		char[] chars = textCharString;
+		int length;
+		if (addRandom > 0)
+			length = textCharLengthMin + r.nextInt(addRandom);
+		else
+			length = textCharLengthMin;
 		char[] text = new char[length];
+
 		for (int i = 0; i < length; i++) {
-			text[i] = chars[r.nextInt(chars.length)];
+			text[i] = textCharString[r.nextInt(textCharString.length)];
 		}
 
 		return new String(text);
@@ -74,14 +74,14 @@ public class Captcha {
 
 		FontRenderContext frc = g2D.getFontRenderContext();
 
-		int x = 20 + r.nextInt(35);
-		int y = (height - textFontSize) / 5 + textFontSize;
+		int x = r.nextInt(textFontSize / 2);
+		int y = textFontSize;
 		for (int i = 0; i < text.length(); i++) {
 			Font chosenFont = textFonts.get(r.nextInt(textFonts.size()));
 			char[] charToDraw = new char[]{text.charAt(i)};
 			g2D.setFont(chosenFont);
 
-			y += r.nextInt(6) * (r.nextInt(2) == 0 ? -1 : 1);
+			y += r.nextInt(textFontSize / 7) * (r.nextInt(2) == 0 ? -1 : 1);
 			g2D.drawChars(charToDraw, 0, charToDraw.length, x, y);
 
 			GlyphVector gv = chosenFont.createGlyphVector(frc, charToDraw);
@@ -92,28 +92,19 @@ public class Captcha {
 	}
 
 	BufferedImage getDistortedImage(BufferedImage baseImage) {
-		BufferedImage distortedImage = new BufferedImage(baseImage.getWidth(),
-						baseImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
-
-		Graphics2D graphics = (Graphics2D) distortedImage.getGraphics();
-
 		RippleFilter rippleFilter = new RippleFilter();
 		rippleFilter.setWaveType(RippleFilter.SINE);
 		rippleFilter.setXAmplitude(1f + r.nextFloat() * 2);
-		rippleFilter.setYAmplitude(3f + r.nextFloat() * 4);
+		rippleFilter.setYAmplitude(4f + r.nextFloat() * 3);
 		rippleFilter.setXWavelength(4);
 		rippleFilter.setYWavelength((9f + r.nextFloat() * 10) * (r.nextInt(2) == 0 ? -1 : 1));
-		rippleFilter.setEdgeAction(TransformFilter.NEAREST_NEIGHBOUR);
+		rippleFilter.setEdgeAction(TransformFilter.ZERO);
 
-		WaterFilter waterFilter = new WaterFilter();
-		waterFilter.setAmplitude(1.2f);
-		waterFilter.setPhase(55);
-		waterFilter.setWavelength(2);
-
-//		BufferedImage effectImage = waterFilter.filter(baseImage, null);
-//		effectImage = rippleFilter.filter(effectImage, null);
 		BufferedImage effectImage = rippleFilter.filter(baseImage, null);
 
+		BufferedImage distortedImage = new BufferedImage(baseImage.getWidth(),
+				baseImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+		Graphics graphics = distortedImage.getGraphics();
 		graphics.drawImage(effectImage, 0, 0, null, null);
 		graphics.dispose();
 
@@ -243,7 +234,7 @@ public class Captcha {
 		return this;
 	}
 
-	public Captcha addTextFont(String textFont) {
+	public final Captcha addTextFont(String textFont) {
 		this.textFonts.add(new Font(textFont, Font.BOLD, textFontSize));
 		return this;
 	}
@@ -260,6 +251,11 @@ public class Captcha {
 
 	public Captcha setCharSpace(int charSpace) {
 		this.charSpace = charSpace;
+		return this;
+	}
+
+	public Captcha setUseNoise(boolean useNoise) {
+		this.useNoise = useNoise;
 		return this;
 	}
 }

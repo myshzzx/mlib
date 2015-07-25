@@ -19,7 +19,7 @@ public class CaptchaTest {
 	public void common() throws Exception {
 		File out = new File("l:/a.jpg");
 		while (true) {
-			String capText = captcha.createText(4);
+			String capText = captcha.createText(0);
 			BufferedImage bi = captcha.createImage(capText);
 			System.out.println(capText);
 			ImageIO.write(bi, "jpg", out);
@@ -27,21 +27,44 @@ public class CaptchaTest {
 		}
 	}
 
-	Captcha captcha = new Captcha(200, 65);
+	Captcha captcha = new Captcha(100, 45).setUseNoise(false);
 
 	{
-		captcha.clearTextFonts();
-		captcha.addTextFont("宋体");
+//		captcha.clearTextFonts();
+//		captcha.addTextFont("宋体");
 	}
 
 	@Test
 	public void benchmark() throws Exception {
-		int n = 1;
-		String text = captcha.createText(4);
-
+		int n;
+		int count = 3_000;
+		BufferedImage bi = null;
 		Tick tick = Tick.tick("captcha");
+
+		n = count;
+		tick.reset();
 		while (n-- > 0)
-			captcha.createImage(text);
-		tick.nipAndPrint();
+			bi = captcha.renderWord("faiej");
+		tick.nipAndPrint("renderWord");
+
+		n = count;
+		tick.reset();
+		while (n-- > 0)
+			captcha.makeNoise(bi, .1f, .1f, .9f, .9f);
+		tick.nipAndPrint("makeNoise");
+
+		n = count;
+		tick.reset();
+		while (n-- > 0)
+			captcha.getDistortedImage(bi);
+		tick.nipAndPrint("getDistortedImage");
+
+		n = count;
+		tick.reset();
+		while (n-- > 0)
+			captcha.addBackground(bi);
+		tick.nipAndPrint("addBackground");
+
+		tick.totalAndPrint();
 	}
 }
