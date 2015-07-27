@@ -6,6 +6,7 @@ import org.junit.Test;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
 
 /**
  * CaptchaTest
@@ -32,6 +33,17 @@ public class CaptchaTest {
 	{
 //		captcha.clearTextFonts();
 //		captcha.addTextFont("宋体");
+	}
+
+	@Test
+	public void gen() throws IOException {
+		String dir = "D:\\OtherProj\\JavaVerify\\download";
+		int n = 100;
+		while (n-- > 0) {
+			String capText = captcha.createText(0);
+			BufferedImage bi = captcha.createImage(capText);
+			ImageIO.write(bi, "jpg", new File(dir, capText + ".jpg"));
+		}
 	}
 
 	@Test

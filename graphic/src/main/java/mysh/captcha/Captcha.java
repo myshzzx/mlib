@@ -94,16 +94,16 @@ public class Captcha {
 	BufferedImage getDistortedImage(BufferedImage baseImage) {
 		RippleFilter rippleFilter = new RippleFilter();
 		rippleFilter.setWaveType(RippleFilter.SINE);
-		rippleFilter.setXAmplitude(1f + r.nextFloat() * 2);
+		rippleFilter.setXAmplitude(2f + r.nextFloat());
 		rippleFilter.setYAmplitude(4f + r.nextFloat() * 3);
 		rippleFilter.setXWavelength(4);
-		rippleFilter.setYWavelength((9f + r.nextFloat() * 10) * (r.nextInt(2) == 0 ? -1 : 1));
+		rippleFilter.setYWavelength((9f + r.nextFloat() * 5) * (r.nextInt(2) == 0 ? -1 : 1));
 		rippleFilter.setEdgeAction(TransformFilter.ZERO);
 
 		BufferedImage effectImage = rippleFilter.filter(baseImage, null);
 
 		BufferedImage distortedImage = new BufferedImage(baseImage.getWidth(),
-				baseImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
+						baseImage.getHeight(), BufferedImage.TYPE_INT_ARGB);
 		Graphics graphics = distortedImage.getGraphics();
 		graphics.drawImage(effectImage, 0, 0, null, null);
 		graphics.dispose();
