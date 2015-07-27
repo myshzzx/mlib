@@ -18,9 +18,13 @@ public class SensitiveWords {
 		return new SensitiveWords();
 	}
 
-	public void insert(char[] word) {
+	/**
+	 * insert a sensitive word to lib.
+	 */
+	public void insert(String word) {
 		SensitiveWords t = this, tNew = null;
-		for (char w : word) {
+		for (int i = 0; i < word.length(); i++) {
+			char w = word.charAt(i);
 			tNew = t.suffix.get(w);
 			if (tNew == null) {
 				tNew = new SensitiveWords();
@@ -31,6 +35,9 @@ public class SensitiveWords {
 		if (tNew != null) tNew.isEnd = true;
 	}
 
+	/**
+	 * index of sensitive word found. -1 if not found.
+	 */
 	public int contains(char[] content) {
 		GO:
 		for (int i = 0; i < content.length; i++) {
@@ -56,6 +63,9 @@ public class SensitiveWords {
 		return -1;
 	}
 
+	/**
+	 * check whether current char is a blank char, which should be ignored between chars of sensitive words.
+	 */
 	boolean isBlankChar(char c) {
 		return c < '\u4e00' || c > '\u9fa5';
 	}

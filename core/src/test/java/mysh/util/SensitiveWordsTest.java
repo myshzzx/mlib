@@ -20,11 +20,11 @@ public class SensitiveWordsTest {
 
 	@BeforeClass
 	public static void init() throws Exception {
-		Arrays.asList("小泽玛莉亚", "武腾兰", "三級").forEach(w -> sw.insert(w.toCharArray()));
+		Arrays.asList("小泽玛莉亚", "武腾兰", "三級").forEach(sw::insert);
 	}
 
 	@Test
-	public void blankTest(){
+	public void blankTest() {
 		assertTrue(sw.isBlankChar('。'));
 		assertTrue(sw.isBlankChar('，'));
 		assertTrue(sw.isBlankChar('"'));
@@ -34,6 +34,8 @@ public class SensitiveWordsTest {
 		assertTrue(sw.isBlankChar('.'));
 		assertTrue(sw.isBlankChar(','));
 		assertTrue(sw.isBlankChar(' '));
+		assertTrue(sw.isBlankChar('．'));
+		assertTrue(sw.isBlankChar('。'));
 	}
 
 	@Test
