@@ -63,7 +63,8 @@ public class FilesUtil {
 			T obj = Serializer.buildIn.deserialize(buf, null);
 			log.debug("load object from file: " + filepath);
 			return obj;
-		} finally {
+		}finally {
+//			http://stackoverflow.com/questions/2972986/how-to-unmap-a-file-from-memory-mapped-using-filechannel-in-java
 			System.gc();
 		}
 	}
@@ -76,6 +77,8 @@ public class FilesUtil {
 	 */
 	public static void writeObjectToFile(String filepath, Object obj) throws IOException {
 		File file = ensureWritable(filepath);
+		if (!file.getParentFile().exists())
+			file.getParentFile().mkdirs();
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file))) {
 			out.writeObject(obj);
 			log.debug("written file: " + file.getPath());

@@ -246,7 +246,7 @@ public class Crawler<CTX extends UrlContext> {
 		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
 			String pageContent = ue.getEntityStr();
 
-			Set<String> urls = new HashSet<>();
+			List<String> urls = new ArrayList<>();
 
 			try {
 				// 查找 http 开头的数据
