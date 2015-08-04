@@ -423,18 +423,38 @@ public class HttpClientAssist implements Closeable {
 			return rsp.getStatusLine();
 		}
 
+		/**
+		 * see {@link #isContentType(String)}
+		 */
+		@Deprecated
 		public boolean isText() {
 			return contentType != null && contentType.contains("text");
 		}
 
+		/**
+		 * see {@link #isContentType(String)}
+		 */
+		@Deprecated
 		public boolean isHtml() {
 			return contentType != null && contentType.contains("html");
 		}
 
+		/**
+		 * see {@link #isContentType(String)}
+		 */
+		@Deprecated
 		public boolean isImage() {
 			return contentType != null && contentType.contains("image");
 		}
 
+		/**
+		 * This depends on response head (content-type) of server,
+		 * if the head is not given or incorrect, the judgement will be incorrect.
+		 * So use this ONLY if file extension judgement can not work.
+		 * <br/>
+		 * Deprecated because I want you to see this stuff.
+		 */
+		@Deprecated
 		public boolean isContentType(String type) {
 			return contentType != null && contentType.contains(type);
 		}
@@ -486,6 +506,14 @@ public class HttpClientAssist implements Closeable {
 			downloadEntity2Buf();
 			out.write(entityBuf);
 			out.flush();
+		}
+
+		/**
+		 * get entity buf. NOTICE: the buf is not copied, so it should be READ-ONLY.
+		 */
+		public byte[] getEntityBuf() throws IOException {
+			downloadEntity2Buf();
+			return this.entityBuf;
 		}
 
 		@Override

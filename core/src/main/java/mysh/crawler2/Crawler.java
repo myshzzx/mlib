@@ -147,22 +147,57 @@ public class Crawler<CTX extends UrlContext> {
 		this.status.compareAndSet(Status.PAUSED, Status.RUNNING);
 	}
 
+	private final CountDownLatch waitStopLatch = new CountDownLatch(1);
+
 	/**
 	 * stop the crawler, which release all the resources it took. BLOCKED until entire crawler stopped.<br/>
 	 * WARNING: can't restart after stopping.
 	 */
 	@SuppressWarnings("unchecked")
 	public void stop() {
-		Status oldStatus = status.getAndSet(Status.STOPPED);
-		if (oldStatus == Status.STOPPED) return;
+		Status oldStatus = status.get();
+		if (oldStatus == Status.STOPPED || oldStatus == Status.STOPPING)
+			return;
+
+		oldStatus = status.getAndSet(Status.STOPPING);
+		if (oldStatus == Status.STOPPING) {
+			return;
+		} else if (oldStatus == Status.STOPPED) {
+			status.set(Status.STOPPED);
+			return;
+		}
 
 		try {
 			classifiers.values().forEach(UrlClassifier::stop);
 			classifiers.values().forEach(c -> c.awaitTermination(2, TimeUnit.MINUTES));
 		} finally {
-			log.info(this.name + " stopped.");
-			seed.onCrawlerStopped(unhandledTasks);
+			try {
+				log.info(this.name + " stopped.");
+				seed.onCrawlerStopped(unhandledTasks);
+			} finally {
+				status.set(Status.STOPPED);
+				waitStopLatch.countDown();
+			}
 		}
+	}
+
+	/**
+	 * wait for stop. block until stopped or interrupted
+	 *
+	 * @throws InterruptedException
+	 */
+	public void waitForStop() throws InterruptedException {
+		waitStopLatch.await();
+	}
+
+
+	/**
+	 * wait for stop. block until stopped or interrupted
+	 *
+	 * @throws InterruptedException
+	 */
+	public boolean waitForStop(long timeout, TimeUnit unit) throws InterruptedException {
+		return waitStopLatch.await(timeout, unit);
 	}
 
 	/**
@@ -246,7 +281,7 @@ public class Crawler<CTX extends UrlContext> {
 		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
 			String pageContent = ue.getEntityStr();
 
-			List<String> urls = new ArrayList<>();
+			Set<String> urls = new HashSet<>();
 
 			try {
 				// 查找 http 开头的数据
@@ -373,7 +408,7 @@ public class Crawler<CTX extends UrlContext> {
 
 			exec = new ThreadPoolExecutor(conf.threadPoolSize, conf.threadPoolSize, 15L, TimeUnit.SECONDS, wq,
 							r -> {
-								Thread t = new Thread(r, this.name + "-UrlClassifier-" + classifierThreadCount.incrementAndGet());
+								Thread t = new Thread(r, this.name + "-UrlClassifier-T-" + classifierThreadCount.incrementAndGet());
 								t.setDaemon(true);
 								return t;
 							},
@@ -564,6 +599,6 @@ public class Crawler<CTX extends UrlContext> {
 	 * crawler state.
 	 */
 	public enum Status {
-		INIT, RUNNING, PAUSED, STOPPED
+		INIT, RUNNING, PAUSED, STOPPING, STOPPED
 	}
 }

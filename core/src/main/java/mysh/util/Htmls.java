@@ -1,5 +1,7 @@
 package mysh.util;
 
+import org.apache.commons.lang3.StringEscapeUtils;
+
 /**
  * html utils.
  * Created by mysh on 2015/7/14.
@@ -14,7 +16,7 @@ public class Htmls {
 		if (from < 0) return "";
 		int end = html.indexOf("</title>", from);
 		if (end < 0) return "";
-		return unEscapeXml(html.substring(from + 7, end));
+		return StringEscapeUtils.unescapeHtml4(html.substring(from + 7, end));
 	}
 
 	/**
