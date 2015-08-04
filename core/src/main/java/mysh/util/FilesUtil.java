@@ -63,7 +63,7 @@ public class FilesUtil {
 			T obj = Serializer.buildIn.deserialize(buf, null);
 			log.debug("load object from file: " + filepath);
 			return obj;
-		}finally {
+		} finally {
 //			http://stackoverflow.com/questions/2972986/how-to-unmap-a-file-from-memory-mapped-using-filechannel-in-java
 			System.gc();
 		}
@@ -239,5 +239,13 @@ public class FilesUtil {
 				return 0;
 			}
 		}).sum();
+	}
+
+	/**
+	 * escape invalid characters with replacement in file name.
+	 * invalid chars: [:*?"><|\/]
+	 */
+	public static String escapeFileName(String name, String replacement) {
+		return name.replaceAll("[:*?\"><\\|\\\\/]", replacement);
 	}
 }
