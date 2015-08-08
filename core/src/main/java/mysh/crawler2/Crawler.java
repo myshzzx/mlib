@@ -264,15 +264,18 @@ public class Crawler<CTX extends UrlContext> {
 										.forEach(h -> classify(h.url, h.ctx));
 					}
 				}
-			} catch (InterruptedIOException | SocketException | UnknownHostException ex) {
-				classifier.recrawlWhenFail(this, ex);
-				log.debug("network problem: " + ex.toString() + " - " + this.url);
-			} catch (InterruptedException ex) {
+			} catch (InterruptedIOException | SocketException ex) {
+				if (classifier.recrawlWhenFail(this, ex))
+					log.debug("recrawl scheduled: " + ex.toString() + " - " + this.url);
+				else
+					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+			} catch (UnknownHostException | InterruptedException ex) {
 				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
 			} catch (Exception ex) {
 				if (!isMalformedUrl(ex))
 					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
-				log.error("on error handling url: " + this.url, ex);
+				else
+					log.error("malformed url will be ignored: " + this.url, ex);
 			} finally {
 				classifier.afterAccess();
 			}
@@ -479,10 +482,27 @@ public class Crawler<CTX extends UrlContext> {
 			exec.execute(new Worker(url, ctx, this));
 		}
 
-		public void recrawlWhenFail(Worker worker, IOException ex) {
-			if (useAdjuster && ex != null)
-				adjuster.onException(ex);
-			exec.execute(worker);
+		private final ConcurrentHashMap<String, AtomicInteger> recrawlCount = new ConcurrentHashMap<>();
+
+		/**
+		 * schedule a recrawl.
+		 *
+		 * @return true when scheduled, false when rejected.
+		 */
+		public boolean recrawlWhenFail(Worker worker, IOException ex) {
+			AtomicInteger count = recrawlCount.get(worker.url);
+			if (count == null || count.get() < 3) {
+				if (count == null)
+					recrawlCount.computeIfAbsent(worker.url, u -> new AtomicInteger(1));
+				else
+					count.incrementAndGet();
+
+				if (useAdjuster && ex != null)
+					adjuster.onException(ex);
+				exec.execute(worker);
+				return true;
+			} else
+				return false;
 		}
 
 		/**

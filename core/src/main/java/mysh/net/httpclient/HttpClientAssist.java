@@ -424,11 +424,11 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
+		 * a request is text by default if the header(content-type) is not given.
 		 * see {@link #isContentType(String)}
 		 */
-		@Deprecated
 		public boolean isText() {
-			return contentType != null && contentType.contains("text");
+			return contentType == null || contentType.contains("text");
 		}
 
 		/**
