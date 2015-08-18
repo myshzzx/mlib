@@ -5,10 +5,11 @@ import com.google.common.collect.Multimap;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static mysh.util.Win32.*;
+import static mysh.util.WinAPI.*;
 
 /**
  * bind global hot keys. this is OS relative.
@@ -25,7 +26,7 @@ public class HotKeysGlobal {
 	public interface Win32KbAction {
 		/**
 		 * @param vkCode     A <a href='https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx'>virtual-key code</a>.
-		 *                   The code must be a value in the range 1 to 254.
+		 *                   The code must be a value in the range 1 to 254. VKs in {@link java.awt.event.KeyEvent} can be used here.
 		 * @param vkDesc     description of the virtual key, or <i>null</i> if can't be mapped.
 		 * @param winChanges whether window changes since last action. may not work properly when bind to a combination key.
 		 */
@@ -68,7 +69,7 @@ public class HotKeysGlobal {
 		return vkCode;
 	}
 
-	public static void chkWindows() {
+	private static void chkWindows() {
 		if (OSs.getOS() != OSs.OS.Windows)
 			throw new RuntimeException("current OS is: " + OSs.getOS());
 	}
@@ -82,67 +83,32 @@ public class HotKeysGlobal {
 		} else {
 			if (win32MsgPeekThread == null) {
 				win32MsgPeekThread = new Thread("win32MsgPeekThread") {
-					User32.HHOOK win32KbHook;
+					User32.HHOOK kbHook;
 
 					@Override
 					public void run() {
 						log.info(getName() + " start.");
-						win32KbHook();
 
 						User32.MSG msg = new User32.MSG();
 						try {
+							long lastHookTime = 0, now;
 							while (!this.isInterrupted()) {
+								now = System.currentTimeMillis();
+								if (now - lastHookTime > 100 * 1000) { // rehook every 100 seconds, in case of hook fails in a few minutes
+									kbUnHook();
+									kbHook();
+									lastHookTime = now;
+								}
+
 //							https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943(v=vs.85).aspx
-								user32.PeekMessage(msg, null, 0, 0, 0);
-								Thread.sleep(30);
+								user32.PeekMessage(msg, null, 0, 0, 1);
+								Thread.sleep(20);
 							}
-						} catch (Exception e) {
+						} catch (Throwable e) {
 							log.error("peek msg error", e);
 						} finally {
-							if (!user32.UnhookWindowsHookEx(win32KbHook)) {
-								log.error("UnhookWindowsHookEx fail");
-							}
+							kbUnHook();
 						}
-					}
-
-					/**
-					 * hook and msg peek need to be within the same thread
-					 */
-					private void win32KbHook() {
-						// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990(v=vs.85).aspx
-						win32KbHook = user32.SetWindowsHookEx(User32.WH_KEYBOARD_LL,
-										// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644985(v=vs.85).aspx
-										(User32.LowLevelKeyboardProc) (int nCode, WinDef.WPARAM wp, User32.KBDLLHOOKSTRUCT kbStruct) -> {
-											if (wp.intValue() == User32.WM_KEYDOWN || wp.intValue() == User32.WM_SYSKEYDOWN) {
-												boolean ctrl = (user32.GetAsyncKeyState(User32.VK_CONTROL) & 0x8000) != 0;
-												boolean alt = (user32.GetAsyncKeyState(User32.VK_MENU) & 0x8000) != 0;
-												boolean shift = (user32.GetAsyncKeyState(User32.VK_SHIFT) & 0x8000) != 0;
-												int vkCode = kbStruct.vkCode;
-												String vkDesc = (vkCode > 0 && vkCode < 255) ? win32Vks[vkCode] : null;
-												chkWindow();
-
-												for (Win32KbAction listener : win32KbListeners.get(0)) {
-													try {
-														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
-													} catch (Throwable t) {
-														log.error("handle key action error", t);
-													}
-												}
-												if (win32KbListeners.size() > 0) {
-													int key = genKey(ctrl, alt, shift, vkCode);
-													for (Win32KbAction listener : win32KbListeners.get(key)) {
-														try {
-															listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
-														} catch (Throwable t) {
-															log.error("handle key action error", t);
-														}
-													}
-												}
-											}
-
-											return user32.CallNextHookEx(win32KbHook, nCode, wp, kbStruct.getPointer());
-										}
-										, kernel32.GetModuleHandle(null), 0);
 					}
 
 					private boolean isWindowChanges;
@@ -154,9 +120,66 @@ public class HotKeysGlobal {
 						if (!winPtr.equals(lastWindowPointer)) {
 							isWindowChanges = true;
 							lastWindowPointer = winPtr;
-							lastWindowTitle = getForeGroudWindowTitle();
+							lastWindowTitle = getForeGroundWindowTitle();
 						} else {
 							isWindowChanges = false;
+						}
+					}
+
+					/**
+					 * https://msdn.microsoft.com/en-us/library/windows/desktop/ms644985(v=vs.85).aspx
+					 */
+					private WinUser.LowLevelKeyboardProc kbProc =
+									(User32.LowLevelKeyboardProc) (int nCode, WinDef.WPARAM wp, User32.KBDLLHOOKSTRUCT kbStruct) -> {
+										if (wp.intValue() == User32.WM_KEYDOWN || wp.intValue() == User32.WM_SYSKEYDOWN) {
+											boolean ctrl = (user32.GetAsyncKeyState(User32.VK_CONTROL) & 0x8000) != 0;
+											boolean alt = (user32.GetAsyncKeyState(User32.VK_MENU) & 0x8000) != 0;
+											boolean shift = (user32.GetAsyncKeyState(User32.VK_SHIFT) & 0x8000) != 0;
+											int vkCode = kbStruct.vkCode;
+											String vkDesc = (vkCode > 0 && vkCode < 255) ? win32Vks[vkCode] : null;
+											chkWindow();
+
+											for (Win32KbAction listener : win32KbListeners.get(0)) {
+												try {
+													listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
+												} catch (Throwable t) {
+													log.error("handle key action error", t);
+												}
+											}
+											if (win32KbListeners.size() > 0) {
+												int key = genKey(ctrl, alt, shift, vkCode);
+												for (Win32KbAction listener : win32KbListeners.get(key)) {
+													try {
+														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
+													} catch (Throwable t) {
+														log.error("handle key action error", t);
+													}
+												}
+											}
+										}
+
+										return user32.CallNextHookEx(kbHook, nCode, wp, kbStruct.getPointer());
+									};
+
+					private WinDef.HMODULE hMod = kernel32.GetModuleHandle(null);
+
+					/**
+					 * hook and msg peek need to be within the same thread
+					 */
+					private void kbHook() {
+						if (kbHook != null) kbUnHook();
+
+						// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990(v=vs.85).aspx
+						kbHook = user32.SetWindowsHookEx(User32.WH_KEYBOARD_LL, kbProc, hMod, 0);
+					}
+
+					private void kbUnHook() {
+						if (kbHook != null) {
+//							log.info("UnhookWindowsHookEx");
+							if (!user32.UnhookWindowsHookEx(kbHook)) {
+								log.error("UnhookWindowsHookEx fail");
+							}
+							kbHook = null;
 						}
 					}
 				};

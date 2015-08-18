@@ -1,6 +1,8 @@
 package mysh.util;
 
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.awt.event.KeyEvent;
 import java.util.concurrent.CountDownLatch;
@@ -12,13 +14,13 @@ import java.util.concurrent.CountDownLatch;
  * @since 2015/8/17
  */
 public class HotKeysGlobalTest {
-
+	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalTest.class);
 	@Test
 	public void testAddWin32KeyboardListener() throws Exception {
 		HotKeysGlobal.addWin32KeyboardListener((c, a, s, ch, desc, winChg, winTitle) -> {
 			if (winChg)
 				System.out.println(winTitle);
-			System.out.println(c + " " + a + " " + s + " " + desc);
+			log.info(c + " " + a + " " + s + " " + desc);
 		});
 
 		new CountDownLatch(1).await();
