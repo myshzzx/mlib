@@ -15,12 +15,16 @@ import java.util.concurrent.CountDownLatch;
  */
 public class HotKeysGlobalTest {
 	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalTest.class);
+
 	@Test
 	public void testAddWin32KeyboardListener() throws Exception {
-		HotKeysGlobal.addWin32KeyboardListener((c, a, s, ch, desc, winChg, winTitle) -> {
-			if (winChg)
-				System.out.println(winTitle);
-			log.info(c + " " + a + " " + s + " " + desc);
+		HotKeysGlobal.addWin32KeyboardListener(new HotKeysGlobal.Win32KbAction() {
+			@Override
+			public void onKeyDown(boolean c, boolean a, boolean s, int ch, String desc, boolean winChg, String winTitle) {
+				if (winChg)
+					System.out.println(winTitle);
+				log.info(friendlyKeyDesc(c, a, s, ch));
+			}
 		});
 
 		new CountDownLatch(1).await();

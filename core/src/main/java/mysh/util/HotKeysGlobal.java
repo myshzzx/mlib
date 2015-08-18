@@ -31,6 +31,18 @@ public class HotKeysGlobal {
 		 * @param winChanges whether window changes since last action. may not work properly when bind to a combination key.
 		 */
 		void onKeyDown(boolean ctrl, boolean alt, boolean shift, int vkCode, String vkDesc, boolean winChanges, String winTitle);
+
+		default String friendlyKeyDesc(boolean ctrl, boolean alt, boolean shift, int vkCode) {
+			if ((ctrl || alt || shift) && (vkCode < 16 || vkCode > 18 && vkCode < 160 || vkCode > 165)) {
+				StringBuilder sb = new StringBuilder();
+				if (ctrl) sb.append("Ctrl+");
+				if (alt) sb.append("Alt+");
+				if (shift) sb.append("Shift+");
+				sb.append(win32Vks[vkCode]);
+				return sb.toString();
+			} else
+				return win32Vks[vkCode];
+		}
 	}
 
 	public static synchronized void addWin32KeyboardListener(Win32KbAction action) {
@@ -94,7 +106,7 @@ public class HotKeysGlobal {
 							long lastHookTime = 0, now;
 							while (!this.isInterrupted()) {
 								now = System.currentTimeMillis();
-								if (now - lastHookTime > 100 * 1000) { // rehook every 100 seconds, in case of hook fails in a few minutes
+								if (now - lastHookTime > 130 * 1000) { // rehook every 130 seconds, in case of hook fails in a few minutes
 									kbUnHook();
 									kbHook();
 									lastHookTime = now;
@@ -102,7 +114,7 @@ public class HotKeysGlobal {
 
 //							https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943(v=vs.85).aspx
 								user32.PeekMessage(msg, null, 0, 0, 1);
-								Thread.sleep(20);
+								Thread.sleep(30);
 							}
 						} catch (Throwable e) {
 							log.error("peek msg error", e);
@@ -206,9 +218,9 @@ public class HotKeysGlobal {
 					"ENTER",
 					"Undefined",
 					"Undefined",
-					"SHIFT",
-					"CTRL",
-					"ALT",
+					"Shift",
+					"Ctrl",
+					"Alt",
 					"PAUSE",
 					"CAPS LOCK",
 					"IME",
@@ -286,16 +298,16 @@ public class HotKeysGlobal {
 					"Applications",
 					"Reserved",
 					"Computer Sleep",
-					"Num pad 0",
-					"Num pad 1",
-					"Num pad 2",
-					"Num pad 3",
-					"Num pad 4",
-					"Num pad 5",
-					"Num pad 6",
-					"Num pad 7",
-					"Num pad 8",
-					"Num pad 9",
+					"NumPad 0",
+					"NumPad 1",
+					"NumPad 2",
+					"NumPad 3",
+					"NumPad 4",
+					"NumPad 5",
+					"NumPad 6",
+					"NumPad 7",
+					"NumPad 8",
+					"NumPad 9",
 					"Multiply",
 					"Add",
 					"Separator",
@@ -350,12 +362,12 @@ public class HotKeysGlobal {
 					"Unassigned",
 					"Unassigned",
 					"Unassigned",
-					"Left SHIFT",
-					"Right SHIFT",
-					"Left CONTROL",
-					"Right CONTROL",
-					"Left MENU",
-					"Right MENU",
+					"LShift",
+					"RShift",
+					"LCtrl",
+					"RCtrl",
+					"LAlt",
+					"RAlt",
 					"Browser Back",
 					"Browser Forward",
 					"Browser Refresh",
