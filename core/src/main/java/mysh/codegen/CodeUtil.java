@@ -15,7 +15,7 @@ public class CodeUtil {
 	/**
 	 * 下划线命名转为驼峰命名.
 	 */
-	public static String underline2hump(String underline) {
+	public static String underline2camel(String underline) {
 		StringBuilder hump = new StringBuilder();
 		String[] words = underline.trim().toLowerCase().split("_");
 		for (String word : words) {
@@ -28,7 +28,7 @@ public class CodeUtil {
 	/**
 	 * 驼峰命名转为下划线命名.
 	 */
-	public static String hump2underline(String hump) {
+	public static String camel2underline(String hump) {
 		StringBuilder underline = new StringBuilder();
 		char[] chars = hump.trim().toCharArray();
 

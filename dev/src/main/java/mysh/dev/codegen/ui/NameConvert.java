@@ -35,7 +35,7 @@ public class NameConvert extends javax.swing.JFrame {
 			String[] lines = text.split("[\r\n]+");
 			StringBuilder hump = new StringBuilder();
 			for (String line : lines) {
-				hump.append(CodeUtil.underline2hump(line));
+				hump.append(CodeUtil.underline2camel(line));
 				hump.append(lineSep);
 			}
 			SwingUtilities.invokeLater(() -> {
@@ -54,7 +54,7 @@ public class NameConvert extends javax.swing.JFrame {
 			String[] lines = text.split("[\r\n]+");
 			StringBuilder underline = new StringBuilder();
 			for (String line : lines) {
-				underline.append(CodeUtil.hump2underline(line));
+				underline.append(CodeUtil.camel2underline(line));
 				underline.append(lineSep);
 			}
 			SwingUtilities.invokeLater(() -> {

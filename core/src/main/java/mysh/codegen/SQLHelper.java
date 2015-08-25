@@ -1,5 +1,6 @@
 package mysh.codegen;
 
+
 import mysh.util.Strings;
 
 import java.util.HashMap;
@@ -29,156 +30,156 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author mysh
  * @since 2015/6/29.
  */
-@SuppressWarnings("unused")
-public class SQLHelper {
+@SuppressWarnings({"unused", "unchecked"})
+public class SQLHelper<T extends SQLHelper> {
 
 	// expression handler below ==============================
 
 	/**
 	 * col = value
 	 */
-	public SQLHelper eq(String col, Object value) {
+	public T eq(String col, Object value) {
 		return bi(col, "=", col, value);
 	}
 
 	/**
 	 * col = value
 	 */
-	public SQLHelper eq(String col, String valueName, Object value) {
+	public T eq(String col, String valueName, Object value) {
 		return bi(col, "=", valueName, value);
 	}
 
 	/**
 	 * col != value
 	 */
-	public SQLHelper notEq(String col, Object value) {
+	public T notEq(String col, Object value) {
 		return bi(col, "!=", col, value);
 	}
 
 	/**
 	 * col != value
 	 */
-	public SQLHelper notEq(String col, String valueName, Object value) {
+	public T notEq(String col, String valueName, Object value) {
 		return bi(col, "!=", valueName, value);
 	}
 
 	/**
 	 * col like %value%
 	 */
-	public SQLHelper like(String col, String value) {
-		if (ignoreChk(value)) return this;
+	public T like(String col, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "LIKE", col, "%" + value + "%");
 	}
 
 	/**
 	 * col like %value%
 	 */
-	public SQLHelper like(String col, String valueName, String value) {
-		if (ignoreChk(value)) return this;
+	public T like(String col, String valueName, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "LIKE", valueName, "%" + value + "%");
 	}
 
 	/**
 	 * col not like %value%
 	 */
-	public SQLHelper notLike(String col, String value) {
-		if (ignoreChk(value)) return this;
+	public T notLike(String col, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "NOT LIKE", col, "%" + value + "%");
 	}
 
 	/**
 	 * col not like %value%
 	 */
-	public SQLHelper notLike(String col, String valueName, String value) {
-		if (ignoreChk(value)) return this;
+	public T notLike(String col, String valueName, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "NOT LIKE", valueName, "%" + value + "%");
 	}
 
 	/**
 	 * col like value%
 	 */
-	public SQLHelper likeLeft(String col, String value) {
-		if (ignoreChk(value)) return this;
+	public T likeLeft(String col, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "LIKE", col, value + "%");
 	}
 
 	/**
 	 * col like value%
 	 */
-	public SQLHelper likeLeft(String col, String valueName, String value) {
-		if (ignoreChk(value)) return this;
+	public T likeLeft(String col, String valueName, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "LIKE", valueName, value + "%");
 	}
 
 	/**
 	 * col not like value%
 	 */
-	public SQLHelper notLikeLeft(String col, String value) {
-		if (ignoreChk(value)) return this;
+	public T notLikeLeft(String col, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "NOT LIKE", col, value + "%");
 	}
 
 	/**
 	 * col not like value%
 	 */
-	public SQLHelper notLikeLeft(String col, String valueName, String value) {
-		if (ignoreChk(value)) return this;
+	public T notLikeLeft(String col, String valueName, String value) {
+		if (ignoreChk(value)) return (T) this;
 		return bi(col, "NOT LIKE", valueName, value + "%");
 	}
 
 	/**
 	 * col > value
 	 */
-	public SQLHelper gt(String col, Object value) {
+	public T gt(String col, Object value) {
 		return bi(col, ">", col, value);
 	}
 
 	/**
 	 * col > value
 	 */
-	public SQLHelper gt(String col, String valueName, Object value) {
+	public T gt(String col, String valueName, Object value) {
 		return bi(col, ">", valueName, value);
 	}
 
 	/**
 	 * col >= value
 	 */
-	public SQLHelper ge(String col, Object value) {
+	public T ge(String col, Object value) {
 		return bi(col, ">=", col, value);
 	}
 
 	/**
 	 * col >= value
 	 */
-	public SQLHelper ge(String col, String valueName, Object value) {
+	public T ge(String col, String valueName, Object value) {
 		return bi(col, ">=", valueName, value);
 	}
 
 	/**
 	 * col < value
 	 */
-	public SQLHelper lt(String col, Object value) {
+	public T lt(String col, Object value) {
 		return bi(col, "<", col, value);
 	}
 
 	/**
 	 * col < value
 	 */
-	public SQLHelper lt(String col, String valueName, Object value) {
+	public T lt(String col, String valueName, Object value) {
 		return bi(col, "<", valueName, value);
 	}
 
 	/**
 	 * col <= value
 	 */
-	public SQLHelper le(String col, Object value) {
+	public T le(String col, Object value) {
 		return bi(col, "<=", col, value);
 	}
 
 	/**
 	 * col <= value
 	 */
-	public SQLHelper le(String col, String valueName, Object value) {
+	public T le(String col, String valueName, Object value) {
 		return bi(col, "<=", valueName, value);
 	}
 
@@ -189,7 +190,7 @@ public class SQLHelper {
 	 * @param op         操作符
 	 * @param paramValue 参数值
 	 */
-	public SQLHelper bi(String col, String op, Object paramValue) {
+	public T bi(String col, String op, Object paramValue) {
 		return bi(col, op, col, paramValue);
 	}
 
@@ -201,8 +202,8 @@ public class SQLHelper {
 	 * @param paramName  参数表的参数名
 	 * @param paramValue 参数值
 	 */
-	public SQLHelper bi(String col, String op, String paramName, Object paramValue) {
-		if (ignoreChk(paramValue)) return this;
+	public T bi(String col, String op, String paramName, Object paramValue) {
+		if (ignoreChk(paramValue)) return (T) this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -212,34 +213,34 @@ public class SQLHelper {
 		cond.append(paramName);
 		cond.append(" ");
 		putParam(paramName, paramValue);
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * col between from and to
 	 */
-	public SQLHelper between(String col, Object from, Object to) {
+	public T between(String col, Object from, Object to) {
 		return betweenExp(true, col, col + "from", from, col + "to", to);
 	}
 
 	/**
 	 * col between from and to
 	 */
-	public SQLHelper between(String col, String fromName, Object from, String toName, Object to) {
+	public T between(String col, String fromName, Object from, String toName, Object to) {
 		return betweenExp(true, col, fromName, from, toName, to);
 	}
 
 	/**
 	 * col not between from and to
 	 */
-	public SQLHelper notBetween(String col, Object from, Object to) {
+	public T notBetween(String col, Object from, Object to) {
 		return betweenExp(false, col, col + "from", from, col + "to", to);
 	}
 
 	/**
 	 * col not between from and to
 	 */
-	public SQLHelper notBetween(String col, String fromName, Object from, String toName, Object to) {
+	public T notBetween(String col, String fromName, Object from, String toName, Object to) {
 		return betweenExp(false, col, fromName, from, toName, to);
 	}
 
@@ -248,9 +249,9 @@ public class SQLHelper {
 	 *
 	 * @param flag is between or not between
 	 */
-	private SQLHelper betweenExp(boolean flag,
-	                             String col, String fromName, Object from, String toName, Object to) {
-		if (ignoreChk(fromName, from, toName, to)) return this;
+	private T betweenExp(boolean flag,
+	                     String col, String fromName, Object from, String toName, Object to) {
+		if (ignoreChk(fromName, from, toName, to)) return (T) this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -261,39 +262,40 @@ public class SQLHelper {
 		cond.append(" ");
 		putParam(fromName, from);
 		putParam(toName, to);
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * col is null
 	 */
-	public SQLHelper isNull(String col) {
+	public T isNull(String col) {
 		return nullExp(true, col);
 	}
 
 	/**
 	 * col is not null
 	 */
-	public SQLHelper isNotNull(String col) {
+	public T isNotNull(String col) {
 		return nullExp(false, col);
 	}
 
-	private SQLHelper nullExp(boolean flag, String col) {
-		if (ignoreChk()) return this;
+
+	private T nullExp(boolean flag, String col) {
+		if (ignoreChk()) return (T) this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
 		cond.append(flag ? " IS NULL " : " IS NOT NULL ");
 
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * append to current sql directly. you don't need to put a prefix "and".
 	 * params should be [paramName, paramValue] pairs.
 	 */
-	public SQLHelper append(String sql, Object... params) {
-		if (ignoreChk(params)) return this;
+	public T append(String sql, Object... params) {
+		if (ignoreChk(params)) return (T) this;
 
 		cond.append(" AND ");
 		cond.append(sql);
@@ -306,41 +308,41 @@ public class SQLHelper {
 				putParam((String) params[i], params[i + 1]);
 			}
 		}
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * col in (e1, e2)
 	 */
-	public SQLHelper in(String col, Object... enums) {
+	public T in(String col, Object... enums) {
 		return inExp(true, col, enums);
 	}
 
 	/**
 	 * col in (e1, e2)
 	 */
-	public SQLHelper inSepStr(String col, String enumStr, String sepRegex) {
-		if (enumStr == null) return this;
+	public T inSepStr(String col, String enumStr, String sepRegex) {
+		if (enumStr == null) return (T) this;
 		return inExp(true, col, enumStr.split(sepRegex));
 	}
 
 	/**
 	 * col not in (e1, e2)
 	 */
-	public SQLHelper notIn(String col, Object... enums) {
+	public T notIn(String col, Object... enums) {
 		return inExp(false, col, enums);
 	}
 
 	/**
 	 * col not in (e1, e2)
 	 */
-	public SQLHelper notInSepStr(String col, String enumStr, String sepRegex) {
-		if (enumStr == null) return this;
+	public T notInSepStr(String col, String enumStr, String sepRegex) {
+		if (enumStr == null) return (T) this;
 		return inExp(false, col, enumStr.split(sepRegex));
 	}
 
-	private SQLHelper inExp(boolean flag, String col, Object[] enums) {
-		if (enums == null || enums.length == 0 || ignoreChk(enums)) return this;
+	private T inExp(boolean flag, String col, Object[] enums) {
+		if (enums == null || enums.length == 0 || ignoreChk(enums)) return (T) this;
 
 		cond.append(" AND ");
 		cond.append(autoConvertCol(col));
@@ -358,44 +360,44 @@ public class SQLHelper {
 		}
 		cond.append(") ");
 
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * order by col
 	 */
-	public SQLHelper orderBy(String col) {
+	public T orderBy(String col) {
 		return orderByExp(true, col);
 	}
 
 	/**
 	 * order by col desc
 	 */
-	public SQLHelper orderByDesc(String col) {
+	public T orderByDesc(String col) {
 		return orderByExp(false, col);
 	}
 
-	private SQLHelper orderByExp(boolean flag, String col) {
-		if (ignoreChk()) return this;
+	private T orderByExp(boolean flag, String col) {
+		if (ignoreChk()) return (T) this;
 
 		cond.append(" ORDER BY ");
 		cond.append(autoConvertCol(col));
 		cond.append(flag ? " " : " DESC ");
 
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * group by col
 	 */
-	public SQLHelper groupBy(String col) {
-		if (ignoreChk()) return this;
+	public T groupBy(String col) {
+		if (ignoreChk()) return (T) this;
 
 		cond.append(" GROUP BY ");
 		cond.append(autoConvertCol(col));
 		cond.append(" ");
 
-		return this;
+		return (T) this;
 	}
 
 	// expression handler above ==============================
@@ -403,15 +405,15 @@ public class SQLHelper {
 
 	// col convert below =============================
 	private String tableAlias;
-	private static final WeakHashMap<String, String> hump2UnderlineCols = new WeakHashMap<>();
-	private static final ReentrantReadWriteLock hump2UnderlineColsLock = new ReentrantReadWriteLock();
+	private static final WeakHashMap<String, String> camel2UnderlineCols = new WeakHashMap<>();
+	private static final ReentrantReadWriteLock camel2UnderlineColsLock = new ReentrantReadWriteLock();
 
 	/**
 	 * set table alias. to clean old alias, use null.
 	 */
-	public SQLHelper setTableAlias(String alias) {
+	public T setTableAlias(String alias) {
 		tableAlias = Strings.isBlank(alias) ? null : alias.trim() + '.';
-		return this;
+		return (T) this;
 	}
 
 	/**
@@ -420,11 +422,11 @@ public class SQLHelper {
 	 */
 	private String autoConvertCol(final String col) {
 		String underLine = null;
-		hump2UnderlineColsLock.readLock().lock();
+		camel2UnderlineColsLock.readLock().lock();
 		try {
-			underLine = hump2UnderlineCols.get(col);
+			underLine = camel2UnderlineCols.get(col);
 		} finally {
-			hump2UnderlineColsLock.readLock().unlock();
+			camel2UnderlineColsLock.readLock().unlock();
 		}
 
 		if (underLine == null) {
@@ -440,16 +442,16 @@ public class SQLHelper {
 			}
 
 			if (underLine == null)
-				underLine = CodeUtil.hump2underline(col);
+				underLine = CodeUtil.camel2underline(col);
 
 			if (tableAlias != null)
 				underLine = tableAlias + underLine;
 
-			hump2UnderlineColsLock.writeLock().lock();
+			camel2UnderlineColsLock.writeLock().lock();
 			try {
-				hump2UnderlineCols.put(col, underLine);
+				camel2UnderlineCols.put(col, underLine);
 			} finally {
-				hump2UnderlineColsLock.writeLock().unlock();
+				camel2UnderlineColsLock.writeLock().unlock();
 			}
 			return underLine;
 		} else
@@ -471,18 +473,18 @@ public class SQLHelper {
 	 *   helper.on(condtion).eq("age", 100);
 	 * </pre>
 	 */
-	public SQLHelper on(boolean condition) {
+	public T on(boolean condition) {
 		ignoreNext = !condition;
-		return this;
+		return (T) this;
 	}
 
 	/**
 	 * the same as on(isNotBlank(obj).
 	 * see {@link #on(boolean)}
 	 */
-	public SQLHelper onNonBlank(Object obj) {
+	public T onNonBlank(Object obj) {
 		ignoreNext = isBlank(obj);
-		return this;
+		return (T) this;
 	}
 
 	/**
@@ -507,7 +509,7 @@ public class SQLHelper {
 
 	/**
 	 * should current expression been ignored.
-	 * if previous on-condition is true, or any param is null(or blank), this will return true.
+	 * if previous on-condition is false, or any param is null(or blank), this will return true.
 	 * the flag will be reset after this invoke.
 	 */
 	private boolean ignoreChk(Object... params) {
@@ -543,9 +545,9 @@ public class SQLHelper {
 	/**
 	 * param overwritten will cause a runtime exception by default.
 	 */
-	public SQLHelper ignoreParamOverwritten() {
+	public T ignoreParamOverwritten() {
 		this.ignoreParamOverwritten = true;
-		return this;
+		return (T) this;
 	}
 
 	private void putParam(String name, Object value) {
