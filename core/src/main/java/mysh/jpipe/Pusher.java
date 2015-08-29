@@ -20,7 +20,6 @@ import java.util.List;
 public class Pusher implements PusherStateController {
 	private static final Logger log = LoggerFactory.getLogger(Pusher.class);
 
-
 	/**
 	 * Pusher 类型.<br/>
 	 * 本地Pusher (把本地数据发送到远程) 还是 远程Pusher.
@@ -39,8 +38,6 @@ public class Pusher implements PusherStateController {
 		REMOTE;
 	}
 
-	private static final int BUF_LENGTH = 300000;
-
 	private final Type type;
 
 	private final Socket src;
@@ -52,9 +49,8 @@ public class Pusher implements PusherStateController {
 
 	/**
 	 * 缓冲区.<br/>
-	 * 这里用 volatile 保证它的可见性, 原因是插件可能把这个 PusherStateController 实例发布到其他线程中.
 	 */
-	private volatile byte[] buf;
+	private final byte[] buf;
 
 	/**
 	 * 缓冲区有效数据长度.<br/>
@@ -66,9 +62,8 @@ public class Pusher implements PusherStateController {
 
 		public void run() {
 
-			try {
-				InputStream in = Pusher.this.src.getInputStream();
-				OutputStream out = Pusher.this.dst.getOutputStream();
+			try (InputStream in = Pusher.this.src.getInputStream();
+			     OutputStream out = Pusher.this.dst.getOutputStream()) {
 
 				while ((Pusher.this.bufDataLength = in.read(Pusher.this.buf)) != -1) {
 					// 交插件处理
@@ -81,40 +76,25 @@ public class Pusher implements PusherStateController {
 
 					// 发送数据
 					out.write(Pusher.this.buf, 0, Pusher.this.bufDataLength);
+					out.flush();
 				}
-
 			} catch (IOException e) {
 				// System.err.println("从 " + Pusher.this.src + " 到 " + Pusher.this.dst
 				// + " 的数据推送器异常, " + e);
 			} finally {
-				if (Pusher.this.src != null) {
-					try {
-						Pusher.this.src.close();
-					} catch (Exception e1) {
-					}
-				}
-
-				if (Pusher.this.dst != null) {
-					try {
-						Pusher.this.dst.close();
-					} catch (Exception e2) {
-					}
-				}
-
 				closeNotifier.run();
 			}
 		}
 	};
 
-	public Pusher(Type type, Socket src, Socket dst, List<Plugin> plugins,Runnable closeNotifier) {
-
+	public Pusher(Type type, Socket src, Socket dst, List<Plugin> plugins, int bufLen, Runnable closeNotifier) {
 		this.type = type;
 		this.src = src;
 		this.dst = dst;
 		this.plugins = plugins;
 		this.closeNotifier = closeNotifier;
 
-		this.buf = new byte[Pusher.BUF_LENGTH];
+		this.buf = new byte[bufLen];
 		this.dataPusher.setName("jpipe.Pusher." + type);
 	}
 
@@ -138,24 +118,4 @@ public class Pusher implements PusherStateController {
 		return this.bufDataLength;
 	}
 
-	@Override
-	public void setDataBuf(byte[] buf) {
-
-		if (buf == null)
-			return;
-
-		if (buf.length < 200)
-			log.info("推送器警告: 设置的新数据缓冲区不足 200 字节.");
-
-		this.buf = buf;
-	}
-
-	@Override
-	public void setDataLength(int length) {
-
-		if (length < 0)
-			return;
-
-		this.bufDataLength = length;
-	}
 }

@@ -14,17 +14,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Listener implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(Listener.class);
 
-	private int listeningPort;
-	private String targetHost;
-	private int targetPort;
+	private final int listeningPort;
+	private final String targetHost;
+	private final int targetPort;
+	private final int bufLen;
 	private ServerSocket server;
-	private Map<Socket, Object> localSocks = new ConcurrentHashMap<>();
+	private final Map<Socket, Object> localSocks = new ConcurrentHashMap<>();
 
 	/**
 	 * 请求监听器.<br/>
 	 * 在本地端口监听, 收到连接请求时启动管道器, 这实际是一个请求分发器.
 	 */
-	public Listener(int listeningPort, String targetHost, int targetPort) {
+	public Listener(int listeningPort, String targetHost, int targetPort, int bufLen) {
 
 		if (listeningPort < 1 || listeningPort > 65534 || targetPort < 1
 						|| targetPort > 65534) {
@@ -34,6 +35,7 @@ public class Listener implements Closeable {
 		this.listeningPort = listeningPort;
 		this.targetHost = targetHost;
 		this.targetPort = targetPort;
+		this.bufLen = bufLen;
 	}
 
 	public void start() throws IOException {
@@ -47,7 +49,7 @@ public class Listener implements Closeable {
 					while (true) {
 						Socket sock = server.accept();
 						localSocks.put(sock, "");
-						new Pipe(sock, targetHost, targetPort, () -> localSocks.remove(sock));
+						new Pipe(sock, targetHost, targetPort, bufLen, () -> localSocks.remove(sock));
 					}
 				} catch (Exception e) {
 					log.error("server.accept error, listener is going to exit.", e);
