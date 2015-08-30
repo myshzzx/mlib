@@ -51,12 +51,12 @@ public class WorkerState implements Serializable {
 
 	private transient MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
 	private transient ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-	private transient com.sun.management.OperatingSystemMXBean opBean;
+	private transient com.sun.management.OperatingSystemMXBean osBean;
 
 	public WorkerState() {
 		OperatingSystemMXBean t = ManagementFactory.getOperatingSystemMXBean();
 		if (t instanceof com.sun.management.OperatingSystemMXBean) {
-			opBean = (com.sun.management.OperatingSystemMXBean) t;
+			osBean = (com.sun.management.OperatingSystemMXBean) t;
 		}
 	}
 
@@ -69,9 +69,9 @@ public class WorkerState implements Serializable {
 
 		threadCount = threadMXBean.getThreadCount();
 
-		if (opBean != null) {
-			procCpu = (int) (opBean.getProcessCpuLoad() * 100);
-			sysCpu = (int) (opBean.getSystemCpuLoad() * 100);
+		if (osBean != null) {
+			procCpu = (int) (osBean.getProcessCpuLoad() * 100);
+			sysCpu = (int) (osBean.getSystemCpuLoad() * 100);
 		}
 	}
 
