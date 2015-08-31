@@ -31,7 +31,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @since 2015/6/29.
  */
 @SuppressWarnings({"unused", "unchecked"})
-public class SQLHelper<T extends SQLHelper> {
+public class DynamicSql<T extends DynamicSql> {
 
 	// expression handler below ==============================
 
@@ -562,22 +562,22 @@ public class SQLHelper<T extends SQLHelper> {
 
 	// create fields below =========================================
 
-	public static SQLHelper create() {
+	public static DynamicSql create() {
 		return create(null, null);
 	}
 
-	public static SQLHelper create(Map<String, Object> params) {
+	public static DynamicSql create(Map<String, Object> params) {
 		return create(null, params);
 	}
 
-	public static SQLHelper create(StringBuilder cond, Map<String, Object> params) {
-		return new SQLHelper(cond, params);
+	public static DynamicSql create(StringBuilder cond, Map<String, Object> params) {
+		return new DynamicSql(cond, params);
 	}
 
 	private StringBuilder cond;
 	private Map<String, Object> paramMap;
 
-	protected SQLHelper(StringBuilder cond, Map<String, Object> paramMap) {
+	protected DynamicSql(StringBuilder cond, Map<String, Object> paramMap) {
 		if (cond == null) cond = new StringBuilder("1=1 ");
 		if (paramMap == null) paramMap = new HashMap<>();
 		this.cond = cond;

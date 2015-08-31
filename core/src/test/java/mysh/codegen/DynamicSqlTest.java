@@ -4,11 +4,11 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-public class SQLHelperTest {
+public class DynamicSqlTest {
 
 	@Test
 	public void full() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql
 						.bi("givenName", "=", "mysh")
 						.bi("name", "!=", "name2", "zzx")
@@ -36,7 +36,7 @@ public class SQLHelperTest {
 
 	@Test
 	public void inSep() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.inSepStr("abc", "a, b ,c", "[,\\s]+");
 
 		assertEquals("1=1  AND ABC IN ('a','b','c') ", sql.getCondStr());
@@ -45,27 +45,27 @@ public class SQLHelperTest {
 
 	@Test(expected = RuntimeException.class)
 	public void paramOverwriteTest() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.eq("name", 2)
 						.like("name", "abc");
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void wrongAppendParams() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.eq("name", 2)
 						.append("name= :abc ", "abc");
 	}
 
 	@Test(expected = IllegalArgumentException.class)
 	public void blankCol() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.eq(" ", 1);
 	}
 
 	@Test
 	public void conditionTest() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql
 						.on(2 > 1).eq("name", "abc")
 						.on(2 < 1).bi("age", ">", 10)
@@ -76,7 +76,7 @@ public class SQLHelperTest {
 
 	@Test
 	public void conditionTest2() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.on(2 < 1).groupBy("age");
 		assertEquals("1=1 ", sql.getCond().toString());
 		assertEquals("{}", sql.getParamMap().toString());
@@ -84,7 +84,7 @@ public class SQLHelperTest {
 
 	@Test
 	public void conditionTest3() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.onNonBlank(null).groupBy("age");
 		assertEquals("1=1 ", sql.getCond().toString());
 		assertEquals("{}", sql.getParamMap().toString());
@@ -92,7 +92,7 @@ public class SQLHelperTest {
 
 	@Test
 	public void conditionTest4() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql.onNonBlank(" ").groupBy("age");
 		assertEquals("1=1 ", sql.getCond().toString());
 		assertEquals("{}", sql.getParamMap().toString());
@@ -100,7 +100,7 @@ public class SQLHelperTest {
 
 	@Test
 	public void ignoreTest() {
-		SQLHelper sql = SQLHelper.create();
+		DynamicSql sql = DynamicSql.create();
 		sql
 						.eq("name", "   ")
 						.like("address", " ")
