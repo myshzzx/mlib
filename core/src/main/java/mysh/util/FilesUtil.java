@@ -48,16 +48,18 @@ public class FilesUtil {
 	}
 
 	/**
-	 * 从文件取得数据(使用内存缓存, 可大幅提升反序列化速度, 但之后文件不能被写入).<br/>
+	 * 从文件取得数据(使用 nio 的 file map, 可大幅提升反序列化速度, 但之后文件可能不能被写入, 因为资源释放不受jvm控制).<br/>
+	 * 建议处理大文件时使用.
+	 * see <a href='https://en.wikipedia.org/wiki/Memory-mapped_file'>Memory-mapped_file</a>
 	 * 失败则返回 null.
 	 *
 	 * @param filepath 文件路径.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromFileWithBuf(String filepath) throws IOException, ClassNotFoundException {
+	public static <T> T getObjectFromFileWithFileMap(String filepath) throws IOException, ClassNotFoundException {
 		File f = new File(filepath);
 		try (FileChannel fileChannel = FileChannel.open(Paths.get(f.getAbsolutePath()))) {
-			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, f.length());
+			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, f.length());
 			byte[] buf = new byte[(int) f.length()];
 			fileMap.get(buf);
 			T obj = Serializer.buildIn.deserialize(buf, null);

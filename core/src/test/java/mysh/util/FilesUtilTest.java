@@ -90,7 +90,7 @@ public class FilesUtilTest {
 		File f = File.createTempFile("test", ".txt");
 		String obj = "mysh";
 		FilesUtil.writeObjectToFile(f.getAbsolutePath(), obj);
-		Object obj1 = FilesUtil.getObjectFromFileWithBuf(f.getAbsolutePath());
+		Object obj1 = FilesUtil.getObjectFromFileWithFileMap(f.getAbsolutePath());
 		Assert.assertEquals(obj, obj1);
 	}
 }
