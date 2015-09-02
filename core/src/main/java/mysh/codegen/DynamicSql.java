@@ -206,7 +206,7 @@ public class DynamicSql<T extends DynamicSql> {
 		if (ignoreChk(paramValue)) return (T) this;
 
 		cond.append(" AND ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(" ");
 		cond.append(op);
 		cond.append(" :");
@@ -254,7 +254,7 @@ public class DynamicSql<T extends DynamicSql> {
 		if (ignoreChk(fromName, from, toName, to)) return (T) this;
 
 		cond.append(" AND ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(flag ? " BETWEEN :" : " NOT BETWEEN :");
 		cond.append(fromName);
 		cond.append(" AND :");
@@ -279,12 +279,12 @@ public class DynamicSql<T extends DynamicSql> {
 		return nullExp(false, col);
 	}
 
-
+	@SuppressWarnings("Duplicates")
 	private T nullExp(boolean flag, String col) {
 		if (ignoreChk()) return (T) this;
 
 		cond.append(" AND ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(flag ? " IS NULL " : " IS NOT NULL ");
 
 		return (T) this;
@@ -345,7 +345,7 @@ public class DynamicSql<T extends DynamicSql> {
 		if (enums == null || enums.length == 0 || ignoreChk(enums)) return (T) this;
 
 		cond.append(" AND ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(flag ? " IN (" : " NOT IN (");
 		for (int i = 0; i < enums.length; i++) {
 			if (i > 0) cond.append(',');
@@ -377,11 +377,12 @@ public class DynamicSql<T extends DynamicSql> {
 		return orderByExp(false, col);
 	}
 
+	@SuppressWarnings("Duplicates")
 	private T orderByExp(boolean flag, String col) {
 		if (ignoreChk()) return (T) this;
 
 		cond.append(" ORDER BY ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(flag ? " " : " DESC ");
 
 		return (T) this;
@@ -394,7 +395,7 @@ public class DynamicSql<T extends DynamicSql> {
 		if (ignoreChk()) return (T) this;
 
 		cond.append(" GROUP BY ");
-		cond.append(autoConvertCol(col));
+		autoConvertCol(cond, col);
 		cond.append(" ");
 
 		return (T) this;
@@ -420,7 +421,7 @@ public class DynamicSql<T extends DynamicSql> {
 	 * auto convert hump col name to underline connected name,
 	 * like maxValue -> MAX_VALUE.
 	 */
-	private String autoConvertCol(final String col) {
+	private void autoConvertCol(StringBuilder cond, final String col) {
 		String underLine = null;
 		camel2UnderlineColsLock.readLock().lock();
 		try {
@@ -444,18 +445,17 @@ public class DynamicSql<T extends DynamicSql> {
 			if (underLine == null)
 				underLine = CodeUtil.camel2underline(col);
 
-			if (tableAlias != null)
-				underLine = tableAlias + underLine;
-
 			camel2UnderlineColsLock.writeLock().lock();
 			try {
 				camel2UnderlineCols.put(col, underLine);
 			} finally {
 				camel2UnderlineColsLock.writeLock().unlock();
 			}
-			return underLine;
-		} else
-			return underLine;
+		}
+
+		if (tableAlias != null)
+			cond.append(tableAlias);
+		cond.append(underLine);
 	}
 
 	// col convert above =============================
