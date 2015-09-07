@@ -28,7 +28,7 @@ public class DynamicSqlTest {
 						.groupBy("name");
 
 		assertEquals("1=1  AND GIVEN_NAME = :givenName  AND NAME != :name2  AND TITLE LIKE " +
-										":title  AND TITLE LIKE :title22  AND TITLE NOT LIKE :title2  AND TITLE NOT LIKE :title3  AND tt.SEAT IN (1,'ab')  AND tt.SET NOT IN (2)  AND cc > :cc  AND tt.HEIGHT BETWEEN :heightfrom AND :heightto  AND tt.HEIGHT NOT BETWEEN :hf AND :ht  AND tt.OFFICE_ADDRESS IS NULL  AND tt.HOME_ADD IS NOT NULL  ORDER BY tt.CREATE_TIME  GROUP BY NAME ",
+										":title  AND TITLE LIKE :title22  AND TITLE NOT LIKE :title2  AND TITLE NOT LIKE :title3  AND tt.SEAT IN (1,'ab')  AND tt.SET NOT IN (2)  AND cc > :cc  AND tt.HEIGHT BETWEEN :heightfrom AND :heightto  AND tt.HEIGHT NOT BETWEEN :hf AND :ht  AND tt.OFFICE_ADDRESS IS NULL  AND tt.HOME_ADD IS NOT NULL  ORDER BY tt.CREATE_TIME  GROUP BY tt.NAME ",
 						sql.getCond().toString());
 		assertEquals("{cc=100, givenName=mysh, title2=%ste%, heightto=180, title3=st%, name2=zzx, " +
 						"title=%sde%, title22=sd%, heightfrom=170, ht=21, hf=10}", sql.getParamMap().toString());
@@ -43,11 +43,12 @@ public class DynamicSqlTest {
 		assertEquals("{}", sql.getParamMap().toString());
 	}
 
-	@Test(expected = RuntimeException.class)
+	@Test
 	public void paramOverwriteTest() {
 		DynamicSql sql = DynamicSql.create();
 		sql.eq("name", 2)
 						.like("name", "abc");
+		assertEquals("1=1  AND NAME = :name  AND NAME LIKE :name1 ", sql.getCondStr());
 	}
 
 	@Test(expected = IllegalArgumentException.class)

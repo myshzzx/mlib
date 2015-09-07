@@ -210,9 +210,8 @@ public class DynamicSql<T extends DynamicSql> {
 		cond.append(" ");
 		cond.append(op);
 		cond.append(" :");
-		cond.append(paramName);
+		cond.append(putParam(paramName, paramValue, false));
 		cond.append(" ");
-		putParam(paramName, paramValue);
 		return (T) this;
 	}
 
@@ -256,12 +255,10 @@ public class DynamicSql<T extends DynamicSql> {
 		cond.append(" AND ");
 		autoConvertCol(cond, col);
 		cond.append(flag ? " BETWEEN :" : " NOT BETWEEN :");
-		cond.append(fromName);
+		cond.append(putParam(fromName, from, false));
 		cond.append(" AND :");
-		cond.append(toName);
+		cond.append(putParam(toName, to, false));
 		cond.append(" ");
-		putParam(fromName, from);
-		putParam(toName, to);
 		return (T) this;
 	}
 
@@ -305,7 +302,7 @@ public class DynamicSql<T extends DynamicSql> {
 			if (params.length % 2 != 0)
 				throw new IllegalArgumentException("params should be name-value pairs");
 			for (int i = 0; i < params.length; i += 2) {
-				putParam((String) params[i], params[i + 1]);
+				putParam((String) params[i], params[i + 1], true);
 			}
 		}
 		return (T) this;
@@ -537,28 +534,27 @@ public class DynamicSql<T extends DynamicSql> {
 
 	// ignoreNext above ===========================
 
-
-	// ignoreParamOverwritten below ==============================
-
-	private boolean ignoreParamOverwritten = false;
+	// check param name below ===========================
+	private int paramNameSf = 1;
 
 	/**
-	 * param overwritten will cause a runtime exception by default.
+	 * put param to param map. if chkOverride, an exception will be thrown when param overridden,
+	 * or a new param name will be used when the given name exists.
+	 *
+	 * @return param name that real used in param map.
 	 */
-	public T ignoreParamOverwritten() {
-		this.ignoreParamOverwritten = true;
-		return (T) this;
-	}
+	private String putParam(final String name, Object value, boolean chkOverride) {
+		if (chkOverride && paramMap.containsKey(name))
+			throw new IllegalArgumentException("param[" + name + "] overridden with value:" + value);
 
-	private void putParam(String name, Object value) {
-		if (!ignoreParamOverwritten && paramMap.containsKey(name)) {
-			throw new RuntimeException("param[" + name + "] overwritten with value:" + value);
+		String paramName = name;
+		while (paramMap.containsKey(paramName)) {
+			paramName = name + paramNameSf++;
 		}
-		paramMap.put(name, value);
+		paramMap.put(paramName, value);
+		return paramName;
 	}
-
-	// ignoreParamOverwritten above ==============================
-
+	// check param name above ===========================
 
 	// create fields below =========================================
 
