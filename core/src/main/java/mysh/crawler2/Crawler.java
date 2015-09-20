@@ -246,7 +246,7 @@ public class Crawler<CTX extends UrlContext> {
 				}
 
 				try (HttpClientAssist.UrlEntity ue = classifier.access(url)) {
-					if (!seed.accept(ue.getCurrentURL(), this.ctx) || !seed.accept(ue.getReqUrl(), this.ctx))
+					if (!seed.accept(ue.getCurrentURL(), this.ctx))
 						return;
 					if (status.get() == Status.STOPPED) {
 						unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
