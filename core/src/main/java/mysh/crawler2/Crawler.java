@@ -309,21 +309,22 @@ public class Crawler<CTX extends UrlContext> {
 
 				// 查找 href 指向的地址
 				Matcher srcValueMatcher = srcValueExp.matcher(pageContent);
-				String tValue;
+				String tValue, tUrl;
 				String protocolPrefix = ue.getProtocol().getProtocol().toLowerCase() + ":";
 				while (srcValueMatcher.find()) {
 					tValue = srcValueMatcher.group(4);
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
 						continue;
 					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
-						urls.add(tValue);
+						tUrl = tValue;
 					} else if (tValue.startsWith("//")) {
-						urls.add(protocolPrefix + tValue);
+						tUrl = protocolPrefix + tValue;
 					} else if (tValue.startsWith("/")) {
-						urls.add(currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue);
+						tUrl = currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue;
 					} else {
-						urls.add(HttpClientAssist.getShortURL(currentRoot + tValue));
+						tUrl = currentRoot + tValue;
 					}
+					urls.add(HttpClientAssist.getShortURL(tUrl));
 				}
 			} catch (Exception e) {
 				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
@@ -331,7 +332,6 @@ public class Crawler<CTX extends UrlContext> {
 
 			return urls.stream().map(
 							url -> url.replace('\\', '/')
-											.replace("////", "//")
 											.replace("&amp;", "&")
 											.replace("&lt;", "<")
 											.replace("&gt;", ">")

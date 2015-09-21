@@ -249,7 +249,7 @@ public class HttpClientAssist implements Closeable {
 			return "";
 		}
 
-		if (!uriString.contains("./")) {
+		if (!uriString.contains("./") && uriString.indexOf("//", 7) < 0) {
 			return uriString;
 		}
 

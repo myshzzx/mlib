@@ -177,4 +177,10 @@ public class HttpClientAssistTest1 {
 			}
 		}
 	}
+
+	@Test
+	public void testGetShortURL() throws Exception {
+		String shortURL = HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a");
+		System.out.println(shortURL);
+	}
 }
