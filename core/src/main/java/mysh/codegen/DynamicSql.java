@@ -309,6 +309,19 @@ public class DynamicSql<T extends DynamicSql> {
 	}
 
 	/**
+	 * append sql exactly to current sql directly.
+	 */
+	public T appendRaw(String sql) {
+		if (ignoreChk()) return (T) this;
+
+		cond.append(' ');
+		cond.append(sql);
+		cond.append(' ');
+
+		return (T) this;
+	}
+
+	/**
 	 * col in (e1, e2)
 	 */
 	public T in(String col, Object... enums) {
