@@ -309,7 +309,7 @@ public class DynamicSql<T extends DynamicSql> {
 	}
 
 	/**
-	 * append sql exactly to current sql directly.
+	 * append sql exactly to current sql.
 	 */
 	public T appendRaw(String sql) {
 		if (ignoreChk()) return (T) this;
