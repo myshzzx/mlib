@@ -12,30 +12,19 @@
 	<artifactId>mlib-dev</artifactId>
 
 	<dependencies>
-		<dependency>
-			<groupId>mysh</groupId>
-			<artifactId>mlib-core</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
-		</dependency>
 
 		<!--used by clojure interpreter-->
 		<dependency>
 			<groupId>com.fifesoft</groupId>
 			<artifactId>rsyntaxtextarea</artifactId>
-			<version>2.5.7</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure</artifactId>
-			<version>1.6.0</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.clojure</groupId>
 			<artifactId>clojure-contrib</artifactId>
-			<version>1.2.0</version>
-			<scope>provided</scope>
 		</dependency>
 		<!--used by clojure interpreter-->
 	</dependencies>

@@ -11,45 +11,27 @@
 
 	<artifactId>mlib-graphic</artifactId>
 
-	<properties>
-		<jogampVersion>2.2</jogampVersion>
-		<jogampOS>windows-amd64</jogampOS>
-	</properties>
-
 	<dependencies>
-		<dependency>
-			<groupId>mysh</groupId>
-			<artifactId>mlib-core</artifactId>
-			<version>1.0.1-SNAPSHOT</version>
-		</dependency>
 
 		<!--for SIFT-->
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
-			<version>1.0.3</version>
-			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.imagescience</groupId>
 			<artifactId>imagescience</artifactId>
-			<version>2.4.1</version>
-			<scope>provided</scope>
 		</dependency>
 
 		<!--for captcha-->
 		<dependency>
 			<groupId>com.jhlabs</groupId>
 			<artifactId>filters</artifactId>
-			<version>2.0.235-1</version>
-			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>com.amd</groupId>
 			<artifactId>aparapi</artifactId>
-			<version>1.0</version>
-			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>
