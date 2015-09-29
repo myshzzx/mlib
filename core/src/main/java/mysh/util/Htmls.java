@@ -24,6 +24,7 @@ public class Htmls {
 	 */
 	public static String unEscapeXml(String xml) {
 		return xml
+						.replace("&nbsp;", " ")
 						.replace("&amp;", "&")
 						.replace("&lt;", "<")
 						.replace("&gt;", ">")
