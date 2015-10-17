@@ -26,6 +26,12 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	Stream<UrlCtxHolder<CTX>> getSeeds();
 
 	/**
+	 * before access url. the urlCtxHolder is mutable.
+	 */
+	default void beforeAccess(UrlCtxHolder<CTX> urlCtxHolder) {
+	}
+
+	/**
 	 * whether the url & ctx should be crawled NOW.
 	 */
 	boolean accept(String url, CTX ctx);

@@ -1,7 +1,6 @@
 package mysh.crawler2;
 
 import mysh.annotation.GuardedBy;
-import mysh.annotation.Immutable;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
@@ -52,8 +51,13 @@ public class Crawler<CTX extends UrlContext> {
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
+		this(seed, hcc, Integer.MAX_VALUE);
+	}
+
+	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin) throws Exception {
 		this(seed,
-						(url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(), Integer.MAX_VALUE, hcc));
+						(url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(),
+										ratePerMin > 0 ? ratePerMin : Integer.MAX_VALUE, hcc));
 	}
 
 	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
@@ -224,23 +228,21 @@ public class Crawler<CTX extends UrlContext> {
 	private static final Pattern srcValueExp =
 					Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 
-	@Immutable
-	private class Worker implements Runnable {
-		private final String url;
-		private final CTX ctx;
+	private class Worker extends UrlCtxHolder<CTX> implements Runnable {
+		private static final long serialVersionUID = 4173253887553156741L;
 		private final UrlClassifier classifier;
 
 		public Worker(String url, CTX ctx, UrlClassifier classifier) {
-			this.url = url;
-			this.ctx = ctx;
+			super(url, ctx);
 			this.classifier = classifier;
 		}
 
 		@Override
 		public void run() {
-			if (!seed.accept(this.url, this.ctx)) return;
-
 			try {
+				seed.beforeAccess(this);
+				if (!seed.accept(this.url, this.ctx)) return;
+
 				while (status.get() == Status.PAUSED) {
 					Thread.sleep(50);
 				}

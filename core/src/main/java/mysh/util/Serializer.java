@@ -2,7 +2,9 @@ package mysh.util;
 
 import mysh.annotation.Nullable;
 import mysh.annotation.ThreadSafe;
-import org.nustaq.serialization.simpleapi.DefaultCoder;
+import org.nustaq.serialization.FSTConfiguration;
+import org.nustaq.serialization.FSTObjectInput;
+import org.nustaq.serialization.FSTObjectOutput;
 
 import java.io.*;
 import java.util.Objects;
@@ -77,6 +79,7 @@ public interface Serializer {
 			try {
 				ObjectOutputStream oos = new ObjectOutputStream(out);
 				oos.writeObject(obj);
+				oos.flush();
 			} catch (Exception e) {
 				throw Exps.unchecked(e);
 			}
@@ -126,22 +129,57 @@ public interface Serializer {
 	 */
 	@ThreadSafe
 	Serializer fst = new Serializer() {
-		private ThreadLocal<DefaultCoder> coder = new ThreadLocal<>();
+		private ThreadLocal<FSTConfiguration> coder = new ThreadLocal<>();
+		private ThreadLocal<byte[]> properBuf = new ThreadLocal<>();
 
-		private DefaultCoder getCoder() {
-			if (coder.get() == null)
-				coder.set(new DefaultCoder());
-			return coder.get();
+		private FSTConfiguration getCoder() {
+			FSTConfiguration c = coder.get();
+			if (c == null) {
+				c = FSTConfiguration.createDefaultConfiguration();
+				coder.set(c);
+			}
+			return c;
 		}
 
+		private byte[] getProperBuf() {
+			byte[] buf = properBuf.get();
+			if (buf == null) {
+				buf = new byte[300_000];
+				properBuf.set(buf);
+			}
+			return buf;
+		}
+
+		int BUF_LIMIT = 10_000_000;
+
+		@Override
 		public byte[] serialize(Serializable obj) {
-			return getCoder().toByteArray(obj);
+			try {
+				FSTObjectOutput fo = getCoder().getObjectOutput();
+				fo.writeObject(obj);
+				byte[] buf = fo.getCopyOfWrittenBuffer();
+
+				if (fo.getBuffer().length > BUF_LIMIT)
+					fo.resetForReUse(getProperBuf());
+				return buf;
+			} catch (IOException e) {
+				throw Exps.unchecked(e);
+			}
 		}
+
+		final ByteArrayOutputStream emptyOut = new ByteArrayOutputStream();
 
 		@Override
 		public void serialize(Serializable obj, OutputStream out) {
 			try {
-				out.write(serialize(obj));
+				FSTConfiguration c = getCoder();
+				FSTObjectOutput fo = c.getObjectOutput(out);
+				fo.writeObject(obj);
+				fo.flush();
+
+				if (fo.getBuffer().length > BUF_LIMIT)
+					fo.resetForReUse(getProperBuf());
+				c.getObjectOutput(emptyOut);
 			} catch (IOException e) {
 				throw Exps.unchecked(e);
 			}
@@ -149,22 +187,38 @@ public interface Serializer {
 
 		@SuppressWarnings("unchecked")
 		public <T extends Serializable> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
-			final DefaultCoder c = getCoder();
-			c.getConf().setClassLoader(cl == null ? getClass().getClassLoader() : cl);
-			return (T) c.toObject(b, offset, length);
+			try {
+				FSTConfiguration c = getCoder();
+				c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
+				FSTObjectInput fi = offset == 0 ?
+								c.getObjectInput(b, length) : c.getObjectInputCopyFrom(b, offset, length);
+				T obj = (T) fi.readObject();
+
+				if (length > BUF_LIMIT)
+					fi.resetForReuseUseArray(getProperBuf());
+				return obj;
+			} catch (Exception e) {
+				throw Exps.unchecked(e);
+			}
 		}
+
+		ByteArrayInputStream emptyIn = new ByteArrayInputStream(new byte[0]);
 
 		@SuppressWarnings("unchecked")
 		public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
-			throw new UnsupportedOperationException("doesn't support multi-object now");
+			FSTConfiguration c = getCoder();
+			c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
+			try {
+				FSTObjectInput fi = c.getObjectInput(is);
+				T obj = (T) fi.readObject();
 
-//			final DefaultCoder c = getCoder();
-//			c.getConf().setClassLoader(cl == null ? getClass().getClassLoader() : cl);
-//			try {
-//				return (T) c.getConf().getObjectInput(is).readObject();
-//			} catch (Exception e) {
-//				throw Exps.unchecked(e);
-//			}
+				if (fi.getCodec().getBuffer().length > BUF_LIMIT)
+					fi.resetForReuseUseArray(getProperBuf());
+				c.getObjectInput(emptyIn);
+				return obj;
+			} catch (Exception e) {
+				throw Exps.unchecked(e);
+			}
 		}
 
 		public <T extends Serializable> T deserialize(InputStream is) {

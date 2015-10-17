@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-public final class UrlCtxHolder<CTX extends UrlContext> implements Serializable{
+public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 	private static final long serialVersionUID = 2643572390637842239L;
 
 	String url;
@@ -22,6 +22,10 @@ public final class UrlCtxHolder<CTX extends UrlContext> implements Serializable{
 
 	public static <T extends UrlContext> Stream<UrlCtxHolder<T>> ofAll(Stream<String> urls) {
 		return urls.map(UrlCtxHolder::new);
+	}
+
+	public static UrlCtxHolder of(String url) {
+		return new UrlCtxHolder(url);
 	}
 
 	@Override

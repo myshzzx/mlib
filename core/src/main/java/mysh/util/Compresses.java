@@ -90,15 +90,20 @@ public class Compresses {
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,
 	                               OutputStream out, int bufSize) {
+		try (
+						CheckedOutputStream cos = new CheckedOutputStream(out, new CRC32()) {
+							@Override
+							public void close() throws IOException {
+								flush();
+							}
+						};
+						ZipOutputStream zos = new ZipOutputStream(cos)) {
 
-		byte[] buf = Compresses.getProperBufSize(bufSize);
-		CheckedOutputStream cos = new CheckedOutputStream(out, new CRC32());
-		ZipOutputStream zos = new ZipOutputStream(cos);
-		try {
 			ZipEntry ze = new ZipEntry(entry);
 			zos.putNextEntry(ze);
 
 			int len;
+			byte[] buf = Compresses.getProperBufSize(bufSize);
 			while (maxReadLen > 0
 							&& (len = in.read(buf, 0, maxReadLen > buf.length ? buf.length
 							: (int) maxReadLen)) > -1) {
@@ -115,7 +120,19 @@ public class Compresses {
 			log.error("压缩失败: " + entry, e);
 			return false;
 		}
+	}
 
+	private static OutputStream wrapUnClosable(OutputStream out) {
+		return new OutputStream() {
+			@Override
+			public void write(int b) throws IOException {
+				out.write(b);
+			}
+
+			@Override
+			public void close() throws IOException {
+			}
+		};
 	}
 
 	/**
@@ -127,17 +144,14 @@ public class Compresses {
 	 * @return 操作结果.
 	 */
 	public static boolean deCompress(EntryPicker picker, final InputStream in) {
-
-		CheckedInputStream cis = new CheckedInputStream(in, new CRC32());
-
-		ZipInputStream zis = new ZipInputStream(cis) {
-			@Override
-			public void close() throws IOException {
-				throw new IOException("输入流不允许关闭.");
-			}
-		};
-
-		try {
+		try (
+						CheckedInputStream cis = new CheckedInputStream(in, new CRC32()) {
+							@Override
+							public void close() throws IOException {
+								// do not close in
+							}
+						};
+						ZipInputStream zis = new ZipInputStream(cis)) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				picker.getEntry(entry, zis);
