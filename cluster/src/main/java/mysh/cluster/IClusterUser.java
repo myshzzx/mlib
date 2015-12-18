@@ -182,6 +182,8 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
 			if (userThreads.size() > 0)
 				scheduler.schedule(() -> {
 					for (Thread t : userThreads) {
+						// force stop
+						// noinspection deprecation
 						t.stop();
 					}
 				}, 1, TimeUnit.MINUTES);
