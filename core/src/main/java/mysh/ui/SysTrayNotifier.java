@@ -178,6 +178,7 @@ public class SysTrayNotifier implements Closeable {
 							tooltips.append(m.getMsg());
 							tooltips.append('\n');
 						});
+		icon.setToolTip("");
 		icon.setToolTip(tooltips.toString());
 
 		if (this.listener.isMsgFlash(msg))
