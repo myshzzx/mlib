@@ -40,7 +40,8 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 		hcc.setProxyHost("127.0.0.1");
 		hcc.setProxyPort(8087);
 
-		Crawler<UrlContext> c = new Crawler<>(new WebDownloader(), hcc);
+		int ratePerMin = 36;
+		Crawler<UrlContext> c = new Crawler<>(new WebDownloader(), hcc, ratePerMin);
 		c.start();
 
 		while (c.getStatus() != Crawler.Status.STOPPED) {
@@ -56,8 +57,6 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 		seeds.add(new UrlCtxHolder<>(u, null));
 	}
 
-	public static final int WAIT_TIME = 5000;
-
 	@Override
 	public boolean accept(String url, UrlContext ctx) {
 		return !repo.containsKey(url)
@@ -72,31 +71,24 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 		repo.put(e.getCurrentURL(), v);
 		repo.put(e.getReqUrl(), v);
 
-		try {
-			String fUri = e.getCurrentURL().substring(ROOT.length());
-			int endIdx = fUri.lastIndexOf('?');
-			if (endIdx > 0) {
-				fUri = fUri.substring(0, endIdx);
-			}
-			File f = new File("l:/a/" + fUri);
-			f.getParentFile().mkdirs();
-			if (f.exists() && f.length() > 0) return true;
-
-			try (OutputStream out = new FileOutputStream(f)) {
-				e.bufWriteTo(out);
-			} catch (Exception ex) {
-				log.error("下载失败: " + e.getCurrentURL(), ex);
-				repo.remove(e.getCurrentURL());
-				repo.remove(e.getReqUrl());
-				return false;
-			}
-			return true;
-		} finally {
-			try {
-				Thread.sleep(WAIT_TIME);
-			} catch (InterruptedException e1) {
-			}
+		String fUri = e.getCurrentURL().substring(ROOT.length());
+		int endIdx = fUri.lastIndexOf('?');
+		if (endIdx > 0) {
+			fUri = fUri.substring(0, endIdx);
 		}
+		File f = new File("l:/a/" + fUri);
+		f.getParentFile().mkdirs();
+		if (f.exists() && f.length() > 0) return true;
+
+		try (OutputStream out = new FileOutputStream(f)) {
+			e.bufWriteTo(out);
+		} catch (Exception ex) {
+			log.error("下载失败: " + e.getCurrentURL(), ex);
+			repo.remove(e.getCurrentURL());
+			repo.remove(e.getReqUrl());
+			return false;
+		}
+		return true;
 	}
 
 	@Override
@@ -123,7 +115,7 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 		this.unhandledSeeds = unhandledSeeds;
 		try {
 			FilesUtil.writeObjectToFile(saveFile.getAbsolutePath(),
-					new Object[]{this.repo, this.unhandledSeeds});
+							new Object[]{this.repo, this.unhandledSeeds});
 		} catch (IOException e) {
 			log.error("save unhandled seeds failed.", e);
 		}

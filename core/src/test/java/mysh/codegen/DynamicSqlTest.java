@@ -116,5 +116,4 @@ public class DynamicSqlTest {
 		assertEquals("1=1  AND cc= 1 ", sql.getCond().toString());
 		assertEquals("{}", sql.getParamMap().toString());
 	}
-
 }
