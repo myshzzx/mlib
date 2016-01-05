@@ -14,7 +14,7 @@
 * [cluster 分布式计算框架](#cluster)
 
 
-## <a name='crawler'></a>网页爬虫
+## <a name='crawler'></a>Crawler 网页爬虫
 看到牛人的博客想一锅端了怎么破？wget？那只是对源站做了个镜像而已，而且面对下载后的一堆数字命名的文件会让人抓狂的。
 
 假如有个爬虫允许我
@@ -48,7 +48,7 @@ interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 就好了。示例见[test目录](https://github.com/myshzzx/mlib/tree/master/core/src/test/java/mysh/crawler2)
 
 
-## <a name='dynasql'></a>动态sql拼接(流式)
+## <a name='dynasql'></a>DynamicSql 动态sql拼接(流式)
 控制器丢过来一个表单对象，要根据它动态地拼 sql 也是个令人恼火的活，要处理各种空值引号啥的，一不小心就出错。能像写 sql 一样写 java 或许还会好点。
 ```java
 // form = {name:"mysh", org:"sd"}
@@ -77,7 +77,7 @@ sql.getParamMap(); // {name=mysh, org=sd}
 示例见[test目录](https://github.com/myshzzx/mlib/tree/master/core/src/test/java/mysh/codegen)
 
 
-## <a name='hca'></a>简化版 httpclient
+## <a name='hca'></a>HttpClientAssist 简化版 httpclient
 爬虫项目的衍生物，httpclient component 的封装版。访问个 url 就这么简单。
 
 proxy/header/params 啥的就不说了，详见[test目录](https://github.com/myshzzx/mlib/tree/master/core/src/test/java/mysh/net/httpclient)。
@@ -99,5 +99,18 @@ try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 
 
 # <a name='cluster'></a>cluster 分布式计算框架
+
+<img src='http://g.gravizo.com/g?
+ digraph G {
+   main -> parse -> execute;
+   main -> init;
+   main -> cleanup;
+   execute -> make_string;
+   execute -> printf
+   init -> make_string;
+   main -> printf;
+   execute -> compare;
+ }
+'/>
 
 
