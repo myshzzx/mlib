@@ -8,12 +8,10 @@
 ----
 下面是一些块头稍大的组件
 
-[core 公共包](#core)
-* [网页爬虫](#crawler)
-* [动态sql拼接(流式)](#dynasql)
-* [简化版 httpclient](#hca)
-
-[cluster 分布式计算框架](#cluster)
+* [Crawler 网页爬虫](#crawler)
+* [DynamicSql 动态sql拼接(流式)](#dynasql)
+* [HttpClientAssist 简化版 httpclient](#hca)
+* [cluster 分布式计算框架](#cluster)
 
 
 # <a name='core'></a>core 公共包
@@ -103,3 +101,5 @@ try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 
 
 # <a name='cluster'></a>cluster 分布式计算框架
+
+
