@@ -26,17 +26,23 @@
 interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	// 准备工作
 	void init();
+
 	// 设定起点
 	Stream<UrlCtxHolder<CTX>> getSeeds();
+
 	// 决定要爬取的页面
 	boolean accept(String url, CTX ctx);
+
 	// 决定要提取 url 的页面
 	boolean needToDistillUrls(HttpClientAssist.UrlEntity ue, CTX ctx);
+
 	// 处理任务的上下文
 	Stream<UrlCtxHolder<CTX>> afterDistillingUrls(
 	          HttpClientAssist.UrlEntity parentUe, CTX parentCtx, Stream<String> distilledUrls)
+
 	// 处理取到的 url 数据
 	boolean onGet(HttpClientAssist.UrlEntity ue, CTX ctx);
+
 	// 被停止时的处理，如保存已抓取的页面信息，可以用 ConcurrentHashMap 或 BloomFilter
 	void onCrawlerStopped(Queue<UrlCtxHolder<CTX>> unhandledTasks);
 
@@ -54,15 +60,21 @@ DynamicSql sql = DynamicSql.create();
 sql
    // 二元表达式，如果你觉得这样更直观
    .bi("name", "!=", form.getName())
+
    // 或者简单用 eq（equal）
    .eq("org", form.getOrg())
+
    // null 或空白值会被跳过
    .notLike("label", form.getLabel())
+
    // 可以随时设置字段别名
    .setTableAlias("t")
+
    // 条件为 true 才拼接
    .on(form.isOK()).in("age", 10, 20, 30)
+
    .orderBy("no");
+
 sql.getCondStr(); // 1=1 AND NAME != :name AND ORG = :org AND T.AGE IN (10,20,30) ORDER BY NO
 sql.getParamMap(); // {name=mysh, org=sd}
 ```
@@ -75,12 +87,15 @@ sql.getParamMap(); // {name=mysh, org=sd}
 proxy/header/params 啥的就不说了，详见[test目录](https://github.com/myshzzx/mlib/tree/master/core/src/test/java/mysh/net/httpclient)。
 ```java
 HttpClientAssist hca = new HttpClientAssist(new HttpClientConfig());
+
 // 用 try-resource 释放资源
 try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 	// 取页面文本
 	String html = ue.getEntityStr();
+
 	// 页面数据写入文件
 	ue.bufWriteTo(fileOutputStream);
+
 	// 响应状态码
 	ue.getStatusLine().getStatusCode(); // 200
 }
