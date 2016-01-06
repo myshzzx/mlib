@@ -71,7 +71,7 @@ public class ClusterTest2 {
 						@Override
 						public Integer procSubTask(float[][] subTask, int timeout) throws InterruptedException {
 							log.info("begin to process sumUser subTask.--");
-							Thread.sleep(20000);
+							Thread.sleep(5000);
 							log.info("process sumUser subTask end.--");
 							return subTask.length;
 						}
@@ -83,6 +83,5 @@ public class ClusterTest2 {
 							return sum;
 						}
 					};
-
 
 }

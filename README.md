@@ -99,18 +99,128 @@ try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 
 
 # <a name='cluster'></a>cluster 分布式计算框架
+闲置机器发挥余热的时候到了。
+### 特点
+* 面向计算密集的应用
+* 无中心，自组织，通过内网广播进行节点发现
+* 无外系统依赖，一个节点即可组成集群，并支持动态横向扩展
+* 支持独立部署和嵌入式部署
 
-<img src='http://g.gravizo.com/g?
- digraph G {
-   main -> parse -> execute;
-   main -> init;
-   main -> cleanup;
-   execute -> make_string;
-   execute -> printf
-   init -> make_string;
-   main -> printf;
-   execute -> compare;
- }
-'/>
+### 运行机制
+* 集群内有两种角色：Master 和 Worker
+* Master 负责任务调度和文件同步，Worker 负责任务执行
+* 所有节点都是 Worker，某个节点身兼 Master
+* Master 由所有节点公认的规则确定（启动时间最早且 IP 地址字串的字典序最靠前）
+* Master 和 Worker 保持心跳连接，用于存活检测和状态更新
+* 除了节点发现，其他通信采用 RPC
+* RPC 基于 Thrift 和 fast-serialization
 
+### 自组织
+* 按照规则，某台机器 “天生” 就是 Master
+* 节点通过广播包问答的方式发现其他节点及确认 Master，广播包内包含自身信息
+* 节点启动时进入 “Master 确认流程”，广播询问 “谁是 Master”
+	1. 超时没有收到回应，将自己设定为 Master，并广播 “我是 Master”
+	2. 超时内收到回应，对方宣称自己是 Master，对比信息发现：
+		+ 自己更有资格当 Master，将自己设定为 Master，并广播 “我是 Master”
+		+ 对方更有资格当 Master，什么也不做
+* Master 发现 Worker 心跳丢失时，将 Worker 未提交的任务重新发给其他 Worker 执行
+* Worker 发现 Master 心跳丢失时，重新进入 “Master 确认流程”
 
+### 任务调度
+* Master 维护 Worker 的状态，并由 Worker 的心跳更新状态
+* Master 根据 Worker 的状态计算它的负载，维护一个负载值的优先队列，以此进行任务调度
+* Master 将任务分解为子任务交由 Worker 执行，Worker 执行完成后将结果提交 Master，Master 合并结果并返回给用户
+* Master 的任务超时或 Worker 的子任务失败将导致任务取消，Worker 的子任务是否超时或失败由用户代码控制
+
+### 部署
+* 独立
+```shell
+cd cluster
+mvn package
+cd target/cluster-dist
+./startCluster.sh
+```
+* 嵌入式
+```java
+new ClusterNode(new ClusterConf());
+// ClusterNode 只启动 daemon 线程，需要保留非 daemon 线程来阻止 vm 退出
+new CountDownLatch(1).await();
+```
+
+### 客户端连接
+```java
+// 连接到集群
+ClusterClient c = new ClusterClient(cmdPort);
+```
+
+### 集群任务
+#### 管理任务
+```java
+// 取消任务
+mysh.cluster.ClusterClient.mgrCancelTask
+
+// 获取 Worker 节点状态
+mysh.cluster.ClusterClient.mgrGetWorkerStates
+
+// 重启节点
+mysh.cluster.ClusterClient.mgrShutdownRestart
+
+// 更新所有节点配置
+mysh.cluster.ClusterClient.mgrUpdateConf
+
+// 上传(更新)文件到集群
+mysh.cluster.ClusterClient.mgrUpdateFile
+```
+#### 用户任务
+* 用户将应用打成 jar 包上传到集群上某个 namespace 后，即可执行分布式任务。
+* 不同 namespace 使用各自的类加载器，相互隔离
+```java
+// 执行任务
+mysh.cluster.ClusterClient#runTask
+
+// 任务描述：对二维数组中所有元素求和
+new IClusterUser<float[][], float[][], Float, Float>() {
+	// Master 任务分解
+	public SubTasksPack<float[][]> fork(float[][] task, String masterNode, List<String> workerNodes) {
+		log.info("begin to fork sumUser task.==");
+
+		float[][][] r = split(task, workerNodes.size());
+
+		log.info("fork sumUser task end.==");
+		return pack(r, null);
+	}
+
+	// 子任务结果类型
+	public Class<Float> getSubResultType() {
+		return Float.class;
+	}
+
+	// Worker 执行子任务
+	public Float procSubTask(float[][] subTask, int timeout) throws InterruptedException {
+		log.info("begin to process sumUser subTask.--");
+		Thread.sleep(5000);
+		float sum = 0;
+		for (float[] s : subTask) {
+			for (float f : s) {
+				sum += f;
+			}
+		}
+		log.info("process sumUser subTask end.--");
+		return sum;
+	}
+
+	// Master 子任务结果合并
+	public Float join(String masterNode, String[] nodes, Float[] subResult) {
+		return Arrays.stream(subResult)
+						.reduce((a, b) -> a + b).get();
+	}
+};
+```
+
+### 权限
+* 集群上的用户程序权限受 jvm 安全沙箱限制，权限取决于文件上传时的类型（su：superuser，拥有节点主机所有权限；user：普通用户，拥有受限权限）。
+详见[配置文件](https://github.com/myshzzx/mlib/blob/master/cluster/dist/main/core/permission.txt)
+* 受限的用户程序可以通过`mysh.cluster.IClusterUser` 的 `protected` 方法访问系统资源
+
+### 更多示例
+详见[test目录](https://github.com/myshzzx/mlib/tree/master/cluster/src/test/java/mysh/cluster)
