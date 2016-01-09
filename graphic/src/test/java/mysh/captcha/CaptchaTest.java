@@ -1,6 +1,7 @@
 package mysh.captcha;
 
 import mysh.util.Tick;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.imageio.ImageIO;
@@ -14,6 +15,7 @@ import java.io.IOException;
  * @author mysh
  * @since 2015/7/25
  */
+@Ignore
 public class CaptchaTest {
 
 	@Test

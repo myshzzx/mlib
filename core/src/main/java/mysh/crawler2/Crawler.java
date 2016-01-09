@@ -59,7 +59,7 @@ public class Crawler<CTX extends UrlContext> {
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin) throws Exception {
 		this(seed, (url, ctx) ->
 						new UrlClassifierConf(
-										seed.getClass().getSimpleName() + "-default-UrlClassifierConf",
+										seed.getClass().getSimpleName() + "-default",
 										hcc.getMaxConnTotal(),
 										Range.within(1, Integer.MAX_VALUE, ratePerMin),
 										hcc
