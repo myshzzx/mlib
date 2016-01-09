@@ -4,6 +4,7 @@ import mysh.annotation.GuardedBy;
 import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
+import mysh.util.Range;
 import org.apache.http.client.ClientProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +41,7 @@ import java.util.stream.Stream;
  */
 @ThreadSafe
 public class Crawler<CTX extends UrlContext> {
+	private static final Random rand = ThreadLocalRandom.current();
 	private final Logger log;
 
 	private final CrawlerSeed<CTX> seed;
@@ -55,14 +57,19 @@ public class Crawler<CTX extends UrlContext> {
 	}
 
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin) throws Exception {
-		this(seed,
-						(url, ctx) -> new UrlClassifierConf("default", hcc.getMaxConnTotal(),
-										ratePerMin > 0 ? ratePerMin : Integer.MAX_VALUE, hcc));
+		this(seed, (url, ctx) ->
+						new UrlClassifierConf(
+										seed.getClass().getSimpleName() + "-default-UrlClassifierConf",
+										hcc.getMaxConnTotal(),
+										Range.within(1, Integer.MAX_VALUE, ratePerMin),
+										hcc
+						).setBlockChecker(new DefaultBlockChecker())
+		);
 	}
 
 	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
 		this.seed = Objects.requireNonNull(seed, "need seed");
-		this.ccf = Objects.requireNonNull(ccf, "need classifier config factory");
+		this.ccf = Objects.requireNonNull(ccf, "need classifiedUrlCrawler config factory");
 
 		this.name = "Crawler(" + this.seed.getClass().getSimpleName() + ")";
 		this.log = LoggerFactory.getLogger(this.name);
@@ -172,7 +179,7 @@ public class Crawler<CTX extends UrlContext> {
 		}
 
 		try {
-			classifiers.values().forEach(UrlClassifier::stop);
+			classifiers.values().forEach(ClassifiedUrlCrawler::stop);
 			classifiers.values().forEach(c -> c.awaitTermination(2, TimeUnit.MINUTES));
 		} finally {
 			try {
@@ -230,9 +237,9 @@ public class Crawler<CTX extends UrlContext> {
 
 	private class Worker extends UrlCtxHolder<CTX> implements Runnable {
 		private static final long serialVersionUID = 4173253887553156741L;
-		private final UrlClassifier classifier;
+		private final ClassifiedUrlCrawler classifier;
 
-		public Worker(String url, CTX ctx, UrlClassifier classifier) {
+		public Worker(String url, CTX ctx, ClassifiedUrlCrawler classifier) {
 			super(url, ctx);
 			this.classifier = classifier;
 		}
@@ -348,7 +355,7 @@ public class Crawler<CTX extends UrlContext> {
 		}
 	}
 
-	private final Map<UrlClassifierConf, UrlClassifier> classifiers = new ConcurrentHashMap<>();
+	private final Map<UrlClassifierConf, ClassifiedUrlCrawler> classifiers = new ConcurrentHashMap<>();
 
 	/**
 	 * classify the url and put it into working queue.
@@ -359,14 +366,14 @@ public class Crawler<CTX extends UrlContext> {
 
 		final UrlClassifierConf ucc = ccf.get(url, ctx);
 		if (ucc == null)
-			throw new RuntimeException("get null classifier config with param: url=" + url + ", ctx=" + ctx);
+			throw new RuntimeException("get null classifiedUrlCrawler config with param: url=" + url + ", ctx=" + ctx);
 
-		UrlClassifier classifier = classifiers.get(ucc);
+		ClassifiedUrlCrawler classifier = classifiers.get(ucc);
 		if (classifier == null) {
 			/** synchronized here because: {@link #useUrlClassifierAdjuster} */
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (ucc) {
-				classifier = classifiers.computeIfAbsent(ucc, UrlClassifier::new);
+				classifier = classifiers.computeIfAbsent(ucc, ClassifiedUrlCrawler::new);
 			}
 		}
 		classifier.crawl(url, ctx);
@@ -374,19 +381,22 @@ public class Crawler<CTX extends UrlContext> {
 
 	public void useUrlClassifierAdjuster(UrlClassifierConf ucc, boolean useOrNot) {
 		// synchronized here because: this method will fail when ucc's prop hasn't been changed, and
-		// the classifier.initer has read ucc's old prop, but hasn't completed initialization
+		// the classifiedUrlCrawler.initer has read ucc's old prop, but hasn't completed initialization
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (ucc) {
 			ucc.useAdjuster = useOrNot;
-			UrlClassifier urlClassifier = classifiers.get(ucc);
-			if (urlClassifier != null)
-				urlClassifier.useAdjuster = useOrNot;
+			ClassifiedUrlCrawler classifiedUrlCrawler = classifiers.get(ucc);
+			if (classifiedUrlCrawler != null)
+				classifiedUrlCrawler.useAdjuster = useOrNot;
 		}
 	}
 
 	private static final AtomicLong classifierThreadCount = new AtomicLong(0);
 
-	private class UrlClassifier {
+	/**
+	 * crawl a set of urls that were classified.
+	 */
+	private class ClassifiedUrlCrawler {
 		private final String name;
 
 		private volatile int milliSecStep;
@@ -400,7 +410,7 @@ public class Crawler<CTX extends UrlContext> {
 		private final ThreadPoolExecutor exec;
 
 		@SuppressWarnings("unchecked")
-		UrlClassifier(UrlClassifierConf conf) {
+		ClassifiedUrlCrawler(UrlClassifierConf conf) {
 			Objects.requireNonNull(conf, "conf should not be null");
 			this.name = Objects.requireNonNull(conf.name, "name can't be null");
 
@@ -431,33 +441,32 @@ public class Crawler<CTX extends UrlContext> {
 		 *             it will be regard as {@link Integer#MAX_VALUE}, because such a rate can't be
 		 *             accurately controlled)
 		 */
-		public void setRatePerMinute(int rate) {
-			rate = rate < 1 ? Integer.MAX_VALUE : rate;
-			rate = rate > UrlClassifierConf.maxAccRatePM ? Integer.MAX_VALUE : rate;
-			milliSecStep = 60_000 / rate;
+		void setRatePerMinute(int rate) {
+			milliSecStep = 60_000 / Range.within(1, UrlClassifierConf.maxAccRatePM + 1, rate);
 		}
 
 		/**
 		 * get accurate rate per minute, or {@link Integer#MAX_VALUE} if unlimited.<br/>
 		 * see {@link #setRatePerMinute(int)}
 		 */
-		public int getRatePerMinute() {
-			return milliSecStep == 0 ? Integer.MAX_VALUE : 60_000 / milliSecStep;
+		int getRatePerMinute() {
+			return milliSecStep == 0 ? Integer.MAX_VALUE :
+							Range.within(1, UrlClassifierConf.maxAccRatePM, 60_000 / milliSecStep);
 		}
 
-		public void setThreadPoolSize(int size) {
+		void setThreadPoolSize(int size) {
 			this.exec.setMaximumPoolSize(size);
 		}
 
-		public int getThreadPoolSize() {
+		int getThreadPoolSize() {
 			return this.exec.getMaximumPoolSize();
 		}
 
 		/**
-		 * stop classifier. release all resources, to wait for termination, call {@link #awaitTermination}
+		 * stop classifiedUrlCrawler. release all resources, to wait for termination, call {@link #awaitTermination}
 		 */
 		@SuppressWarnings("unchecked")
-		public void stop() {
+		void stop() {
 			hca.close();
 			exec.shutdownNow().stream()
 							.forEach(r -> {
@@ -469,7 +478,7 @@ public class Crawler<CTX extends UrlContext> {
 		/**
 		 * wait for termination.
 		 */
-		public void awaitTermination(int time, TimeUnit timeUnit) {
+		void awaitTermination(int time, TimeUnit timeUnit) {
 			try {
 				exec.awaitTermination(time, timeUnit);
 			} catch (InterruptedException e) {
@@ -480,7 +489,7 @@ public class Crawler<CTX extends UrlContext> {
 		/**
 		 * crawl give url.
 		 */
-		public void crawl(String url, CTX ctx) {
+		void crawl(String url, CTX ctx) {
 			exec.execute(new Worker(url, ctx, this));
 		}
 
@@ -491,7 +500,7 @@ public class Crawler<CTX extends UrlContext> {
 		 *
 		 * @return true when scheduled, false when rejected.
 		 */
-		public boolean recrawlWhenFail(Worker worker, IOException ex) {
+		boolean recrawlWhenFail(Worker worker, IOException ex) {
 			AtomicInteger count = recrawlCount.get(worker.url);
 			if (count == null || count.get() < 3) {
 				if (count == null)
@@ -517,7 +526,7 @@ public class Crawler<CTX extends UrlContext> {
 		 * access url, with flow rate control.<br/>
 		 * see {@link HttpClientAssist#access(String)}
 		 */
-		public HttpClientAssist.UrlEntity access(String url) throws IOException, InterruptedException {
+		HttpClientAssist.UrlEntity access(String url) throws IOException, InterruptedException {
 			long timeStep = this.milliSecStep;
 			if (timeStep > 0) {
 				long waitTime;
@@ -538,25 +547,28 @@ public class Crawler<CTX extends UrlContext> {
 			return ue;
 		}
 
-		public void afterAccess() {
+		void afterAccess() {
 			if (useAdjuster)
 				adjuster.afterAccess();
 		}
 	}
 
+	/**
+	 * adjuster checking interval (milli-second).
+	 */
 	private static final long adjPeriod = 60_000;
 
 	private class UrlClassifierAdjuster {
-		private UrlClassifier classifier;
+		private ClassifiedUrlCrawler classifiedUrlCrawler;
 		private volatile long periodStart = System.currentTimeMillis();
 
-		public UrlClassifierAdjuster(UrlClassifier classifier) {
-			this.classifier = classifier;
+		UrlClassifierAdjuster(ClassifiedUrlCrawler classifiedUrlCrawler) {
+			this.classifiedUrlCrawler = classifiedUrlCrawler;
 		}
 
 		private final Queue<Long> accessRec = new ConcurrentLinkedQueue<>();
 
-		public void beforeAccess() {
+		void beforeAccess() {
 			accessRec.add(System.currentTimeMillis());
 		}
 
@@ -566,7 +578,7 @@ public class Crawler<CTX extends UrlContext> {
 		private final AtomicInteger networkIssueCount = new AtomicInteger(0);
 		private final AtomicInteger blockCount = new AtomicInteger(0);
 
-		public void afterAccess() {
+		void afterAccess() {
 			Long accTime = accessRec.poll();
 			long now = System.currentTimeMillis();
 			if (accTime != null) {
@@ -576,7 +588,7 @@ public class Crawler<CTX extends UrlContext> {
 
 			if (periodStart + adjPeriod < now && analyzeRes.tryAcquire()) {
 				try {
-					long totals = totalCount.get();
+					int totals = totalCount.get();
 					if (totals > 0) {
 						periodStart = now;
 						// such Counts are not guarded, and may lose data here, but it's OK,
@@ -589,7 +601,7 @@ public class Crawler<CTX extends UrlContext> {
 						networkIssueCount.set(0);
 						blockCount.set(0);
 
-						analyze(totals, accAveMilli, networkIssues, blocks);
+						analyze(now, totals, accAveMilli, networkIssues, blocks);
 					}
 				} finally {
 					analyzeRes.release();
@@ -597,12 +609,13 @@ public class Crawler<CTX extends UrlContext> {
 			}
 		}
 
-		private void analyze(long totals, long accAveMilli, int networkIssues, int blocks) {
-
+		void onBlocked(HttpClientAssist.UrlEntity ue) {
+			blockCount.incrementAndGet();
 		}
 
-		public void onBlocked(HttpClientAssist.UrlEntity ue) {
-			blockCount.incrementAndGet();
+		void onException(IOException ex) {
+			if (isNetworkIssue(ex))
+				networkIssueCount.incrementAndGet();
 		}
 
 		private boolean isNetworkIssue(Throwable t) {
@@ -611,9 +624,41 @@ public class Crawler<CTX extends UrlContext> {
 							|| t instanceof UnknownHostException;
 		}
 
-		public void onException(IOException ex) {
-			if (isNetworkIssue(ex))
-				networkIssueCount.incrementAndGet();
+		private volatile int lastWorkAccPerMinute;
+		private volatile long lastSpeedUp;
+		private volatile long lastSpeedDown;
+
+		/**
+		 * analyze access statistics within {@link mysh.crawler2.Crawler#adjPeriod}.
+		 *
+		 * @param now           current milli-second time
+		 * @param totals        total access count.
+		 * @param accAveMilli   access average time (milli-second).
+		 * @param networkIssues network fails count.
+		 * @param blocks        blocked by remote server count.
+		 */
+		private void analyze(long now, int totals, long accAveMilli, int networkIssues, int blocks) {
+			double networkIssueRate = 1.0 * networkIssues / totals;
+			double blockRate = 1.0 * blocks / (totals - networkIssues);
+			int accPerMinute = classifiedUrlCrawler.getRatePerMinute();
+
+			accPerMinute = Range.within(5, UrlClassifierConf.maxAccRatePM, accPerMinute);
+			if (networkIssueRate > 0.2 || blockRate > 0.2) { // speed down
+				lastSpeedDown = now;
+				classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
+				log.info(classifiedUrlCrawler.name + " speed down to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+			} else if (networkIssues == 0 && blocks == 0) { // speed up
+				if (lastSpeedDown > lastSpeedUp && lastSpeedUp + 3 * 3600 * 1000 > now) {
+					// back to last work access rate
+					classifiedUrlCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
+					log.info(classifiedUrlCrawler.name + " speed back to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+				} else {
+					lastSpeedUp = now;
+					lastWorkAccPerMinute = accPerMinute;
+					classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * (1.1 + rand.nextDouble() * 0.4)));
+					log.info(classifiedUrlCrawler.name + " speed up to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+				}
+			}
 		}
 	}
 

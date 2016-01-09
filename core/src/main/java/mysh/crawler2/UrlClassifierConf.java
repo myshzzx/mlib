@@ -29,22 +29,22 @@ public final class UrlClassifierConf implements Serializable {
 	}
 
 	/**
-	 * max accurate flow control per minute: 30*60.
+	 * max accurate flow control per minute.
 	 */
-	public static final int maxAccRatePM = 30 * 60;
+	static final int maxAccRatePM = 60_000;
 
 	final String name;
 	final int threadPoolSize;
 	final int ratePerMinute;
 	final HttpClientConfig hcc;
-	volatile boolean useAdjuster = true;
+	volatile boolean useAdjuster;
 	volatile BlockChecker blockChecker;
 
 	/**
 	 * @param name           the name of url classifier.
 	 * @param threadPoolSize thread pool size of the classifier.
 	 * @param ratePerMinute  flow control. the max accurate controllable value is {@link #maxAccRatePM}.
-	 *                       see {@link mysh.crawler2.Crawler.UrlClassifier#setRatePerMinute(int)}
+	 *                       see {@link mysh.crawler2.Crawler.ClassifiedUrlCrawler#setRatePerMinute(int)}
 	 * @param hcc            http config. can be reused, but every url classifier it related to will
 	 *                       gen a new client. NOTE that modifying this config after it being used
 	 *                       will NOT effect crawler's behavior.
@@ -66,9 +66,11 @@ public final class UrlClassifierConf implements Serializable {
 
 	/**
 	 * BlockChecker is used to check whether current access is blocked.
+	 * crawler speed auto-adjust is enabled only if blockChecker is given.
 	 */
 	public UrlClassifierConf setBlockChecker(BlockChecker blockChecker) {
 		this.blockChecker = blockChecker;
+		this.useAdjuster = blockChecker != null;
 		return this;
 	}
 
