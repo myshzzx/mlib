@@ -12,6 +12,11 @@
 	<artifactId>mlib-graphic</artifactId>
 
 	<dependencies>
+		<dependency>
+			<groupId>mysh</groupId>
+			<artifactId>mlib-core</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
+		</dependency>
 
 		<!--for SIFT-->
 		<dependency>

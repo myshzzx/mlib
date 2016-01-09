@@ -12,6 +12,11 @@
 	<artifactId>mlib-dev</artifactId>
 
 	<dependencies>
+		<dependency>
+			<groupId>mysh</groupId>
+			<artifactId>mlib-core</artifactId>
+			<version>1.0.1-SNAPSHOT</version>
+		</dependency>
 
 		<!--used by clojure interpreter-->
 		<dependency>
