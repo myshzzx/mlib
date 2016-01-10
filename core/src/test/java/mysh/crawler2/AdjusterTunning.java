@@ -13,10 +13,10 @@ import java.util.stream.Stream;
  * @author mysh
  * @since 2016/1/10
  */
-public class AdjusterTest implements CrawlerSeed<UrlContext> {
+public class AdjusterTunning implements CrawlerSeed<UrlContext> {
 
 	public static void main(String[] args) throws Exception {
-		Crawler<UrlContext> c = new Crawler<>(new AdjusterTest(), new HttpClientConfig(), 300);
+		Crawler<UrlContext> c = new Crawler<>(new AdjusterTunning(), new HttpClientConfig(), 300);
 		c.start();
 		new CountDownLatch(1).await();
 	}

@@ -52,10 +52,18 @@ public class Crawler<CTX extends UrlContext> {
 
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
+	/**
+	 * create a crawler with seed and http-client config.
+	 * speed auto adjusting is enabled by default.
+	 */
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
 		this(seed, hcc, Integer.MAX_VALUE);
 	}
 
+	/**
+	 * create a crawler with seed , http-client config and maximum access rate per minute.
+	 * speed auto adjusting is enabled by default.
+	 */
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin) throws Exception {
 		this(seed, (url, ctx) ->
 						new UrlClassifierConf(
@@ -67,6 +75,10 @@ public class Crawler<CTX extends UrlContext> {
 		);
 	}
 
+	/**
+	 * create a crawler with seed and url-classifier factory.
+	 * using the factory you can classify urls to groups and customize different strategies for them.
+	 */
 	public Crawler(CrawlerSeed<CTX> seed, UrlClassifierConf.Factory<CTX> ccf) throws Exception {
 		this.seed = Objects.requireNonNull(seed, "need seed");
 		this.ccf = Objects.requireNonNull(ccf, "need classifiedUrlCrawler config factory");
