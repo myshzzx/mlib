@@ -643,20 +643,22 @@ public class Crawler<CTX extends UrlContext> {
 			int accPerMinute = classifiedUrlCrawler.getRatePerMinute();
 
 			accPerMinute = Range.within(5, UrlClassifierConf.maxAccRatePM, accPerMinute);
-			if (networkIssueRate > 0.2 || blockRate > 0.2) { // speed down
+			if (networkIssueRate > 0.15 || blockRate > 0.05) { // speed down
 				lastSpeedDown = now;
 				classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
-				log.info(classifiedUrlCrawler.name + " speed down to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+				log.info(classifiedUrlCrawler.name + " speed down to APM:" + classifiedUrlCrawler.getRatePerMinute());
 			} else if (networkIssues == 0 && blocks == 0) { // speed up
 				if (lastSpeedDown > lastSpeedUp && lastSpeedUp + 3 * 3600 * 1000 > now) {
 					// back to last work access rate
-					classifiedUrlCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
-					log.info(classifiedUrlCrawler.name + " speed back to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+					if (accPerMinute < lastWorkAccPerMinute) {
+						classifiedUrlCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
+						log.info(classifiedUrlCrawler.name + " speed back to APM:" + classifiedUrlCrawler.getRatePerMinute());
+					}
 				} else {
 					lastSpeedUp = now;
 					lastWorkAccPerMinute = accPerMinute;
 					classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * (1.1 + rand.nextDouble() * 0.4)));
-					log.info(classifiedUrlCrawler.name + " speed up to RPM:" + classifiedUrlCrawler.getRatePerMinute());
+					log.info(classifiedUrlCrawler.name + " speed up to APM:" + classifiedUrlCrawler.getRatePerMinute());
 				}
 			}
 		}
