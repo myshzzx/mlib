@@ -108,7 +108,7 @@ public class SerializationPerformance {
 		ti.ds(o, times);
 		tick.nipAndPrint("ds");
 
-		tick.totalAndPrint();
+		tick.printNipsTotal();
 	}
 
 	private static class Java implements TI {

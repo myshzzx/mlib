@@ -79,6 +79,6 @@ public class CaptchaTest {
 			captcha.addBackground(bi);
 		tick.nipAndPrint("addBackground");
 
-		tick.totalAndPrint();
+		tick.printNipsTotal();
 	}
 }

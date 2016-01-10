@@ -12,7 +12,7 @@ import java.util.Set;
  * @since 2016/1/9
  */
 public class DefaultBlockChecker implements UrlClassifierConf.BlockChecker {
-	private final Set<Integer> blockedStatusCodes = Sets.newHashSet(403, 502, 503, 504, 509);
+	private final Set<Integer> blockedStatusCodes = Sets.newHashSet(401, 403, 502, 503, 504, 509);
 
 	@Override
 	public boolean isBlocked(HttpClientAssist.UrlEntity ue) {
