@@ -668,7 +668,7 @@ public class Crawler<CTX extends UrlContext> {
 				classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
 				log.info(classifiedUrlCrawler.name + " speed down to APM:" + classifiedUrlCrawler.getRatePerMinute());
 			} else if (isFinalPeriod && networkIssues == 0 && blocks == 0) { // speed up in final period
-				if (lastSpeedDown > lastSpeedUp && lastSpeedUp + 3 * 3600 * 1000 > now) {
+				if (lastSpeedDown > lastSpeedUp && lastSpeedUp + 3600 * 1000 > now) {
 					// latest operation is speed down and latest speed up happened in 3 hours
 					// back to last work access rate
 					if (accPerMinute < lastWorkAccPerMinute) {
