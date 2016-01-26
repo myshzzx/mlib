@@ -18,20 +18,24 @@
 			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
-		<!--used by clojure interpreter-->
-		<dependency>
-			<groupId>com.fifesoft</groupId>
-			<artifactId>rsyntaxtextarea</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.clojure</groupId>
-			<artifactId>clojure</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.clojure</groupId>
-			<artifactId>clojure-contrib</artifactId>
-		</dependency>
-		<!--used by clojure interpreter-->
 	</dependencies>
 
+	<build>
+		<plugins>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<finalName>DevTools</finalName>
+					<archive>
+						<manifest>
+							<mainClass>mysh.dev.ui.ToolsIntegratedUI</mainClass>
+						</manifest>
+					</archive>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

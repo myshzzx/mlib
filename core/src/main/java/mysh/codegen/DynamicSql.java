@@ -248,8 +248,8 @@ public class DynamicSql<T extends DynamicSql> {
 	 *
 	 * @param flag is between or not between
 	 */
-	private T betweenExp(boolean flag,
-	                     String col, String fromName, Object from, String toName, Object to) {
+	protected T betweenExp(boolean flag,
+	                       String col, String fromName, Object from, String toName, Object to) {
 		if (ignoreChk(fromName, from, toName, to)) return (T) this;
 
 		cond.append(" AND ");
@@ -276,8 +276,7 @@ public class DynamicSql<T extends DynamicSql> {
 		return nullExp(false, col);
 	}
 
-	@SuppressWarnings("Duplicates")
-	private T nullExp(boolean flag, String col) {
+	protected T nullExp(boolean flag, String col) {
 		if (ignoreChk()) return (T) this;
 
 		cond.append(" AND ");
@@ -351,7 +350,7 @@ public class DynamicSql<T extends DynamicSql> {
 		return inExp(false, col, enumStr.split(sepRegex));
 	}
 
-	private T inExp(boolean flag, String col, Object[] enums) {
+	protected T inExp(boolean flag, String col, Object[] enums) {
 		if (enums == null || enums.length == 0 || ignoreChk(enums)) return (T) this;
 
 		cond.append(" AND ");
@@ -387,8 +386,7 @@ public class DynamicSql<T extends DynamicSql> {
 		return orderByExp(false, col);
 	}
 
-	@SuppressWarnings("Duplicates")
-	private T orderByExp(boolean flag, String col) {
+	protected T orderByExp(boolean flag, String col) {
 		if (ignoreChk()) return (T) this;
 
 		cond.append(" ORDER BY ");
@@ -510,7 +508,7 @@ public class DynamicSql<T extends DynamicSql> {
 	/**
 	 * see {@link #ignoreChk(Object...)}
 	 */
-	private boolean ignoreChk(Object param) {
+	protected boolean ignoreChk(Object param) {
 		boolean ignore = ignoreNext;
 		ignoreNext = false;
 
@@ -522,7 +520,7 @@ public class DynamicSql<T extends DynamicSql> {
 	 * if previous on-condition is false, or any param is null(or blank), this will return true.
 	 * the flag will be reset after this invoke.
 	 */
-	private boolean ignoreChk(Object... params) {
+	protected boolean ignoreChk(Object... params) {
 		boolean ignore = ignoreNext;
 		ignoreNext = false;
 
@@ -585,6 +583,9 @@ public class DynamicSql<T extends DynamicSql> {
 
 	private StringBuilder cond;
 	private Map<String, Object> paramMap;
+
+	protected DynamicSql() {
+	}
 
 	protected DynamicSql(StringBuilder cond, Map<String, Object> paramMap) {
 		if (cond == null) cond = new StringBuilder("1=1 ");

@@ -59,6 +59,12 @@
 				<version>${springVersion}</version>
 				<scope>provided</scope>
 			</dependency>
+			<dependency>
+				<groupId>org.springframework</groupId>
+				<artifactId>spring-jdbc</artifactId>
+				<version>${springVersion}</version>
+				<scope>provided</scope>
+			</dependency>
 
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
@@ -126,21 +132,16 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.reflections</groupId>
+				<artifactId>reflections</artifactId>
+				<version>0.9.9</version>
+				<scope>provided</scope>
+			</dependency>
+
+			<dependency>
 				<groupId>com.fifesoft</groupId>
 				<artifactId>rsyntaxtextarea</artifactId>
 				<version>2.5.8</version>
-				<scope>provided</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.clojure</groupId>
-				<artifactId>clojure</artifactId>
-				<version>1.6.0</version>
-				<scope>provided</scope>
-			</dependency>
-			<dependency>
-				<groupId>org.clojure</groupId>
-				<artifactId>clojure-contrib</artifactId>
-				<version>1.2.0</version>
 				<scope>provided</scope>
 			</dependency>
 
@@ -196,50 +197,6 @@
 					<target>1.8</target>
 					<encoding>${sourceEncoding}</encoding>
 				</configuration>
-			</plugin>
-
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-resources-plugin</artifactId>
-				<version>2.7</version>
-				<executions>
-					<execution>
-						<id>default-resources</id>
-						<phase>process-resources</phase>
-						<goals>
-							<goal>resources</goal>
-						</goals>
-						<configuration>
-							<encoding>${sourceEncoding}</encoding>
-						</configuration>
-					</execution>
-					<execution>
-						<id>default-testResources</id>
-						<phase>process-test-resources</phase>
-						<goals>
-							<goal>testResources</goal>
-						</goals>
-						<configuration>
-							<encoding>${sourceEncoding}</encoding>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<plugin>
-				<artifactId>maven-source-plugin</artifactId>
-				<version>2.4</version>
-				<configuration>
-					<attach>true</attach>
-				</configuration>
-				<executions>
-					<execution>
-						<phase>compile</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 
 			<plugin>
