@@ -152,14 +152,28 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		field.set(model, value);
 	}
 
-	private Map<String, Field> getTypeFields(Class<?> type) {
+	/**
+	 * get fields defined by type (and recurred super classes).
+	 * fields with same name in super classes will be covered  by sub class.
+	 */
+	private Map<String, Field> getTypeFields(final Class<?> type) {
 		Map<String, Field> fields = classFields.get(type);
 		if (fields == null) {
+			Stack<Class<?>> types = new Stack<>();
+			Class<?> t = type;
+			while (t != null) {
+				types.push(t);
+				t = t.getSuperclass();
+			}
+
 			fields = new HashMap<>();
-			Field[] dfs = type.getDeclaredFields();
-			for (Field df : dfs) {
-				df.setAccessible(true);
-				fields.put(CodeUtil.camel2underline(df.getName()), df);
+			while (!types.isEmpty()) {
+				t = types.pop();
+				Field[] dfs = t.getDeclaredFields();
+				for (Field df : dfs) {
+					df.setAccessible(true);
+					fields.put(CodeUtil.camel2underline(df.getName()), df);
+				}
 			}
 			classFields.put(type, fields);
 		}
