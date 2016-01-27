@@ -8,6 +8,8 @@ import mysh.codegen.DynamicSql;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
@@ -98,20 +100,29 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		return rs;
 	}
 
+	/**
+	 * assemble result(row set) to given instance.
+	 *
+	 * @param result      row set result
+	 * @param model       instance
+	 * @param modelFields include fields defined in recurring super classes,
+	 *                    which can be primitive type or complex type.
+	 */
 	private void assembleResult(Map<String, Object> result, Object model,
 	                            Map<String, Field> modelFields) throws IllegalAccessException, InstantiationException {
-		for (Map.Entry<String, Field> entry : modelFields.entrySet()) {
-			Field field = entry.getValue();
+		// iterate fields but not results to make sure all complex-type fields be assembled
+		for (Map.Entry<String, Field> fe : modelFields.entrySet()) {
+			Field field = fe.getValue();
 			if ((field.getModifiers() & Modifier.FINAL) > 0
 							|| (field.getModifiers() & Modifier.STATIC) > 0
 							) continue;
 
-			if (isBasicType(field.getType())) {
-				Object value = result.get(entry.getKey());
+			Class<?> fieldType = field.getType();
+			if (isBasicType(fieldType)) {
+				Object value = result.get(fe.getKey());
 				if (value != null)
 					setFieldWithProperType(model, field, value);
 			} else {
-				Class<?> fieldType = field.getType();
 				Map<String, Field> fieldFields = getTypeFields(fieldType);
 				Object fieldInst = fieldType.newInstance();
 				assembleResult(result, fieldInst, fieldFields);
@@ -269,6 +280,22 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		this.resultHandler = rh;
 		return this;
 	}
+
+	/**
+	 * 将返回结果中的时间数据转成字符串。
+	 * yyyy-MM-dd HH:mm:ss
+	 */
+	public static final ResultHandler dateValue2Str = new ResultHandler() {
+		private final DateFormat dfFull = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+		@Override
+		public void handle(Map<String, Object> map) {
+			for (Map.Entry<String, Object> entry : map.entrySet()) {
+				if (entry.getValue() instanceof Date)
+					entry.setValue(dfFull.format(entry.getValue()));
+			}
+		}
+	};
 
 	/**
 	 * 缓存级别

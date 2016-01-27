@@ -65,9 +65,8 @@ public class SqlHelperTest {
 		}
 	}
 
-	public static class MultiTable implements Serializable {
+	public static class MultiTable extends UmOrg implements Serializable {
 		private static final long serialVersionUID = 6800726618985569194L;
-		UmOrg org;
 		UmOperator op;
 	}
 
