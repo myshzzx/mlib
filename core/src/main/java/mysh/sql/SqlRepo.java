@@ -39,7 +39,7 @@ public class SqlRepo {
 	private void loadSqlFile(InputStream is) throws IOException {
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(is))) {
 			String line, id = null;
-			StringBuilder sb = new StringBuilder();
+			StringBuilder sb = null;
 			while (true) {
 				line = in.readLine();
 				if (line != null) line = line.trim();
@@ -58,6 +58,7 @@ public class SqlRepo {
 					if (line == null) return;
 					if (Strings.isBlank(line)) continue;
 					id = line.substring(3).trim();
+					sb = new StringBuilder();
 				} else if (!line.startsWith("--")) { // non comment
 					int commentIdx = line.indexOf("--");
 					if (commentIdx > -1)

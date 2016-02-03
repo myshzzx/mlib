@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -184,4 +186,36 @@ public class OSs {
 		return r;
 	}
 
+	public static class ProcessInfo {
+		public String pid;
+		public String name;
+		public long cpuNano;
+
+		public ProcessInfo(String name, String pid, long cpuNano) {
+			this.name = name;
+			this.pid = pid;
+			this.cpuNano = cpuNano;
+		}
+	}
+
+	private static DateTimeFormatter fTime = DateTimeFormatter.ofPattern("H:mm:ss.SSS");
+
+	public static Map<String, ProcessInfo> sysProc() throws IOException {
+		Process p = Runtime.getRuntime().exec("pslist");
+		Map<String, ProcessInfo> r = new HashMap<>();
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+			reader.lines().skip(4).forEach(line -> {
+				if (Strings.isBlank(line)) return;
+
+				String[] infos = line.split("\\s+");
+				String name = infos[0];
+				String pid = infos[1];
+				long cpuNano = LocalTime.parse(infos[6], fTime).toNanoOfDay();
+				r.put(pid, new ProcessInfo(name, pid, cpuNano));
+			});
+		} finally {
+			p.destroy();
+		}
+		return r;
+	}
 }
