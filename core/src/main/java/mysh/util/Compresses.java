@@ -22,7 +22,7 @@ public class Compresses {
 	 *
 	 * @author Allen
 	 */
-	public static interface EntryPicker {
+	public interface EntryPicker {
 
 		/**
 		 * 取到实体. (操作完成后不要关闭输入流.)
