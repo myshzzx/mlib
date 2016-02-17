@@ -3,6 +3,8 @@ package mysh.net.httpclient;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.net.Proxy;
+
 /**
  * CommonTest
  *
@@ -18,7 +20,7 @@ public class ProxyTest {
 
 		hcc.setProxyHost("192.99.54.41");
 		hcc.setProxyPort(3128);
-		hcc.setProxyType(HttpClientConfig.ProxyType.Http);
+		hcc.setProxyType(Proxy.Type.HTTP);
 
 		HttpClientAssist hca = new HttpClientAssist(hcc);
 
