@@ -16,19 +16,28 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.ProxyAuthenticationStrategy;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
+import org.apache.http.ssl.SSLContexts;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLContext;
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.*;
 import java.nio.charset.Charset;
 import java.util.*;
 
@@ -66,20 +75,57 @@ public class HttpClientAssist implements Closeable {
 		hcBuilder.setUserAgent(conf.getUserAgent());
 
 		if (conf.isUseProxy()) {
-			HttpHost proxyHost = new HttpHost(conf.getProxyHost(), conf.getProxyPort(),
-							conf.getProxyType());
-			hcBuilder.setProxy(proxyHost);
+			// use socks proxy
+			if (conf.getProxyType() == HttpClientConfig.ProxyType.Socks) {
+				Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
+								.register("http", new SocksConnSocketFactory(conf.getProxyHost(), conf.getProxyPort()))
+								.register("https", new SSLSocksConnSocketFactory(
+												SSLContexts.createSystemDefault(), conf.getProxyHost(), conf.getProxyPort()))
+								.build();
+				HttpClientConnectionManager hccm = new BasicHttpClientConnectionManager(reg);
+				hcBuilder.setConnectionManager(hccm);
+			} else { // otherwise
+				HttpHost proxyHost = new HttpHost(conf.getProxyHost(), conf.getProxyPort());
+				hcBuilder.setProxy(proxyHost);
 
-			if (!Strings.isBlank(conf.getProxyAuthName())) {
-				CredentialsProvider cp = new BasicCredentialsProvider();
-				cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
-								new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));
-				hcBuilder.setDefaultCredentialsProvider(cp);
-				hcBuilder.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
+				if (!Strings.isBlank(conf.getProxyAuthName())) {
+					CredentialsProvider cp = new BasicCredentialsProvider();
+					cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
+									new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));
+					hcBuilder.setDefaultCredentialsProvider(cp);
+					hcBuilder.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
+				}
 			}
 		}
 
 		hc = hcBuilder.build();
+	}
+
+	private static class SocksConnSocketFactory extends PlainConnectionSocketFactory {
+		private final Proxy proxy;
+
+		SocksConnSocketFactory(String proxyHost, int proxyPort) {
+			proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+		}
+
+		@Override
+		public Socket createSocket(final HttpContext context) throws IOException {
+			return new Socket(proxy);
+		}
+	}
+
+	private static class SSLSocksConnSocketFactory extends SSLConnectionSocketFactory {
+		private final Proxy proxy;
+
+		SSLSocksConnSocketFactory(SSLContext sslContext, String proxyHost, int proxyPort) {
+			super(sslContext);
+			proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+		}
+
+		@Override
+		public Socket createSocket(final HttpContext context) throws IOException {
+			return new Socket(proxy);
+		}
 	}
 
 	/**
