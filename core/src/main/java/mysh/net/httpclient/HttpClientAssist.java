@@ -26,7 +26,7 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.ProxyAuthenticationStrategy;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpCoreContext;
@@ -53,6 +53,13 @@ public class HttpClientAssist implements Closeable {
 	private final CloseableHttpClient hc;
 
 	public HttpClientAssist(HttpClientConfig conf) {
+		this(conf, null);
+	}
+
+	/**
+	 * @param proxyPicker if not <code>null</code>, conf.isUseProxy will be ignored.
+	 */
+	public HttpClientAssist(HttpClientConfig conf, ProxyPicker proxyPicker) {
 		if (conf == null) {
 			throw new IllegalArgumentException();
 		}
@@ -74,15 +81,23 @@ public class HttpClientAssist implements Closeable {
 
 		hcBuilder.setUserAgent(conf.getUserAgent());
 
-		if (conf.isUseProxy()) {
+		if (proxyPicker != null) {
+			Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
+							.register("http", new SocksConnSocketFactory(proxyPicker))
+							.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), proxyPicker))
+							.build();
+			HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
+			hcBuilder.setConnectionManager(hccm);
+		} else if (conf.isUseProxy()) {
 			// use socks proxy
-			if (conf.getProxyType() == HttpClientConfig.ProxyType.Socks) {
+			if (conf.getProxyType() == Proxy.Type.SOCKS) {
+				Proxy socksProxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(conf.getProxyHost(), conf.getProxyPort()));
+				ProxyPicker pp = () -> socksProxy;
 				Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-								.register("http", new SocksConnSocketFactory(conf.getProxyHost(), conf.getProxyPort()))
-								.register("https", new SSLSocksConnSocketFactory(
-												SSLContexts.createSystemDefault(), conf.getProxyHost(), conf.getProxyPort()))
+								.register("http", new SocksConnSocketFactory(pp))
+								.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), pp))
 								.build();
-				HttpClientConnectionManager hccm = new BasicHttpClientConnectionManager(reg);
+				HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
 				hcBuilder.setConnectionManager(hccm);
 			} else { // otherwise
 				HttpHost proxyHost = new HttpHost(conf.getProxyHost(), conf.getProxyPort());
@@ -102,29 +117,31 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	private static class SocksConnSocketFactory extends PlainConnectionSocketFactory {
-		private final Proxy proxy;
+		private final ProxyPicker proxyPicker;
 
-		SocksConnSocketFactory(String proxyHost, int proxyPort) {
-			proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+		SocksConnSocketFactory(ProxyPicker proxyPicker) {
+			this.proxyPicker = Objects.requireNonNull(proxyPicker);
 		}
 
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
-			return new Socket(proxy);
+			Proxy proxy = proxyPicker.pick();
+			return proxy == null ? new Socket() : new Socket(proxy);
 		}
 	}
 
 	private static class SSLSocksConnSocketFactory extends SSLConnectionSocketFactory {
-		private final Proxy proxy;
+		private final ProxyPicker proxyPicker;
 
-		SSLSocksConnSocketFactory(SSLContext sslContext, String proxyHost, int proxyPort) {
+		SSLSocksConnSocketFactory(SSLContext sslContext, ProxyPicker proxyPicker) {
 			super(sslContext);
-			proxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(proxyHost, proxyPort));
+			this.proxyPicker = Objects.requireNonNull(proxyPicker);
 		}
 
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
-			return new Socket(proxy);
+			Proxy proxy = proxyPicker.pick();
+			return proxy == null ? new Socket() : new Socket(proxy);
 		}
 	}
 

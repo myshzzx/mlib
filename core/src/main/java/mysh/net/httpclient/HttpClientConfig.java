@@ -5,6 +5,7 @@ import mysh.util.PropConf;
 import org.apache.http.Header;
 
 import java.io.Serializable;
+import java.net.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,10 +30,6 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 					"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
 	List<Header> headers = new ArrayList<>();
-
-	public enum ProxyType {
-		Http, Socks
-	}
 
 	/**
 	 * Connection: keep-alive/close
@@ -82,7 +79,7 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 	/**
 	 * 代理类型
 	 */
-	private ProxyType proxyType;
+	private Proxy.Type proxyType;
 
 	/**
 	 * 代理验证名
@@ -153,7 +150,7 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 		this.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
 		this.setProxyHost(conf.getPropString("httpclient.proxyHost"));
 		this.setProxyPort(conf.getPropInt("httpclient.proxyPort"));
-		this.setProxyType(ProxyType.valueOf(conf.getPropString("httpclient.proxyType", "Http")));
+		this.setProxyType(Proxy.Type.valueOf(conf.getPropString("httpclient.proxyType", "HTTP")));
 		this.setProxyAuthName(conf.getPropString("httpclient.proxyAuthName"));
 		this.setProxyAuthPw(conf.getPropString("httpclient.proxyAuthPw"));
 	}
@@ -277,7 +274,7 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 	/**
 	 * @return the proxyType
 	 */
-	public ProxyType getProxyType() {
+	public Proxy.Type getProxyType() {
 
 		return proxyType;
 	}
@@ -285,7 +282,7 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 	/**
 	 * @param proxyType the proxyType to set
 	 */
-	public HttpClientConfig setProxyType(ProxyType proxyType) {
+	public HttpClientConfig setProxyType(Proxy.Type proxyType) {
 
 		this.proxyType = proxyType;
 		return this;
