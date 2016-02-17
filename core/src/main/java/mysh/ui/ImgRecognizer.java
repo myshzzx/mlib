@@ -20,13 +20,13 @@ import java.util.concurrent.CountDownLatch;
  * @author Mysh
  * @since 2015/1/14 9:44
  */
-public class CaptchaGetter {
+public class ImgRecognizer {
 
 	private final JFrame frame;
 	private final JTextField text;
 	private final CountDownLatch textLatch;
 
-	public CaptchaGetter() {
+	public ImgRecognizer() {
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(new BorderLayout());
@@ -56,7 +56,7 @@ public class CaptchaGetter {
 	 * @param httpAssist http client, can be null.
 	 * @param reqHeaders request headers, can be null.
 	 */
-	public CaptchaGetter build(String imgUrl, String title,
+	public ImgRecognizer build(String imgUrl, String title,
 	                           HttpClientAssist httpAssist, Map<String, String> reqHeaders)
 					throws IOException, InterruptedException {
 
@@ -76,7 +76,7 @@ public class CaptchaGetter {
 	 * @param imgBase64Data like data:image/gif;base64,R0lGODlhJQAOAKUA...
 	 * @param title         window title, can be null.
 	 */
-	public CaptchaGetter build(String imgBase64Data, String title) throws IOException {
+	public ImgRecognizer build(String imgBase64Data, String title) throws IOException {
 		byte[] buf = Base64.getDecoder().decode(
 						imgBase64Data.substring(imgBase64Data.indexOf(',') + 1));
 		return build(buf, title);
@@ -88,7 +88,7 @@ public class CaptchaGetter {
 	 * @param imgBuf img byte data
 	 * @param title  window title, can be null.
 	 */
-	public CaptchaGetter build(byte[] imgBuf, String title) throws IOException {
+	public ImgRecognizer build(byte[] imgBuf, String title) throws IOException {
 		BufferedImage img = ImageIO.read(new ByteArrayInputStream(imgBuf));
 		CaptchaPanel imgPanel = new CaptchaPanel(img);
 		frame.add(imgPanel, BorderLayout.CENTER);
@@ -98,9 +98,9 @@ public class CaptchaGetter {
 	}
 
 	/**
-	 * get input captcha.
+	 * get input text.
 	 */
-	public String getCaptcha() throws InterruptedException {
+	public String getText() throws InterruptedException {
 		textLatch.await();
 		frame.dispose();
 		return text.getText();
