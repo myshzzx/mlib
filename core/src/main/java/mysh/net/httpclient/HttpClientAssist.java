@@ -116,6 +116,7 @@ public class HttpClientAssist implements Closeable {
 		hc = hcBuilder.build();
 	}
 
+	@SuppressWarnings("Duplicates")
 	private static class SocksConnSocketFactory extends PlainConnectionSocketFactory {
 		private final ProxyPicker proxyPicker;
 
@@ -123,13 +124,35 @@ public class HttpClientAssist implements Closeable {
 			this.proxyPicker = Objects.requireNonNull(proxyPicker);
 		}
 
+		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
+
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
 			Proxy proxy = proxyPicker.pick(context);
-			return proxy == null ? new Socket() : new Socket(proxy);
+			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
+			localSock.set(sock);
+			return sock;
+		}
+
+		@Override
+		public Socket connectSocket(
+						final int connectTimeout, final Socket socket, final HttpHost host,
+						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
+						final HttpContext context) throws IOException {
+			try {
+				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
+			} catch (Throwable t) {
+				Socket sock = localSock.get();
+				if (sock != null)
+					sock.close();
+				throw new IOException(t);
+			} finally {
+				localSock.set(null);
+			}
 		}
 	}
 
+	@SuppressWarnings("Duplicates")
 	private static class SSLSocksConnSocketFactory extends SSLConnectionSocketFactory {
 		private final ProxyPicker proxyPicker;
 
@@ -138,10 +161,31 @@ public class HttpClientAssist implements Closeable {
 			this.proxyPicker = Objects.requireNonNull(proxyPicker);
 		}
 
+		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
+
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
 			Proxy proxy = proxyPicker.pick(context);
-			return proxy == null ? new Socket() : new Socket(proxy);
+			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
+			localSock.set(sock);
+			return sock;
+		}
+
+		@Override
+		public Socket connectSocket(
+						final int connectTimeout, final Socket socket, final HttpHost host,
+						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
+						final HttpContext context) throws IOException {
+			try {
+				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
+			} catch (Throwable t) {
+				Socket sock = localSock.get();
+				if (sock != null)
+					sock.close();
+				throw new IOException(t);
+			} finally {
+				localSock.set(null);
+			}
 		}
 	}
 
