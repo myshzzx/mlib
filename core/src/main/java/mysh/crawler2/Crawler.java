@@ -70,7 +70,7 @@ public class Crawler<CTX extends UrlContext> {
 										seed.getClass().getSimpleName() + "-default",
 										hcc.getMaxConnTotal(),
 										Range.within(1, Integer.MAX_VALUE, ratePerMin),
-										hcc
+										new HttpClientAssist(hcc)
 						).setBlockChecker(new DefaultBlockChecker())
 		);
 	}
@@ -251,7 +251,7 @@ public class Crawler<CTX extends UrlContext> {
 		private static final long serialVersionUID = 4173253887553156741L;
 		private final ClassifiedUrlCrawler classifier;
 
-		public Worker(String url, CTX ctx, ClassifiedUrlCrawler classifier) {
+		Worker(String url, CTX ctx, ClassifiedUrlCrawler classifier) {
 			super(url, ctx);
 			this.classifier = classifier;
 		}
@@ -427,8 +427,7 @@ public class Crawler<CTX extends UrlContext> {
 			this.name = Objects.requireNonNull(conf.name, "name can't be null");
 
 			setRatePerMinute(conf.ratePerMinute);
-			Objects.requireNonNull(conf.hcc, "hcc should not be null");
-			this.hca = new HttpClientAssist(conf.hcc);
+			this.hca = Objects.requireNonNull(conf.hca, "hca should not be null");
 
 			this.useAdjuster = conf.useAdjuster;
 			this.blockChecker = conf.blockChecker;

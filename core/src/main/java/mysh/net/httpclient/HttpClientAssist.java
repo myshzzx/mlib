@@ -92,7 +92,7 @@ public class HttpClientAssist implements Closeable {
 			// use socks proxy
 			if (conf.getProxyType() == Proxy.Type.SOCKS) {
 				Proxy socksProxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(conf.getProxyHost(), conf.getProxyPort()));
-				ProxyPicker pp = () -> socksProxy;
+				ProxyPicker pp = (HttpContext context) -> socksProxy;
 				Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
 								.register("http", new SocksConnSocketFactory(pp))
 								.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), pp))
@@ -125,7 +125,7 @@ public class HttpClientAssist implements Closeable {
 
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
-			Proxy proxy = proxyPicker.pick();
+			Proxy proxy = proxyPicker.pick(context);
 			return proxy == null ? new Socket() : new Socket(proxy);
 		}
 	}
@@ -140,7 +140,7 @@ public class HttpClientAssist implements Closeable {
 
 		@Override
 		public Socket createSocket(final HttpContext context) throws IOException {
-			Proxy proxy = proxyPicker.pick();
+			Proxy proxy = proxyPicker.pick(context);
 			return proxy == null ? new Socket() : new Socket(proxy);
 		}
 	}

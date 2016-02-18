@@ -1,5 +1,7 @@
 package mysh.net.httpclient;
 
+import org.apache.http.protocol.HttpContext;
+
 import java.net.Proxy;
 
 /**
@@ -12,5 +14,5 @@ public interface ProxyPicker {
 	/**
 	 * pick a proxy. <code>null</code> refer to direct connect.
 	 */
-	Proxy pick();
+	Proxy pick(HttpContext context);
 }

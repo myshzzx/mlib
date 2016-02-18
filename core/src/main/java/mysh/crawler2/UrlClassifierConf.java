@@ -1,22 +1,18 @@
 package mysh.crawler2;
 
-import mysh.annotation.Immutable;
 import mysh.net.httpclient.HttpClientAssist;
-import mysh.net.httpclient.HttpClientConfig;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * url classifier config. <br/>
  * used to gen url classifier, should be reused, because every config is related to a unique url
  * classifier which is expensive to create.
+ * NOTE: the class should not be Serializable, because hca will refer to uncontrollable resources.
  */
-@Immutable
-public final class UrlClassifierConf implements Serializable {
-	private static final long serialVersionUID = 8722727367175019882L;
+public final class UrlClassifierConf {
 
-	public interface Factory<CTX extends UrlContext> extends Serializable {
+	public interface Factory<CTX extends UrlContext> {
 		UrlClassifierConf get(String url, CTX ctx);
 	}
 
@@ -36,28 +32,27 @@ public final class UrlClassifierConf implements Serializable {
 	final String name;
 	final int threadPoolSize;
 	final int ratePerMinute;
-	final HttpClientConfig hcc;
+	final HttpClientAssist hca;
 	volatile boolean useAdjuster;
 	volatile BlockChecker blockChecker;
+
 
 	/**
 	 * @param name           the name of url classifier.
 	 * @param threadPoolSize thread pool size of the classifier.
 	 * @param ratePerMinute  flow control. the max accurate controllable value is {@link #maxAccRatePM}.
 	 *                       see {@link mysh.crawler2.Crawler.ClassifiedUrlCrawler#setRatePerMinute(int)}
-	 * @param hcc            http config. can be reused, but every url classifier it related to will
-	 *                       gen a new client. NOTE that modifying this config after it being used
-	 *                       will NOT effect crawler's behavior.
+	 * @param hca            hca used by crawler. Be VERY CAREFUL of reusing it, because it will be closed when crawler stopped.
 	 */
-	public UrlClassifierConf(String name, int threadPoolSize, int ratePerMinute, HttpClientConfig hcc) {
+	public UrlClassifierConf(String name, int threadPoolSize, int ratePerMinute, HttpClientAssist hca) {
 		this.name = Objects.requireNonNull(name, "name can't be null");
 		this.threadPoolSize = Math.max(1, threadPoolSize);
 		this.ratePerMinute = ratePerMinute;
-		this.hcc = Objects.requireNonNull(hcc, "http client config can't be null");
+		this.hca = Objects.requireNonNull(hca, "http client assist can't be null");
 	}
 
 	/**
-	 * classifier adjustor will be used automatically, if you don't want it, call this.
+	 * classifier adjuster will be used automatically, if you don't want it, call this.
 	 */
 	public UrlClassifierConf dontUseAdjuster() {
 		this.useAdjuster = false;
@@ -84,7 +79,7 @@ public final class UrlClassifierConf implements Serializable {
 		if (threadPoolSize != that.threadPoolSize) return false;
 		if (ratePerMinute != that.ratePerMinute) return false;
 		if (!name.equals(that.name)) return false;
-		return hcc == that.hcc;
+		return hca.equals(that.hca);
 	}
 
 	@Override
@@ -92,7 +87,6 @@ public final class UrlClassifierConf implements Serializable {
 		int result = name.hashCode();
 		result = 31 * result + threadPoolSize;
 		result = 31 * result + ratePerMinute;
-		result = 31 * result + hcc.hashCode();
 		return result;
 	}
 }
