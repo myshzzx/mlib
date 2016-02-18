@@ -105,7 +105,7 @@ public class Crawler<CTX extends UrlContext> {
 			public void run() {
 				while (true) {
 					try {
-						Thread.sleep(5000);
+						Thread.sleep(10000);
 
 						StringBuilder ucStatus = new StringBuilder("crawler current status: " + name);
 						AtomicBoolean crawlerRunning = new AtomicBoolean(false);
