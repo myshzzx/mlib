@@ -89,10 +89,14 @@ public class Crawler<CTX extends UrlContext> {
 		this.seed.init();
 	}
 
+	private Thread autoStopChkThread;
+
 	/**
 	 * start auto-check-stop thread. if there's nothing to crawl, it will stop the crawler.
 	 */
-	private void startAutoStopChk() {
+	private synchronized void startAutoStopChk() {
+		if (autoStopChkThread != null) return;
+
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
@@ -100,10 +104,11 @@ public class Crawler<CTX extends UrlContext> {
 			}
 		});
 
-		Thread t = new Thread(name + "-autoStopChk") {
+		autoStopChkThread = new Thread(name + "-autoStopChk") {
 			@Override
 			public void run() {
-				while (true) {
+				Thread thread = Thread.currentThread();
+				while (!thread.isInterrupted()) {
 					try {
 						Thread.sleep(10000);
 
@@ -135,8 +140,8 @@ public class Crawler<CTX extends UrlContext> {
 				}
 			}
 		};
-		t.setDaemon(true);
-		t.start();
+		autoStopChkThread.setDaemon(true);
+		autoStopChkThread.start();
 	}
 
 	/**
@@ -202,6 +207,9 @@ public class Crawler<CTX extends UrlContext> {
 				waitStopLatch.countDown();
 			}
 		}
+
+		if (autoStopChkThread != null)
+			autoStopChkThread.interrupt();
 	}
 
 	/**
