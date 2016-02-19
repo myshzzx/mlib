@@ -81,10 +81,13 @@ public class FilesUtil {
 		File file = ensureWritable(filepath);
 		if (!file.getParentFile().exists())
 			file.getParentFile().mkdirs();
-		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(file))) {
+		File writeFile = getBackupFile(file);
+		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(writeFile))) {
 			out.writeObject(obj);
-			log.debug("written file: " + file.getPath());
 		}
+		file.delete();
+		writeFile.renameTo(file);
+		log.debug("written file: " + file.getAbsolutePath());
 	}
 
 	/**
@@ -106,9 +109,17 @@ public class FilesUtil {
 	 */
 	public static void writeFile(String filepath, byte[] data) throws IOException {
 		File file = ensureWritable(filepath);
-		try (FileOutputStream out = new FileOutputStream(file)) {
+		File writeFile = getBackupFile(file);
+		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			out.write(data);
 		}
+		file.delete();
+		writeFile.renameTo(file);
+		log.debug("written file: " + file.getAbsolutePath());
+	}
+
+	private static File getBackupFile(File file) {
+		return new File(file.getAbsolutePath() + ".bak");
 	}
 
 	/**

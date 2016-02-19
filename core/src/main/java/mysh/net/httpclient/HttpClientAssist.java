@@ -83,8 +83,9 @@ public class HttpClientAssist implements Closeable {
 
 		if (proxyPicker != null) {
 			Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-							.register("http", new SocksConnSocketFactory(proxyPicker))
-							.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), proxyPicker))
+							.register("http", new SocksConnSocketFactory(proxyPicker, conf.getSoTimeout() * 1000))
+							.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), proxyPicker,
+											conf.getSoTimeout() * 1000))
 							.build();
 			HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
 			hcBuilder.setConnectionManager(hccm);
@@ -94,8 +95,9 @@ public class HttpClientAssist implements Closeable {
 				Proxy socksProxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(conf.getProxyHost(), conf.getProxyPort()));
 				ProxyPicker pp = (HttpContext context) -> socksProxy;
 				Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-								.register("http", new SocksConnSocketFactory(pp))
-								.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), pp))
+								.register("http", new SocksConnSocketFactory(pp, conf.getSoTimeout() * 1000))
+								.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), pp,
+												conf.getSoTimeout() * 1000))
 								.build();
 				HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
 				hcBuilder.setConnectionManager(hccm);
@@ -119,9 +121,11 @@ public class HttpClientAssist implements Closeable {
 	@SuppressWarnings("Duplicates")
 	private static class SocksConnSocketFactory extends PlainConnectionSocketFactory {
 		private final ProxyPicker proxyPicker;
+		private final int soTimeout;
 
-		SocksConnSocketFactory(ProxyPicker proxyPicker) {
+		SocksConnSocketFactory(ProxyPicker proxyPicker, int soTimeout) {
 			this.proxyPicker = Objects.requireNonNull(proxyPicker);
+			this.soTimeout = soTimeout;
 		}
 
 		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
@@ -130,6 +134,7 @@ public class HttpClientAssist implements Closeable {
 		public Socket createSocket(final HttpContext context) throws IOException {
 			Proxy proxy = proxyPicker.pick(context);
 			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
+			sock.setSoTimeout(this.soTimeout);
 			localSock.set(sock);
 			return sock;
 		}
@@ -140,6 +145,8 @@ public class HttpClientAssist implements Closeable {
 						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
 						final HttpContext context) throws IOException {
 			try {
+				if (socket != null)
+					socket.setSoTimeout(this.soTimeout);
 				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
 			} catch (Throwable t) {
 				Socket sock = localSock.get();
@@ -155,10 +162,12 @@ public class HttpClientAssist implements Closeable {
 	@SuppressWarnings("Duplicates")
 	private static class SSLSocksConnSocketFactory extends SSLConnectionSocketFactory {
 		private final ProxyPicker proxyPicker;
+		private final int soTimeout;
 
-		SSLSocksConnSocketFactory(SSLContext sslContext, ProxyPicker proxyPicker) {
+		SSLSocksConnSocketFactory(SSLContext sslContext, ProxyPicker proxyPicker, int soTimeout) {
 			super(sslContext);
 			this.proxyPicker = Objects.requireNonNull(proxyPicker);
+			this.soTimeout = soTimeout;
 		}
 
 		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
@@ -167,6 +176,7 @@ public class HttpClientAssist implements Closeable {
 		public Socket createSocket(final HttpContext context) throws IOException {
 			Proxy proxy = proxyPicker.pick(context);
 			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
+			sock.setSoTimeout(this.soTimeout);
 			localSock.set(sock);
 			return sock;
 		}
@@ -177,6 +187,8 @@ public class HttpClientAssist implements Closeable {
 						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
 						final HttpContext context) throws IOException {
 			try {
+				if (socket != null)
+					socket.setSoTimeout(this.soTimeout);
 				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
 			} catch (Throwable t) {
 				Socket sock = localSock.get();

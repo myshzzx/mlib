@@ -15,6 +15,7 @@ import java.util.Base64;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Mysh
@@ -102,6 +103,15 @@ public class ImgRecognizer {
 	 */
 	public String getText() throws InterruptedException {
 		textLatch.await();
+		frame.dispose();
+		return text.getText();
+	}
+
+	/**
+	 * get input text.
+	 */
+	public String getText(long timeout, TimeUnit timeUnit) throws InterruptedException {
+		textLatch.await(timeout, timeUnit);
 		frame.dispose();
 		return text.getText();
 	}

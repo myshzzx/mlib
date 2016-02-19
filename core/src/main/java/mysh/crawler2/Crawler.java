@@ -198,6 +198,8 @@ public class Crawler<CTX extends UrlContext> {
 		try {
 			classifiers.values().forEach(ClassifiedUrlCrawler::stop);
 			classifiers.values().forEach(c -> c.awaitTermination(2, TimeUnit.MINUTES));
+			if (autoStopChkThread != null)
+				autoStopChkThread.interrupt();
 		} finally {
 			try {
 				log.info(this.name + " stopped.");
@@ -207,9 +209,6 @@ public class Crawler<CTX extends UrlContext> {
 				waitStopLatch.countDown();
 			}
 		}
-
-		if (autoStopChkThread != null)
-			autoStopChkThread.interrupt();
 	}
 
 	/**
