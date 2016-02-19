@@ -79,9 +79,7 @@ public class FilesUtil {
 	 */
 	public static void writeObjectToFile(String filepath, Object obj) throws IOException {
 		File file = ensureWritable(filepath);
-		if (!file.getParentFile().exists())
-			file.getParentFile().mkdirs();
-		File writeFile = getBackupFile(file);
+		File writeFile = getWriteFile(file);
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(writeFile))) {
 			out.writeObject(obj);
 		}
@@ -109,7 +107,7 @@ public class FilesUtil {
 	 */
 	public static void writeFile(String filepath, byte[] data) throws IOException {
 		File file = ensureWritable(filepath);
-		File writeFile = getBackupFile(file);
+		File writeFile = getWriteFile(file);
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			out.write(data);
 		}
@@ -118,8 +116,8 @@ public class FilesUtil {
 		log.debug("written file: " + file.getAbsolutePath());
 	}
 
-	private static File getBackupFile(File file) {
-		return new File(file.getAbsolutePath() + ".bak");
+	private static File getWriteFile(File file) {
+		return new File(file.getAbsolutePath() + ".~write~");
 	}
 
 	/**
