@@ -42,7 +42,7 @@ public final class HttpClientConfig implements Cloneable {
 	/**
 	 * 取数据内容超时. in millisecond
 	 */
-	int soTimeout = 10_000;
+	int soTimeout = 7_000;
 
 	/**
 	 * connection pool size

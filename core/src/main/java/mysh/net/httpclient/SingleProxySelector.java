@@ -19,7 +19,7 @@ import java.util.List;
  */
 public class SingleProxySelector extends ProxySelector {
 	private static final Logger log = LoggerFactory.getLogger(SingleProxySelector.class);
-	private static final List<Proxy> NoProxies = Collections.singletonList(Proxy.NO_PROXY);
+	public static final List<Proxy> NoProxies = Collections.singletonList(Proxy.NO_PROXY);
 
 	private final List<Proxy> ps;
 
