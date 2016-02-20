@@ -1,15 +1,11 @@
 package mysh.net.httpclient;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
+import com.google.common.collect.ImmutableMap;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +15,15 @@ import java.util.regex.Pattern;
  */
 @Ignore
 public class HttpClientAssistTest1 {
-	HttpClientAssist hca = new HttpClientAssist(new HttpClientConfig());
+	HttpClientAssist hca = new HttpClientAssist();
+
+	@Test
+	public void timeout() throws IOException {
+		HttpClientConfig hcc = new HttpClientConfig();
+		hcc.setConnectionTimeout(20);
+		HttpClientAssist hca = new HttpClientAssist(hcc);
+		hca.access("http://baidu.com");
+	}
 
 	@Test
 	public void httpsTest() throws Exception {
@@ -31,17 +35,10 @@ public class HttpClientAssistTest1 {
 
 	@Test
 	public void currentUrlTest() throws Exception {
-		HttpClientConfig conf = new HttpClientConfig();
-//		conf.setUseProxy(true);
-		conf.setProxyHost("l");
-		conf.setProxyPort(8080);
-		HttpClientAssist hca = new HttpClientAssist(conf);
-		long start = System.nanoTime();
-		HttpClientAssist.UrlEntity ue = hca.access("http://baidu.com");
-		start = System.nanoTime() - start;
-		System.out.println(ue.getCurrentURL());
-		System.out.println(ue.getEntityStr());
-		System.out.println(start / 1000_000);
+		try (HttpClientAssist.UrlEntity ue = hca.access("http://baidu.com")) {
+			System.out.println(ue.getCurrentURL());
+			System.out.println(ue.getEntityStr());
+		}
 	}
 
 	@Test
@@ -78,56 +75,13 @@ public class HttpClientAssistTest1 {
 	}
 
 	@Test
-	public void reGetStr() throws IOException, InterruptedException {
-		HttpClientAssist.UrlEntity ue = hca.access("http://baidu.com");
-		System.out.println(ue.getEntityStr());
-		System.out.println(ue.getEntityStr());
-	}
-
-	@Test
-	public void exec() throws InterruptedException {
-		ExecutorService e = Executors.newCachedThreadPool();
-		e.execute(() -> {
-			try {
-				Thread.sleep(1000000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-		});
-		e.shutdown();
-
-		Thread.sleep(10000);
-	}
-
-	@Test
-	public void exec2() {
-		ExecutorService e = Executors.newFixedThreadPool(1);
-		e.execute(() -> {
-			try {
-				Thread.sleep(100000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-		});
-		e.execute(() -> {
-			try {
-				Thread.sleep(100000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-		});
-		System.out.println();
-	}
-
-	@Test
 	public void multiOps() throws IOException, InterruptedException {
 		while (true) {
-			Thread.sleep(5000);
-			HttpClientAssist.UrlEntity z = hca.access("http://baidu.com");
-			System.out.println(z.isHtml());
-			z.close();
-//			Thread.sleep(2000);
-//			z.getEntityStr();
+			try (HttpClientAssist.UrlEntity z = hca.access("http://baidu.com/")) {
+				System.out.println(z.isHtml());
+				z.getEntityStr();
+			}
+			Thread.sleep(3000);
 		}
 	}
 
@@ -139,28 +93,16 @@ public class HttpClientAssistTest1 {
 		}
 	}
 
-	@Test
-	public void noProtocolTest() throws IOException, InterruptedException {
-		HttpClientAssist.UrlEntity ue = hca.access("http://www.baidu.com/baidu?cl=3&tn=baidutop10");
-		System.out.println(ue.getReqUrl());
-		System.out.println(ue.getEntityStr());
-	}
 
 	@Test
-	public void postTest() throws IOException, InterruptedException {
-		List<NameValuePair> nvps = new ArrayList<>();
-		nvps.add(new BasicNameValuePair("in_id", "6526011966061508122"));
-
-		HttpClientAssist.UrlEntity ue = hca.accessPost("http://idquery.duapp.com/index.php", nvps, null, null);
-		System.out.println(ue.getReqUrl());
-		System.out.println(ue.getEntityStr());
-	}
-
-	@Test
-	public void urlTest() throws IOException, InterruptedException {
-		try (HttpClientAssist.UrlEntity ue = hca.access("http://www.baidu.com/s?wd=判断需要encode")) {
+	public void post() throws IOException {
+		HttpClientConfig hcc = new HttpClientConfig();
+		hcc.setKeepAlive(false);
+		HttpClientAssist hca = new HttpClientAssist(hcc);
+		ImmutableMap<String, String> params = ImmutableMap.of("k", "v");
+		try (HttpClientAssist.UrlEntity ue = hca.accessPost("http://l:8080/abc?key=value", null, params)) {
+			System.out.println(ue.getReqUrl());
 			System.out.println(ue.getCurrentURL());
-			System.out.println(ue.getEntityStr());
 		}
 	}
 
@@ -181,6 +123,6 @@ public class HttpClientAssistTest1 {
 	@Test
 	public void testGetShortURL() throws Exception {
 		String shortURL = HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a");
-		System.out.println(shortURL);
+		Assert.assertEquals("http://dfso.com/faf/fe/a", shortURL);
 	}
 }

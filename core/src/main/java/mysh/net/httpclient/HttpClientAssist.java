@@ -1,45 +1,29 @@
 
 package mysh.net.httpclient;
 
-import mysh.annotation.NotThreadSafe;
-import mysh.annotation.ThreadSafe;
+import com.google.api.client.http.*;
+import com.google.api.client.http.apache.ApacheHttpTransport;
 import mysh.util.Encodings;
-import mysh.util.Strings;
-import org.apache.http.*;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.ProxyAuthenticationStrategy;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.protocol.HttpContext;
-import org.apache.http.protocol.HttpCoreContext;
-import org.apache.http.ssl.SSLContexts;
-import org.apache.http.util.EntityUtils;
+import mysh.util.FilesUtil;
+import org.apache.http.conn.params.ConnManagerParams;
+import org.apache.http.conn.params.ConnPerRouteBean;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.net.ssl.SSLContext;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
-import java.net.*;
+import java.net.ProxySelector;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
-import java.util.*;
+import java.nio.file.Files;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * HTTP 客户端组件.
@@ -49,156 +33,53 @@ import java.util.*;
 @ThreadSafe
 public class HttpClientAssist implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(HttpClientAssist.class);
+	private static final HttpClientConfig defaultHcc = new HttpClientConfig();
 
-	private final CloseableHttpClient hc;
-
-	public HttpClientAssist(HttpClientConfig conf) {
-		this(conf, null);
+	public HttpClientAssist() {
+		this(null, null);
 	}
 
-	/**
-	 * @param proxyPicker if not <code>null</code>, conf.isUseProxy will be ignored.
-	 */
-	public HttpClientAssist(HttpClientConfig conf, ProxyPicker proxyPicker) {
-		if (conf == null) {
-			throw new IllegalArgumentException();
-		}
-
-		HttpClientBuilder hcBuilder = HttpClientBuilder.create();
-
-		Header connection = new BasicHeader(HttpHeaders.Connection, conf.isKeepAlive() ? "keep-alive" : "close");
-		conf.addHeader(connection);
-		hcBuilder.setDefaultHeaders(conf.headers);
-
-		RequestConfig reqConf = RequestConfig.custom()
-						.setConnectTimeout(conf.getConnectionTimeout() * 1000)
-						.setSocketTimeout(conf.getSoTimeout() * 1000)
-						.build();
-		hcBuilder.setDefaultRequestConfig(reqConf);
-
-		hcBuilder.setMaxConnPerRoute(conf.getMaxConnPerRoute());
-		hcBuilder.setMaxConnTotal(conf.getMaxConnTotal());
-
-		hcBuilder.setUserAgent(conf.getUserAgent());
-
-		if (proxyPicker != null) {
-			Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-							.register("http", new SocksConnSocketFactory(proxyPicker, conf.getSoTimeout() * 1000))
-							.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), proxyPicker,
-											conf.getSoTimeout() * 1000))
-							.build();
-			HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
-			hcBuilder.setConnectionManager(hccm);
-		} else if (conf.isUseProxy()) {
-			// use socks proxy
-			if (conf.getProxyType() == Proxy.Type.SOCKS) {
-				Proxy socksProxy = new Proxy(Proxy.Type.SOCKS, new InetSocketAddress(conf.getProxyHost(), conf.getProxyPort()));
-				ProxyPicker pp = (HttpContext context) -> socksProxy;
-				Registry<ConnectionSocketFactory> reg = RegistryBuilder.<ConnectionSocketFactory>create()
-								.register("http", new SocksConnSocketFactory(pp, conf.getSoTimeout() * 1000))
-								.register("https", new SSLSocksConnSocketFactory(SSLContexts.createSystemDefault(), pp,
-												conf.getSoTimeout() * 1000))
-								.build();
-				HttpClientConnectionManager hccm = new PoolingHttpClientConnectionManager(reg);
-				hcBuilder.setConnectionManager(hccm);
-			} else { // otherwise
-				HttpHost proxyHost = new HttpHost(conf.getProxyHost(), conf.getProxyPort());
-				hcBuilder.setProxy(proxyHost);
-
-				if (!Strings.isBlank(conf.getProxyAuthName())) {
-					CredentialsProvider cp = new BasicCredentialsProvider();
-					cp.setCredentials(new AuthScope(conf.getProxyHost(), conf.getProxyPort()),
-									new UsernamePasswordCredentials(conf.getProxyAuthName(), conf.getProxyAuthPw()));
-					hcBuilder.setDefaultCredentialsProvider(cp);
-					hcBuilder.setProxyAuthenticationStrategy(new ProxyAuthenticationStrategy());
-				}
-			}
-		}
-
-		hc = hcBuilder.build();
+	public HttpClientAssist(HttpClientConfig hcc) {
+		this(hcc, null);
 	}
 
-	@SuppressWarnings("Duplicates")
-	private static class SocksConnSocketFactory extends PlainConnectionSocketFactory {
-		private final ProxyPicker proxyPicker;
-		private final int soTimeout;
+	private final HttpRequestFactory reqFactory;
+	private final HttpTransport httpTransport;
 
-		SocksConnSocketFactory(ProxyPicker proxyPicker, int soTimeout) {
-			this.proxyPicker = Objects.requireNonNull(proxyPicker);
-			this.soTimeout = soTimeout;
-		}
+	public HttpClientAssist(@Nullable HttpClientConfig conf, @Nullable ProxySelector proxySelector) {
+		HttpClientConfig hcc = conf == null ? defaultHcc : conf.clone();
 
-		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
+//		httpTransport = new NetHttpTransport.Builder()
+//						.setConnectionFactory(url -> {
+//							Proxy proxy = hcc.proxy;
+//							if (proxyPicker != null)
+//								proxy = proxyPicker.pick();
+//							HttpURLConnection conn = (HttpURLConnection) (proxy == null ? url.openConnection() : url.openConnection(proxy));
+//							return conn;
+//						}).build();
+		ApacheHttpTransport.Builder apacheBuilder = new ApacheHttpTransport.Builder().setProxySelector(proxySelector);
+		HttpParams httpParams = apacheBuilder.getHttpParams();
+		HttpConnectionParams.setSoTimeout(httpParams, hcc.soTimeout);
+		HttpConnectionParams.setConnectionTimeout(httpParams, hcc.connectionTimeout);
+		ConnManagerParams.setMaxTotalConnections(httpParams, hcc.maxTotalConnections);
+		ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(hcc.maxConnectionsPerRoute));
 
-		@Override
-		public Socket createSocket(final HttpContext context) throws IOException {
-			Proxy proxy = proxyPicker.pick(context);
-			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
-			sock.setSoTimeout(this.soTimeout);
-			localSock.set(sock);
-			return sock;
-		}
+		httpTransport = apacheBuilder.build();
 
-		@Override
-		public Socket connectSocket(
-						final int connectTimeout, final Socket socket, final HttpHost host,
-						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
-						final HttpContext context) throws IOException {
-			try {
-				if (socket != null)
-					socket.setSoTimeout(this.soTimeout);
-				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
-			} catch (Throwable t) {
-				Socket sock = localSock.get();
-				if (sock != null)
-					sock.close();
-				throw new IOException(t);
-			} finally {
-				localSock.set(null);
-			}
-		}
-	}
+		reqFactory = httpTransport.createRequestFactory(req -> {
+			req.setConnectTimeout(hcc.connectionTimeout)
+							.setReadTimeout(hcc.soTimeout)
+							.setSuppressUserAgentSuffix(true)
+							.setThrowExceptionOnExecuteError(false)
+			;
 
-	@SuppressWarnings("Duplicates")
-	private static class SSLSocksConnSocketFactory extends SSLConnectionSocketFactory {
-		private final ProxyPicker proxyPicker;
-		private final int soTimeout;
-
-		SSLSocksConnSocketFactory(SSLContext sslContext, ProxyPicker proxyPicker, int soTimeout) {
-			super(sslContext);
-			this.proxyPicker = Objects.requireNonNull(proxyPicker);
-			this.soTimeout = soTimeout;
-		}
-
-		private ThreadLocal<Socket> localSock = new ThreadLocal<>();
-
-		@Override
-		public Socket createSocket(final HttpContext context) throws IOException {
-			Proxy proxy = proxyPicker.pick(context);
-			Socket sock = proxy == null ? new Socket() : new Socket(proxy);
-			sock.setSoTimeout(this.soTimeout);
-			localSock.set(sock);
-			return sock;
-		}
-
-		@Override
-		public Socket connectSocket(
-						final int connectTimeout, final Socket socket, final HttpHost host,
-						final InetSocketAddress remoteAddress, final InetSocketAddress localAddress,
-						final HttpContext context) throws IOException {
-			try {
-				if (socket != null)
-					socket.setSoTimeout(this.soTimeout);
-				return super.connectSocket(connectTimeout, socket, host, remoteAddress, localAddress, context);
-			} catch (Throwable t) {
-				Socket sock = localSock.get();
-				if (sock != null)
-					sock.close();
-				throw new IOException(t);
-			} finally {
-				localSock.set(null);
-			}
-		}
+			if (hcc.headers != null)
+				req.getHeaders().putAll(hcc.headers);
+			req.getHeaders()
+							.setUserAgent(hcc.userAgent)
+							.put(HttpHeadersName.Connection, hcc.isKeepAlive ? "keep-alive" : "close")
+			;
+		});
 	}
 
 	/**
@@ -206,12 +87,10 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @throws InterruptedException 线程中断.
-	 * @throws IOException          连接异常.
+	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity access(String url) throws InterruptedException, IOException {
-
-		return access(new HttpGet(url), null);
+	public UrlEntity access(String url) throws IOException {
+		return access(url, null, null);
 	}
 
 	/**
@@ -220,13 +99,10 @@ public class HttpClientAssist implements Closeable {
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @param headers request headers, can be null.
-	 * @throws InterruptedException 线程中断.
-	 * @throws IOException          连接异常.
+	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity access(String url, Map<String, String> headers)
-					throws InterruptedException, IOException {
-
-		return access(new HttpGet(url), headers);
+	public UrlEntity access(String url, Map<String, ?> headers) throws IOException {
+		return access(url, headers, null);
 	}
 
 	/**
@@ -235,24 +111,24 @@ public class HttpClientAssist implements Closeable {
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @param headers request headers, can be null.
-	 * @throws InterruptedException 线程中断.
-	 * @throws IOException          连接异常.
+	 * @param params  request params, can be null.
+	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity accessGet(String url, Map<String, String> params, Map<String, String> headers)
-					throws InterruptedException, IOException {
+	public UrlEntity access(String url, Map<String, ?> headers, Map<String, ?> params) throws IOException {
 		if (params != null && params.size() > 0) {
 			StringBuilder usb = new StringBuilder(url);
 			if (!url.contains("?"))
 				usb.append('?');
 			else
 				usb.append('&');
-			for (Map.Entry<String, String> pe : params.entrySet()) {
+			for (Map.Entry<String, ?> pe : params.entrySet()) {
 				usb.append(pe.getKey()).append('=').append(pe.getValue()).append('&');
 			}
 			if (usb.charAt(usb.length() - 1) == '&') usb.deleteCharAt(usb.length() - 1);
 			url = usb.toString();
 		}
-		HttpGet req = new HttpGet(url);
+
+		HttpRequest req = reqFactory.buildGetRequest(new GenericUrl(url));
 		return access(req, headers);
 	}
 
@@ -261,17 +137,60 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param charset encoding the name/value pairs be encoded with. can be null.
-	 * @param headers request headers, can be null.
-	 * @throws InterruptedException 线程中断.
-	 * @throws IOException          连接异常.
+	 * @param headers request headers.
+	 * @param params  request params. upload type: multipart/form-data, support files
+	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity accessPost(String url, List<NameValuePair> postParams, Charset charset,
-	                            Map<String, String> headers) throws IOException, InterruptedException {
-		HttpPost post = new HttpPost(url);
-		HttpEntity reqEntity = new UrlEncodedFormEntity(postParams, charset);
-		post.setEntity(reqEntity);
-		return access(post, headers);
+	public UrlEntity accessPost(
+					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
+		return accessPost(url, headers, params, null);
+	}
+
+	/**
+	 * get url entity by post method.<br/>
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers.
+	 * @param params  request params. upload type: multipart/form-data, support files
+	 * @param enc     param value encoding
+	 * @throws IOException 连接异常.
+	 */
+	public UrlEntity accessPost(
+					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
+					@Nullable Charset enc) throws IOException {
+		MultipartContent content = null;
+		if (params != null && params.size() > 0) {
+			content = new MultipartContent().setMediaType(
+							new HttpMediaType("multipart/form-data")
+											.setParameter("boundary", "__END_OF_PART__"));
+
+			if (enc == null) enc = Charset.defaultCharset();
+			for (Map.Entry<String, ?> entry : params.entrySet()) {
+				String key = entry.getKey();
+				Object value = entry.getValue();
+
+				MultipartContent.Part part;
+				if (value instanceof File) {
+					File file = (File) value;
+					FileContent fileContent = new FileContent(null, file);
+					part = new MultipartContent.Part(fileContent);
+					part.setHeaders(new HttpHeaders().set(
+									"Content-Disposition",
+									String.format("form-data; name=\"%s\"; filename=\"%s\"", key, file.getName())));
+				} else {
+					if (value == null) value = "";
+					part = new MultipartContent.Part(
+									new ByteArrayContent(null, String.valueOf(value).getBytes(enc)));
+					part.setHeaders(new HttpHeaders().set(
+									"Content-Disposition", String.format("form-data; name=\"%s\"", key)));
+				}
+				content.addPart(part);
+			}
+		}
+
+		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
+		return access(req, headers);
 	}
 
 	/**
@@ -280,83 +199,67 @@ public class HttpClientAssist implements Closeable {
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
 	 * @param headers request headers, can be null.
-	 * @throws InterruptedException 线程中断.
-	 * @throws IOException          连接异常.
+	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity access(HttpUriRequest req, Map<String, String> headers)
-					throws InterruptedException, IOException {
+	private UrlEntity access(HttpRequest req, Map<String, ?> headers) throws IOException {
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
-			throw new InterruptedException();
+			throw new InterruptedIOException("access interrupted: " + req.getUrl().build());
 		}
 
-		HttpClientContext ctx = new HttpClientContext();
 		if (headers != null) {
-			for (Map.Entry<String, String> he : headers.entrySet()) {
-				req.setHeader(he.getKey(), he.getValue());
+			for (Map.Entry<String, ?> he : headers.entrySet()) {
+				req.getHeaders().put(he.getKey(), he.getValue());
 			}
 		}
-		return new UrlEntity(req, hc.execute(req, ctx), ctx);
-	}
 
-	/**
-	 * 将数据下载保存到文件.
-	 *
-	 * @param url            数据文件地址
-	 * @param headers        请求头, 可为 null
-	 * @param filePath       保存路径
-	 * @param overwrite      是否覆盖原有文件
-	 * @param downloadBufLen 下载缓存, 有效值为 100K ~ 10M 间
-	 * @return 文件是否被下载写入
-	 * @throws IOException          IO异常
-	 * @throws InterruptedException 线程中断异常
-	 */
-	public boolean saveToFile(String url, Map<String, String> headers,
-	                          String filePath, boolean overwrite, int downloadBufLen
-	) throws InterruptedException, IOException {
-
-		File file = new File(filePath);
-
-		if (!overwrite && file.exists())
-			return false;
-
-		if (downloadBufLen < 100000 || downloadBufLen > 10000000) {
-			downloadBufLen = 500000;
-		}
-
-		try (UrlEntity ue = this.access(url, headers)) {
-
-			long fileLength = ue.rsp.getEntity().getContentLength();
-
-			file.getParentFile().mkdirs();
-			file.createNewFile();
-			try (RandomAccessFile fileOut = new RandomAccessFile(file, "rw");
-			     InputStream in = ue.rsp.getEntity().getContent()) {
-
-				fileOut.setLength(fileLength);
-
-				byte[] buf = new byte[downloadBufLen];
-				int readLen;
-				while (fileLength > 0) {
-					readLen = in.read(buf);
-					if (readLen == -1) {
-						break;
-					}
-					fileOut.write(buf, 0, readLen);
-					fileLength -= readLen;
-				}
-			}
-		}
-		return true;
+		return new UrlEntity(req);
 	}
 
 	@Override
 	public void close() {
 		try {
-			this.hc.close();
-		} catch (Exception e) {
-			log.debug("http client close error.", e);
+			httpTransport.shutdown();
+		} catch (IOException e) {
+			log.debug("hca close error", e);
 		}
+	}
+
+	/**
+	 * download big resource and save to file.
+	 *
+	 * @param url       数据文件地址
+	 * @param headers   请求头, 可为 null
+	 * @param overwrite 是否覆盖原有文件
+	 * @return 文件是否被下载写入
+	 * @throws IOException IO异常
+	 */
+	public boolean saveToFile(
+					String url, Map<String, ?> headers, File file, boolean overwrite
+	) throws IOException {
+
+		if (!overwrite && file.exists())
+			return false;
+
+		try (UrlEntity ue = this.access(url, headers)) {
+			File writeFile = new File(file.getPath() + ".~write~");
+			file.getParentFile().mkdirs();
+			try (OutputStream os = Files.newOutputStream(writeFile.toPath());
+			     InputStream in = ue.rsp.getContent()) {
+				byte[] buf = getDownloadBuf();
+
+				Thread thread = Thread.currentThread();
+				int readLen;
+				while (!thread.isInterrupted() && (readLen = in.read(buf)) > -1) {
+					os.write(buf, 0, readLen);
+				}
+				if (thread.isInterrupted())
+					throw new InterruptedIOException("download interrupted: " + url);
+			}
+			file.delete();
+			writeFile.renameTo(file);
+		}
+		return true;
 	}
 
 	/**
@@ -445,92 +348,74 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	private static final byte[] EMPTY_BUF = new byte[0];
+	private static final int DOWNLOAD_BUF_LEN = 100_000;
+	private static final ThreadLocal<byte[]> threadDownloadBuf = new ThreadLocal<>();
 
-	@NotThreadSafe("because http client component is non-thread-safe")
+	private static byte[] getDownloadBuf() {
+		byte[] buf = threadDownloadBuf.get();
+		if (buf == null)
+			threadDownloadBuf.set(buf = new byte[DOWNLOAD_BUF_LEN]);
+		return buf;
+	}
+
+	@ThreadSafe
 	public final class UrlEntity implements Closeable {
 
-		private final HttpUriRequest req;
-		private String reqUrl;
-		private CloseableHttpResponse rsp;
-		private HttpClientContext ctx;
-
+		private final HttpRequest req;
+		private final String reqUrl;
+		private final HttpResponse rsp;
 		private String currentUrl;
 		private String contentType;
 		private byte[] entityBuf;
 		private String entityStr;
 
-		public UrlEntity(HttpUriRequest req, CloseableHttpResponse rsp, HttpClientContext ctx) {
+		public UrlEntity(HttpRequest req) throws IOException {
 			this.req = req;
-			this.rsp = rsp;
-			this.ctx = ctx;
+			// can't lazy init, because it changes after req.execute()
+			this.reqUrl = req.getUrl().build();
 
-			int status = rsp.getStatusLine().getStatusCode();
-			if (status >= 400)
-				log.warn("access error, status=" + rsp.getStatusLine() + ", url=" + getCurrentURL());
+			rsp = req.execute();
 
-			if (rsp.getEntity() != null && rsp.getEntity().getContentType() != null)
-				this.contentType = rsp.getEntity().getContentType().getValue();
+			int statusCode = rsp.getStatusCode();
+			if (statusCode >= 400)
+				log.warn("access unsuccessful, status={}, msg={}, url={}",
+								statusCode, rsp.getStatusMessage(), this.reqUrl);
+			this.contentType = rsp.getContentType();
 		}
 
 		/**
-		 * close the request immediately, unfinished download will be aborted.
+		 * close the connection immediately, unfinished download will be aborted.
 		 */
 		@Override
 		public void close() {
 			try {
-				req.abort();
+//				rsp.ignore();
+				rsp.disconnect();
 			} catch (Exception e) {
 				log.debug("abort req error. " + e);
-			}
-			try {
-				rsp.getEntity().getContent().close();
-			} catch (Exception e) {
-				log.debug("entity close error: " + e + " - " + getCurrentURL());
 			}
 		}
 
 		/**
 		 * @return original request url.
 		 */
-		public String getReqUrl() {
-			if (reqUrl == null) {
-				reqUrl = req.getURI().toString();
-			}
+		public final String getReqUrl() {
 			return reqUrl;
 		}
 
 		/**
-		 * @return response protocol version.
+		 * @return response protocol version. e.g. https
 		 */
-		public ProtocolVersion getProtocol() {
-			return this.rsp.getProtocolVersion();
+		public String getProtocol() {
+			return this.req.getUrl().getScheme();
 		}
 
 		/**
 		 * @return request reqUrl may jump several times, get the real access url.
 		 */
 		public String getCurrentURL() {
-			if (this.currentUrl == null) {
-				List<URI> redirects = ctx.getRedirectLocations();
-				if (redirects != null && redirects.size() > 0) {
-					// test link : http://www.google.com/chrome/eula.html?system=true&standalone=1
-					this.currentUrl = redirects.get(redirects.size() - 1).toString();
-				} else {
-					HttpRequest reqAttr = ctx.getRequest();
-					if (reqAttr instanceof HttpUriRequest) {
-						HttpUriRequest currReq = (HttpUriRequest) reqAttr;
-						HttpHost currHost = (HttpHost) ctx.getAttribute(HttpCoreContext.HTTP_TARGET_HOST);
-						this.currentUrl = (currReq.getURI().isAbsolute()) ?
-										currReq.getURI().toString() : (currHost.toURI() + currReq.getURI());
-//				} else if (reqAttr instanceof BasicHttpRequest) {
-//					BasicHttpRequest currReq = (BasicHttpRequest) reqAttr;
-//					// could be like "4.bp.blogspot.com:443" when jump from http to https
-//					this.currentUrl = currReq.getRequestLine().getUri();
-					} else {
-						this.currentUrl = getReqUrl();
-					}
-				}
-			}
+			if (this.currentUrl == null)
+				this.currentUrl = req.getUrl().build();
 
 			return this.currentUrl;
 		}
@@ -538,8 +423,8 @@ public class HttpClientAssist implements Closeable {
 		/**
 		 * get response status.
 		 */
-		public StatusLine getStatusLine() {
-			return rsp.getStatusLine();
+		public int getStatusCode() {
+			return rsp.getStatusCode();
 		}
 
 		/**
@@ -551,38 +436,34 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
-		 * see {@link #isContentType(String)}
+		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
 		 */
-		@Deprecated
 		public boolean isHtml() {
 			return contentType != null && contentType.contains("html");
 		}
 
 		/**
-		 * see {@link #isContentType(String)}
+		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
 		 */
-		@Deprecated
 		public boolean isImage() {
 			return contentType != null && contentType.contains("image");
 		}
 
 		/**
-		 * This depends on response head (content-type) of server,
-		 * if the head is not given or incorrect, the judgement will be incorrect.
+		 * content-type(FROM response header) check.<br/>
+		 * if the header is not given or incorrect, the judgement will be incorrect.
 		 * So use this ONLY if file extension judgement can not work.
-		 * <br/>
-		 * Deprecated because I want you to see this stuff.
 		 */
-		@Deprecated
 		public boolean isContentType(String type) {
 			return contentType != null && contentType.contains(type);
 		}
 
 		/**
-		 * content length in byte size. Pls notice that some entity may have a (-1) length.
+		 * content length in byte size. return -1 if length not given (response header).
 		 */
 		public long getContentLength() {
-			return rsp.getEntity().getContentLength();
+			Long len = rsp.getHeaders().getContentLength();
+			return len == null ? -1 : len;
 		}
 
 		/**
@@ -599,6 +480,7 @@ public class HttpClientAssist implements Closeable {
 				else if (c.contains("GBK"))
 					enc = Encodings.GBK;
 			}
+
 			downloadEntity2Buf();
 			if (enc == null) {
 				enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
@@ -609,22 +491,48 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		/**
-		 * download entity to buf. download will run only once.
+		 * download entire entity to memory. download will run only once.
 		 */
 		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
-				entityBuf = EntityUtils.toByteArray(rsp.getEntity());
+				InputStream is = rsp.getContent();
+				Thread thread = Thread.currentThread();
+
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				byte[] buf = getDownloadBuf();
+				int rl;
+				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1)
+					os.write(buf, 0, rl);
+				if (thread.isInterrupted())
+					throw new InterruptedIOException("download interrupted: " + reqUrl);
+				entityBuf = os.toByteArray();
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
 		}
 
 		/**
-		 * buf then write. the buf is saved and can be reused.
+		 * buf entire entity then write. the buf is saved and can be reused.
 		 */
 		public synchronized void bufWriteTo(OutputStream out) throws IOException {
 			downloadEntity2Buf();
 			out.write(entityBuf);
 			out.flush();
+		}
+
+		/**
+		 * buf entire entity then save to file. the buf is saved and can be reused.<br>
+		 * <b>WARNING</b>: make sure entire entity can be save to vm heap, or <code>OutOfMemoryError</code> will be thrown
+		 *
+		 * @return whether file is overwritten
+		 * @throws IOException
+		 */
+		public synchronized boolean saveToFile(File file, boolean overwrite) throws IOException {
+			if (!overwrite && file.exists())
+				return false;
+
+			downloadEntity2Buf();
+			FilesUtil.writeFile(file, entityBuf);
+			return true;
 		}
 
 		/**

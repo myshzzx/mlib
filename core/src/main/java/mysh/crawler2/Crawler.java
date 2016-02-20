@@ -1,7 +1,5 @@
 package mysh.crawler2;
 
-import mysh.annotation.GuardedBy;
-import mysh.annotation.ThreadSafe;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import mysh.util.Range;
@@ -9,6 +7,8 @@ import org.apache.http.client.ClientProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.concurrent.GuardedBy;
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.MalformedURLException;
@@ -57,7 +57,7 @@ public class Crawler<CTX extends UrlContext> {
 	 * speed auto adjusting is enabled by default.
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc) throws Exception {
-		this(seed, hcc, Integer.MAX_VALUE);
+		this(seed, hcc, Integer.MAX_VALUE, 5);
 	}
 
 	/**
@@ -65,10 +65,18 @@ public class Crawler<CTX extends UrlContext> {
 	 * speed auto adjusting is enabled by default.
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin) throws Exception {
+		this(seed, hcc, ratePerMin, 5);
+	}
+
+	/**
+	 * create a crawler with seed , http-client config and maximum access rate per minute.
+	 * speed auto adjusting is enabled by default.
+	 */
+	public Crawler(CrawlerSeed<CTX> seed, HttpClientConfig hcc, int ratePerMin, int threadPoolSize) throws Exception {
 		this(seed, (url, ctx) ->
 						new UrlClassifierConf(
 										seed.getClass().getSimpleName() + "-default",
-										hcc.getMaxConnTotal(),
+										threadPoolSize,
 										Range.within(1, Integer.MAX_VALUE, ratePerMin),
 										new HttpClientAssist(hcc)
 						).setBlockChecker(new DefaultBlockChecker())
@@ -338,7 +346,7 @@ public class Crawler<CTX extends UrlContext> {
 				// 查找 href 指向的地址
 				Matcher srcValueMatcher = srcValueExp.matcher(pageContent);
 				String tValue, tUrl;
-				String protocolPrefix = ue.getProtocol().getProtocol().toLowerCase() + ":";
+				String protocolPrefix = ue.getProtocol()+ ":";
 				while (srcValueMatcher.find()) {
 					tValue = srcValueMatcher.group(4);
 					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {

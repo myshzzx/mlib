@@ -35,10 +35,6 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 	public static void main(String[] args) throws Exception {
 		HttpClientConfig hcc = new HttpClientConfig();
 //		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
-		hcc.setMaxConnPerRoute(3);
-//		hcc.setUseProxy(true);
-		hcc.setProxyHost("127.0.0.1");
-		hcc.setProxyPort(8087);
 
 		int ratePerMin = 36;
 		Crawler<UrlContext> c = new Crawler<>(new WebDownloader(), hcc, ratePerMin);
@@ -94,7 +90,7 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 	@Override
 	public void init() throws IOException, ClassNotFoundException {
 		if (saveFile.exists()) {
-			Map[] savedObj = FilesUtil.getObjectFromFile(saveFile.getAbsolutePath());
+			Map[] savedObj = FilesUtil.getObjectFromFile(saveFile);
 
 			Map tRepo = savedObj[0];
 			if (tRepo != null && tRepo.size() > 0)
@@ -114,8 +110,7 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 	public void onCrawlerStopped(Queue<UrlCtxHolder<UrlContext>> unhandledSeeds) {
 		this.unhandledSeeds = unhandledSeeds;
 		try {
-			FilesUtil.writeObjectToFile(saveFile.getAbsolutePath(),
-							new Object[]{this.repo, this.unhandledSeeds});
+			FilesUtil.writeObjectToFile(saveFile, new Object[]{this.repo, this.unhandledSeeds});
 		} catch (IOException e) {
 			log.error("save unhandled seeds failed.", e);
 		}

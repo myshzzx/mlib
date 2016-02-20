@@ -38,12 +38,6 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 
 	public static void main(String[] args) throws Exception {
 		HttpClientConfig hcc = new HttpClientConfig();
-//		hcc.setUserAgent(HttpClientConfig.UA_BAIDU);
-		hcc.setMaxConnPerRoute(MAX_CONN_PER_ROUTE);
-//		hcc.setUseProxy(true);
-		hcc.setProxyHost("127.0.0.1");
-		hcc.setProxyPort(8058);
-//		hcc.addHeader(new BasicHeader("Cookie", "cna=xK9HC+lDbjgCAd5PAMnmGDjc; mpp=; tlut=; l=; v=0; swfstore=205783; miid=4744219378233682223; lzstat_uv=29340845793270010233|3492151@1396907; lzstat_ss=769689425_0_1413928155_3492151|2603056175_0_1413928155_1396907; linezing_session=drO8ZtuEzA6JNzUEP2ZzWd9q_1413901792473cCHQ_1; uc3=nk2=CyKw3U3YEQ%3D%3D&id2=VyT0ay3c3OU%3D&vt3=F8dATSQF8mLV2FFyafQ%3D&lg2=WqG3DMC9VAQiUQ%3D%3D; existShop=MTQxMzk4NTA4NQ%3D%3D; lgc=hongzzx; tracknick=hongzzx; sg=x47; cookie2=15956220fa438b8be54d6dbe6ad5cc96; cookie1=BYS7%2B%2BW1Djg%2F%2FRE1tUce2Gx2LnUvmXlm8W5MGWMCaWw%3D; unb=48705304; t=1aa815451a36ca826e1b316fd37b2b76; _cc_=VT5L2FSpdA%3D%3D; tg=0; _l_g_=Ug%3D%3D; _nk_=hongzzx; cookie17=VyT0ay3c3OU%3D; mt=ci=4_1; _tb_token_=fb77eb6ee4535; isg=E680DAC2976940202E3D4873144FC8D9; uc1=lltime=1413973842&cookie14=UoW28FQE5LanJQ%3D%3D&existShop=false&cookie16=VT5L2FSpNgq6fDudInPRgavC%2BQ%3D%3D&cookie21=UIHiLt3xThN%2B&tag=1&cookie15=V32FPkk%2Fw0dUvg%3D%3D; x=e%3D1%26p%3D*%26s%3D0%26c%3D0%26f%3D0%26g%3D0%26t%3D0%26__ll%3D-1%26_ato%3D0; whl=-1%260%260%260"));
 
 		int ratePerMin = 500;
 		Crawler<UrlContext> c = new Crawler<>(new StanleyDl(), hcc, ratePerMin);
@@ -131,7 +125,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 		repo.put(e.getCurrentURL(), v);
 		repo.put(e.getReqUrl(), v);
 
-		if (e.getStatusLine().getStatusCode() == 200 && e.isImage()) {
+		if (e.getStatusCode() == 200 && e.isImage()) {
 
 			String imgName = titleMap.get(e.getReqUrl()) + ".jpg";
 			imgName = imgName.replace('*', '-')
@@ -226,9 +220,10 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 
 	private static void chkAndZipDir(Crawler c) {
 		try {
-			new File(SAVE_DIR).mkdirs();
+			File dir = new File(SAVE_DIR);
+			dir.mkdirs();
 
-			if (FilesUtil.folderSize(SAVE_DIR) > folderSize) {
+			if (FilesUtil.folderSize(dir) > folderSize) {
 				c.pause();
 				Thread.sleep(5000);
 
@@ -239,7 +234,6 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 				process.waitFor();
 
 				if (zipFile.length() > folderSize / 2) {
-					File dir = new File(SAVE_DIR);
 					FilesUtil.recurDir(dir, null, EnumSet.of(FilesUtil.HandleType.FoldersAndFiles), f -> f.delete());
 					dir.delete();
 				} else

@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import mysh.annotation.NotThreadSafe;
 import mysh.util.Serializer;
 import mysh.util.Tick;
 import org.junit.Assert;
@@ -164,10 +163,10 @@ public class SerializationPerformance {
 	}
 
 	private static class KRYO implements TI {
-		@NotThreadSafe
+		//		@NotThreadSafe
 		Kryo kryo = new Kryo();
 		private final byte[] buffer = new byte[100_000];
-		@NotThreadSafe
+		//		@NotThreadSafe
 		private final Output out = new Output(buffer, -1);
 
 		@Override

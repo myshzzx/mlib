@@ -1,17 +1,17 @@
 package mysh.util;
 
-import mysh.annotation.Nullable;
-import mysh.annotation.ThreadSafe;
 import org.nustaq.serialization.FSTConfiguration;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
+import javax.annotation.Nullable;
 import java.io.*;
 import java.util.Objects;
 
 /**
  * multi serializer collection.
  * Kryo 3.0 was tested and obsoleted, which was slower than fst and less compatible.
+ * all implementations here are thread-safe.
  *
  * @author Mysh
  * @since 2014/11/24 11:31
@@ -66,7 +66,6 @@ public interface Serializer {
 	/**
 	 * java build-in serializer.
 	 */
-	@ThreadSafe
 	Serializer buildIn = new Serializer() {
 
 		public byte[] serialize(Serializable obj) {
@@ -127,7 +126,6 @@ public interface Serializer {
 	/**
 	 * fast-serialization.
 	 */
-	@ThreadSafe
 	Serializer fst = new Serializer() {
 		private ThreadLocal<FSTConfiguration> coder = new ThreadLocal<>();
 		private ThreadLocal<byte[]> properBuf = new ThreadLocal<>();

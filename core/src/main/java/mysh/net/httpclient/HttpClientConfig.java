@@ -1,22 +1,15 @@
 
 package mysh.net.httpclient;
 
-import mysh.util.PropConf;
-import org.apache.http.Header;
-
-import java.io.Serializable;
-import java.net.Proxy;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 配置VO.
  *
  * @author ZhangZhx
  */
-public final class HttpClientConfig implements Serializable, Cloneable {
-
-	private static final long serialVersionUID = 9097930407282337575L;
+public final class HttpClientConfig implements Cloneable {
 
 	public static final String UA =
 					"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36";
@@ -29,320 +22,139 @@ public final class HttpClientConfig implements Serializable, Cloneable {
 	public static final String UA_BING =
 					"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
-	List<Header> headers = new ArrayList<>();
+	HashMap<String, Object> headers;
 
 	/**
 	 * Connection: keep-alive/close
 	 */
-	private boolean isKeepAlive = true;
+	boolean isKeepAlive = true;
 
 	/**
 	 * 用户代理
 	 */
-	private String userAgent = UA;
+	String userAgent = UA;
 
 	/**
-	 * 连接超时.
+	 * 连接超时. in millisecond
 	 */
-	private int connectionTimeout = 5;
+	int connectionTimeout = 5_000;
 
 	/**
-	 * 取数据内容超时.
+	 * 取数据内容超时. in millisecond
 	 */
-	private int soTimeout = 10;
+	int soTimeout = 10_000;
 
 	/**
-	 * 连接池单域最大连接数.
+	 * connection pool size
 	 */
-	private int maxConnPerRoute = 10;
+	int maxTotalConnections = 40;
 
 	/**
-	 * 连接池最大连接数.
+	 * max connections of one route in pool
 	 */
-	private int maxConnTotal = 30;
-
-	/**
-	 * 是否使用代理
-	 */
-	private boolean useProxy;
-
-	/**
-	 * 代理主机
-	 */
-	private String proxyHost;
-
-	/**
-	 * 代理端口
-	 */
-	private int proxyPort;
-
-	/**
-	 * 代理类型
-	 */
-	private Proxy.Type proxyType;
-
-	/**
-	 * 代理验证名
-	 */
-	private String proxyAuthName;
-
-	/**
-	 * 代理验证密码
-	 */
-	private String proxyAuthPw;
-
+	int maxConnectionsPerRoute = 10;
 
 	public HttpClientConfig() {
 	}
 
-	/**
-	 * 根据默认的属性生成此实例.<br/>
-	 * 默认属性示例如下:<br/>
-	 * <p>
-	 * <pre>
-	 *
-	 * # 是否保持连接
-	 * httpclient.isKeepAlive=true
-	 *
-	 * # 用户代理串
-	 * httpclient.userAgent=Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.120 Safari/537.36
-	 *
-	 * # http 连接超时 ( 秒 )
-	 * httpclient.connectionTimeout=3
-	 *
-	 * # socket 响应超时 ( 秒 )
-	 * httpclient.soTimeout=3
-	 *
-	 * # 连接池单域最大连接数
-	 * httpclient.maxConnPerRoute=10
-	 *
-	 * # 连接池最大连接数
-	 * httpclient.maxConnTotal=30
-	 *
-	 * # 是否使用代理. true 表示使用, 其他表示不用
-	 * httpclient.useProxy=false
-	 *
-	 * # 代理主机地址
-	 * httpclient.proxyHost=192.168.1.1
-	 *
-	 * # 代理主机服务端口
-	 * httpclient.proxyPort=1234
-	 *
-	 * # 代理协议
-	 * httpclient.proxyType=http
-	 *
-	 * # 代理验证名
-	 * httpclient.proxyAuthName=zzx
-	 *
-	 * # 代理验证密码
-	 * httpclient.proxyAuthPw=zzx
-	 *
-	 * </pre>
-	 */
-	public HttpClientConfig(PropConf conf) {
-		this.setUseProxy(conf.getPropString("httpclient.isKeepAlive", "true").equals("true"));
-		this.setUserAgent(conf.getPropString("httpclient.userAgent", UA));
-		this.setConnectionTimeout(conf.getPropInt("httpclient.connectionTimeout", 5));
-		this.setSoTimeout(conf.getPropInt("httpclient.soTimeout", 10));
-		this.setMaxConnPerRoute(conf.getPropInt("httpclient.maxConnPerRoute", 10));
-		this.setMaxConnTotal(conf.getPropInt("httpclient.maxConnTotal", 30));
-
-		this.setUseProxy(conf.getPropString("httpclient.useProxy").equals("true"));
-		this.setProxyHost(conf.getPropString("httpclient.proxyHost"));
-		this.setProxyPort(conf.getPropInt("httpclient.proxyPort"));
-		this.setProxyType(Proxy.Type.valueOf(conf.getPropString("httpclient.proxyType", "HTTP")));
-		this.setProxyAuthName(conf.getPropString("httpclient.proxyAuthName"));
-		this.setProxyAuthPw(conf.getPropString("httpclient.proxyAuthPw"));
-	}
-
-	public HttpClientConfig addHeader(Header header) {
-		this.headers.add(header);
+	public HttpClientConfig addHeaders(Map<String, ?> headers) {
+		if (this.headers == null)
+			this.headers = new HashMap<>();
+		this.headers.putAll(headers);
 		return this;
 	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public HttpClientConfig clone() {
+		HttpClientConfig c;
+		try {
+			c = (HttpClientConfig) super.clone();
+			if (c.headers != null)
+				c.headers = (HashMap<String, Object>) c.headers.clone();
+		} catch (CloneNotSupportedException shouldNotHappen) {
+			throw new InternalError(shouldNotHappen);
+		}
+		return c;
+	}
+
+	// getter and setter
 
 	public boolean isKeepAlive() {
 		return isKeepAlive;
 	}
 
-	public HttpClientConfig setKeepAlive(boolean isKeepAlive) {
-		this.isKeepAlive = isKeepAlive;
+	public HttpClientConfig setKeepAlive(boolean keepAlive) {
+		isKeepAlive = keepAlive;
 		return this;
 	}
 
-	/**
-	 * @return the userAgent
-	 */
 	public String getUserAgent() {
-
 		return userAgent;
 	}
 
-	/**
-	 * @param userAgent the userAgent to set
-	 */
 	public HttpClientConfig setUserAgent(String userAgent) {
-
 		this.userAgent = userAgent;
 		return this;
 	}
 
 	/**
-	 * @return the connectionTimeout in seconds
+	 * @see #connectionTimeout
 	 */
 	public int getConnectionTimeout() {
-
 		return connectionTimeout;
 	}
 
 	/**
-	 * @param connectionTimeout the connectionTimeout to set in seconds
+	 * @see #connectionTimeout
 	 */
 	public HttpClientConfig setConnectionTimeout(int connectionTimeout) {
-
 		this.connectionTimeout = connectionTimeout;
 		return this;
 	}
 
 	/**
-	 * @return the soTimeout in seconds
+	 * @see #soTimeout
 	 */
 	public int getSoTimeout() {
-
 		return soTimeout;
 	}
 
 	/**
-	 * @param soTimeout the soTimeout to set in seconds
+	 * @see #soTimeout
 	 */
 	public HttpClientConfig setSoTimeout(int soTimeout) {
-
 		this.soTimeout = soTimeout;
 		return this;
 	}
 
 	/**
-	 * @return the useProxy
+	 * @see #maxTotalConnections
 	 */
-	public boolean isUseProxy() {
-
-		return useProxy;
+	public int getMaxTotalConnections() {
+		return maxTotalConnections;
 	}
 
 	/**
-	 * @param useProxy the useProxy to set
+	 * @see #maxTotalConnections
 	 */
-	public HttpClientConfig setUseProxy(boolean useProxy) {
-
-		this.useProxy = useProxy;
+	public HttpClientConfig setMaxTotalConnections(int maxTotalConnections) {
+		this.maxTotalConnections = maxTotalConnections;
 		return this;
 	}
 
 	/**
-	 * @return the proxyHost
+	 * @see #maxConnectionsPerRoute
 	 */
-	public String getProxyHost() {
-
-		return proxyHost;
+	public int getMaxConnectionsPerRoute() {
+		return maxConnectionsPerRoute;
 	}
 
 	/**
-	 * @param proxyHost the proxyHost to set
+	 * @see #maxConnectionsPerRoute
 	 */
-	public HttpClientConfig setProxyHost(String proxyHost) {
-
-		this.proxyHost = proxyHost;
-		return this;
-	}
-
-	/**
-	 * @return the proxyPort
-	 */
-	public int getProxyPort() {
-
-		return proxyPort;
-	}
-
-	/**
-	 * @param proxyPort the proxyPort to set
-	 */
-	public HttpClientConfig setProxyPort(int proxyPort) {
-
-		this.proxyPort = proxyPort;
-		return this;
-	}
-
-	/**
-	 * @return the proxyType
-	 */
-	public Proxy.Type getProxyType() {
-
-		return proxyType;
-	}
-
-	/**
-	 * @param proxyType the proxyType to set
-	 */
-	public HttpClientConfig setProxyType(Proxy.Type proxyType) {
-
-		this.proxyType = proxyType;
-		return this;
-	}
-
-	/**
-	 * @return the proxyAuthName
-	 */
-	public String getProxyAuthName() {
-
-		return proxyAuthName;
-	}
-
-	/**
-	 * @param proxyAuthName the proxyAuthName to set
-	 */
-	public HttpClientConfig setProxyAuthName(String proxyAuthName) {
-
-		this.proxyAuthName = proxyAuthName;
-		return this;
-	}
-
-	/**
-	 * @return the proxyAuthPw
-	 */
-	public String getProxyAuthPw() {
-
-		return proxyAuthPw;
-	}
-
-	/**
-	 * @param proxyAuthPw the proxyAuthPw to set
-	 */
-	public HttpClientConfig setProxyAuthPw(String proxyAuthPw) {
-
-		this.proxyAuthPw = proxyAuthPw;
-		return this;
-	}
-
-	public int getMaxConnPerRoute() {
-		return maxConnPerRoute;
-	}
-
-	public HttpClientConfig setMaxConnPerRoute(int maxConnPerRoute) {
-		if (maxConnPerRoute > 0) {
-			this.maxConnTotal = Math.max(this.maxConnTotal, maxConnPerRoute);
-			this.maxConnPerRoute = maxConnPerRoute;
-		}
-		return this;
-	}
-
-	public int getMaxConnTotal() {
-		return maxConnTotal;
-	}
-
-	public HttpClientConfig setMaxConnTotal(int maxConnTotal) {
-		if (maxConnTotal > 0) {
-			this.maxConnPerRoute = Math.min(maxConnTotal, this.maxConnPerRoute);
-			this.maxConnTotal = maxConnTotal;
-		}
+	public HttpClientConfig setMaxConnectionsPerRoute(int maxConnectionsPerRoute) {
+		this.maxConnectionsPerRoute = maxConnectionsPerRoute;
 		return this;
 	}
 }

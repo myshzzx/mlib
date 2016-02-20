@@ -18,33 +18,33 @@ public class FilesUtilTest {
 	@Test
 	public void getFileExtensionTest() {
 
-		assertEquals("txt", getFileExtension("fea.txt"));
-		assertEquals("txt", getFileExtension("  fe a  .txt     "));
-		assertEquals("txt", getFileExtension(".txt"));
-		assertEquals("txt", getFileExtension(".txt       "));
-		assertEquals("", getFileExtension("txt"));
-		assertEquals("", getFileExtension("txt.    "));
-		assertEquals("    txt", getFileExtension("     .    txt.    "));
-		assertEquals("txt", getFileExtension("   abc.def.txt     "));
-		assertEquals(" t xt", getFileExtension("   abc.def. t xt "));
-		assertEquals("", getFileExtension("."));
-		assertEquals("", getFileExtension(""));
+		assertEquals("txt", getFileExtension(new File("fea.txt")));
+		assertEquals("txt", getFileExtension(new File("  fe a  .txt     ")));
+		assertEquals("txt", getFileExtension(new File(".txt")));
+		assertEquals("txt", getFileExtension(new File(".txt       ")));
+		assertEquals("", getFileExtension(new File("txt")));
+		assertEquals("", getFileExtension(new File("txt.    ")));
+		assertEquals("    txt", getFileExtension(new File("     .    txt.    ")));
+		assertEquals("txt", getFileExtension(new File("   abc.def.txt     ")));
+		assertEquals(" t xt", getFileExtension(new File("   abc.def. t xt ")));
+		assertEquals("", getFileExtension(new File(".")));
+		assertEquals("", getFileExtension(new File("")));
 	}
 
 	@Test
 	public void getFileNameWithoutExtensionTest() {
 
-		assertEquals("fea", getFileNameWithoutExtention("fea.txt"));
-		assertEquals("fe a  ", getFileNameWithoutExtention("  fe a  .txt     "));
-		assertEquals("", getFileNameWithoutExtention(".txt"));
-		assertEquals("", getFileNameWithoutExtention(".txt       "));
-		assertEquals("txt", getFileNameWithoutExtention("txt"));
-		assertEquals("txt", getFileNameWithoutExtention("txt.    "));
-		assertEquals("", getFileNameWithoutExtention("     .    txt.    "));
-		assertEquals("abc.def", getFileNameWithoutExtention("   abc.def.txt     "));
-		assertEquals("abc.def", getFileNameWithoutExtention("   abc.def. t xt "));
-		assertEquals("", getFileNameWithoutExtention("."));
-		assertEquals("", getFileNameWithoutExtention(""));
+		assertEquals("fea", getFileNameWithoutExtension(new File("fea.txt")));
+		assertEquals("fe a  ", getFileNameWithoutExtension(new File("  fe a  .txt     ")));
+		assertEquals("", getFileNameWithoutExtension(new File(".txt")));
+		assertEquals("", getFileNameWithoutExtension(new File(".txt       ")));
+		assertEquals("txt", getFileNameWithoutExtension(new File("txt")));
+		assertEquals("txt", getFileNameWithoutExtension(new File("txt.    ")));
+		assertEquals("", getFileNameWithoutExtension(new File("     .    txt.    ")));
+		assertEquals("abc.def", getFileNameWithoutExtension(new File("   abc.def.txt     ")));
+		assertEquals("abc.def", getFileNameWithoutExtension(new File("   abc.def. t xt ")));
+		assertEquals("", getFileNameWithoutExtension(new File(".")));
+		assertEquals("", getFileNameWithoutExtension(new File("")));
 	}
 
 	@Test
@@ -68,20 +68,20 @@ public class FilesUtilTest {
 	@Ignore
 	public void writeTest() throws IOException {
 		java.nio.file.Files.write(Paths.get("l:/aa/b/c.txt"), "mysh".getBytes(),
-				StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+						StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 	}
 
 	@Test
 	@Ignore
 	public void writeTest2() throws IOException {
-		writeFile("l:/aa/b/c.txt", "mysh".getBytes());
+		writeFile(new File("l:/aa/b/c.txt"), "mysh".getBytes());
 	}
 
 
 	@Test
 	@Ignore
 	public void testFolderSize() throws Exception {
-		System.out.println(folderSize("l:/temp"));
+		System.out.println(folderSize(new File("l:/temp")));
 	}
 
 	@Test
@@ -89,8 +89,8 @@ public class FilesUtilTest {
 	public void testGetObjectFromFileWithBuf() throws Exception {
 		File f = File.createTempFile("test", ".txt");
 		String obj = "mysh";
-		FilesUtil.writeObjectToFile(f.getAbsolutePath(), obj);
-		Object obj1 = FilesUtil.getObjectFromFileWithFileMap(f.getAbsolutePath());
+		FilesUtil.writeObjectToFile(f, obj);
+		Object obj1 = FilesUtil.getObjectFromFileWithFileMap(f);
 		Assert.assertEquals(obj, obj1);
 	}
 }

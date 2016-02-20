@@ -1,6 +1,6 @@
 package mysh.util;
 
-import mysh.annotation.NotThreadSafe;
+import javax.annotation.concurrent.NotThreadSafe;
 
 import java.util.Objects;
 

@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,7 +24,7 @@ public class FilesUtil {
 	/**
 	 * 文件处理任务.
 	 */
-	public static interface FileTask {
+	public interface FileTask {
 		void handle(File f);
 	}
 
@@ -33,16 +33,15 @@ public class FilesUtil {
 	 * return null if file not exist.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromFile(String filepath) throws IOException, ClassNotFoundException {
-		File file = new File(filepath);
+	public static <T> T getObjectFromFile(File file) throws IOException, ClassNotFoundException {
 		if (!file.exists()) {
-			log.error(filepath + " 不存在, 加载文件失败.");
+			log.error(file + " 不存在, 加载文件失败.");
 			return null;
 		}
 
 		try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
 			T o = (T) in.readObject();
-			log.debug("load object from file: " + filepath);
+			log.debug("load object from file: " + file);
 			return o;
 		}
 	}
@@ -52,18 +51,15 @@ public class FilesUtil {
 	 * 建议处理大文件时使用.
 	 * see <a href='https://en.wikipedia.org/wiki/Memory-mapped_file'>Memory-mapped_file</a>
 	 * 失败则返回 null.
-	 *
-	 * @param filepath 文件路径.
 	 */
 	@SuppressWarnings("unchecked")
-	public static <T> T getObjectFromFileWithFileMap(String filepath) throws IOException, ClassNotFoundException {
-		File f = new File(filepath);
-		try (FileChannel fileChannel = FileChannel.open(Paths.get(f.getAbsolutePath()))) {
-			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, f.length());
-			byte[] buf = new byte[(int) f.length()];
+	public static <T> T getObjectFromFileWithFileMap(File file) throws IOException, ClassNotFoundException {
+		try (FileChannel fileChannel = FileChannel.open(file.toPath())) {
+			MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, file.length());
+			byte[] buf = new byte[(int) file.length()];
 			fileMap.get(buf);
 			T obj = Serializer.buildIn.deserialize(buf, null);
-			log.debug("load object from file: " + filepath);
+			log.debug("load object from file: " + file);
 			return obj;
 		} finally {
 //			http://stackoverflow.com/questions/2972986/how-to-unmap-a-file-from-memory-mapped-using-filechannel-in-java
@@ -74,11 +70,11 @@ public class FilesUtil {
 	/**
 	 * 将数据写入到文件.
 	 *
-	 * @param filepath 文件路径.
-	 * @param obj      要写入的对象.
+	 * @param file 文件
+	 * @param obj  要写入的对象.
 	 */
-	public static void writeObjectToFile(String filepath, Object obj) throws IOException {
-		File file = ensureWritable(filepath);
+	public static void writeObjectToFile(File file, Object obj) throws IOException {
+		file.getParentFile().mkdirs();
 		File writeFile = getWriteFile(file);
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(writeFile))) {
 			out.writeObject(obj);
@@ -89,24 +85,13 @@ public class FilesUtil {
 	}
 
 	/**
-	 * make sure filepath writable. if not, return null.
-	 */
-	public static File ensureWritable(String filepath) throws IOException {
-		File file = new File(filepath).getAbsoluteFile();
-		file.getParentFile().mkdirs();
-		if (!file.exists())
-			file.createNewFile();
-		return file;
-	}
-
-	/**
 	 * 将数据写入文件.
 	 *
-	 * @param filepath 文件路径.
-	 * @param data     要写入数据.
+	 * @param file 文件.
+	 * @param data 要写入数据.
 	 */
-	public static void writeFile(String filepath, byte[] data) throws IOException {
-		File file = ensureWritable(filepath);
+	public static void writeFile(File file, byte[] data) throws IOException {
+		file.getParentFile().mkdirs();
 		File writeFile = getWriteFile(file);
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			out.write(data);
@@ -123,12 +108,11 @@ public class FilesUtil {
 	/**
 	 * 取文件扩展名(小写).
 	 *
-	 * @param filepath 文件路径(可以是相对路径).
 	 * @return 文件扩展名. 不包含点.
 	 */
-	public static String getFileExtension(String filepath) {
+	public static String getFileExtension(File file) {
 
-		String filename = new File(filepath).getName().trim().toLowerCase();
+		String filename = file.getName().trim().toLowerCase();
 		if (filename.length() == 0)
 			return "";
 		if (filename.charAt(filename.length() - 1) == '.')
@@ -139,17 +123,14 @@ public class FilesUtil {
 			return "";
 		else
 			return filename.substring(lastPointIndex + 1, filename.length());
-
 	}
 
 	/**
 	 * 取不含扩展名的文件名.
-	 *
-	 * @param filepath 文件路径(可以是相对路径).
 	 */
-	public static String getFileNameWithoutExtention(String filepath) {
+	public static String getFileNameWithoutExtension(File file) {
 
-		String filename = new File(filepath).getName().trim();
+		String filename = file.getName().trim();
 		if (filename.length() == 0)
 			return "";
 		if (filename.charAt(filename.length() - 1) == '.')
@@ -174,17 +155,20 @@ public class FilesUtil {
 	 */
 	public static File getWritableFile(String filePath) {
 
-		if (new File(filePath).getAbsoluteFile().exists()) {
-			String dir = new File(filePath).getAbsoluteFile().getParent() + File.separatorChar;
-			String fName = FilesUtil.getFileNameWithoutExtention(filePath);
-			String fExt = FilesUtil.getFileExtension(filePath);
+		File file = new File(filePath);
+		if (file.exists()) {
+			String dir = file.getParent() + File.separatorChar;
+			String fName = FilesUtil.getFileNameWithoutExtension(file);
+			String fExt = FilesUtil.getFileExtension(file);
 			int i = 0;
 			while (new File(filePath = (dir + fName + " (" + (++i) + ")" + (fExt.length() > 0 ? ("." + fExt)
-							: ""))).exists())
-				;
-		}
+							: ""))).exists()) ;
 
-		return new File(filePath).getAbsoluteFile();
+			return new File(filePath);
+		} else {
+			file.getParentFile().mkdirs();
+			return file;
+		}
 	}
 
 	public enum HandleType {FoldersAndFiles, FilesOnly}
@@ -237,14 +221,13 @@ public class FilesUtil {
 		recurDir(dirRoot, filter, EnumSet.of(HandleType.FilesOnly), handler);
 	}
 
-	public static long folderSize(String path) throws IOException {
-		File dir = new File(path).getAbsoluteFile();
+	public static long folderSize(File dir) throws IOException {
 		if (!dir.isDirectory())
-			throw new IllegalArgumentException("not directory: " + path);
+			throw new IllegalArgumentException("not directory: " + dir);
 
-		return java.nio.file.Files.walk(Paths.get(dir.getAbsolutePath())).mapToLong(p -> {
+		return Files.walk(dir.toPath()).mapToLong(p -> {
 			try {
-				return java.nio.file.Files.size(p);
+				return Files.size(p);
 			} catch (IOException e) {
 				log.debug("get file size error: " + p, e);
 				return 0;
