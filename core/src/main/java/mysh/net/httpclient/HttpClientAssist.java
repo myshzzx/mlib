@@ -3,6 +3,7 @@ package mysh.net.httpclient;
 
 import com.google.api.client.http.*;
 import com.google.api.client.http.apache.ApacheHttpTransport;
+import com.google.api.client.util.Key;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import org.apache.http.conn.params.ConnManagerParams;
@@ -15,15 +16,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
+import java.lang.reflect.Field;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * HTTP 客户端组件.
@@ -212,6 +211,16 @@ public class HttpClientAssist implements Closeable {
 		return access(req, headers);
 	}
 
+	public static final Set<String> httpHeadersListFields = new HashSet<>();
+
+	static {
+		for (Field field : HttpHeaders.class.getDeclaredFields()) {
+			Key headerKey = field.getAnnotation(Key.class);
+			if (headerKey != null) {
+				httpHeadersListFields.add(headerKey.value());
+			}
+		}
+	}
 
 	/**
 	 * get url entity.<br/>
@@ -228,8 +237,17 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		if (headers != null) {
+			HttpHeaders reqHeaders = req.getHeaders();
 			for (Map.Entry<String, ?> he : headers.entrySet()) {
-				req.getHeaders().put(he.getKey(), he.getValue());
+				String name = he.getKey();
+				Object value = he.getValue();
+				if (httpHeadersListFields.contains(name)) {
+					if (value != null) {
+						value = new ArrayList<>();
+						((ArrayList) value).add(he.getValue());
+					}
+				}
+				reqHeaders.put(name, value);
 			}
 		}
 
