@@ -194,6 +194,26 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
+	 * get url entity by post method.<br/>
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers.
+	 * @throws IOException 连接异常.
+	 */
+	public UrlEntity accessSendContent(
+					String url, @Nullable Map<String, ?> headers, @Nullable byte[] buf) throws IOException {
+		ByteArrayContent content = null;
+		if (buf != null) {
+			content = new ByteArrayContent("application/octet-stream", buf);
+		}
+
+		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
+		return access(req, headers);
+	}
+
+
+	/**
 	 * get url entity.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.

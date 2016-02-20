@@ -161,14 +161,14 @@ public class UIController {
 									Encoding.TITLE, JOptionPane.YES_NO_OPTION
 					)) {
 						fileByteArray = getUTF8WithoutBOM(fileByteArray);
-						FilesUtil.writeFile(desFile.getAbsolutePath(), fileByteArray);
+						FilesUtil.writeFile(desFile, fileByteArray);
 						return true;
 					}
 				}
 
 			}
 			java.nio.file.Files.write(desFile.toPath(),
-					new String(fileByteArray, transType.getSrcEncoding()).getBytes(transType.getDesEncoding()));
+							new String(fileByteArray, transType.getSrcEncoding()).getBytes(transType.getDesEncoding()));
 		} else if (srcDir.isDirectory() && srcDir.canRead()) {
 			for (File childFile : srcDir.listFiles()) {
 				if (!isConsiderSubDirs && childFile.isDirectory())

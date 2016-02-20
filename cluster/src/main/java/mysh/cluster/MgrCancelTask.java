@@ -1,7 +1,6 @@
 package mysh.cluster;
 
-import mysh.annotation.ThreadSafe;
-
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.List;
 
 /**

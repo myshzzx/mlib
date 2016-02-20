@@ -1,9 +1,9 @@
 package mysh.cluster;
 
-import mysh.annotation.GuardedBy;
-import mysh.annotation.Nullable;
 import mysh.util.Exps;
 
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 import java.io.*;
 import java.lang.reflect.Array;
 import java.security.*;
