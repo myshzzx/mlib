@@ -593,11 +593,10 @@ public class Crawler<CTX extends UrlContext> {
 	private static final long adjPeriod = 60_000;
 
 	private class UrlClassifierAdjuster {
-		private ClassifiedUrlCrawler classifiedUrlCrawler;
-		private volatile long periodStart = System.currentTimeMillis();
+		private ClassifiedUrlCrawler cuCrawler;
 
-		UrlClassifierAdjuster(ClassifiedUrlCrawler classifiedUrlCrawler) {
-			this.classifiedUrlCrawler = classifiedUrlCrawler;
+		UrlClassifierAdjuster(ClassifiedUrlCrawler cuCrawler) {
+			this.cuCrawler = cuCrawler;
 		}
 
 		private final Queue<Long> accessRec = new ConcurrentLinkedQueue<>();
@@ -606,6 +605,8 @@ public class Crawler<CTX extends UrlContext> {
 			accessRec.add(System.currentTimeMillis());
 		}
 
+		private volatile long periodStart = System.currentTimeMillis();
+		private volatile long periodIdx = 1;
 		private final Semaphore analyzeRes = new Semaphore(1);
 		private final AtomicLong totalMilliSec = new AtomicLong(0);
 		private final AtomicInteger totalCount = new AtomicInteger(0);
@@ -620,30 +621,32 @@ public class Crawler<CTX extends UrlContext> {
 				totalCount.incrementAndGet();
 			}
 
-			if (periodStart + adjPeriod < now && analyzeRes.tryAcquire()) {
+			if (periodStart + adjPeriod * periodIdx < now && analyzeRes.tryAcquire()) {
 				try {
-					int totals = totalCount.get();
-					if (totals > 0) {
+					int total = totalCount.get();
+					if (total > 0) {
 						// clear statistics every 3 periods
-						boolean clearStatistics = periodStart + adjPeriod * 3 < now;
+						boolean clearStatistics = periodIdx == 3;
 
 						// such Counts are not guarded, and may lose data here, but it's OK,
 						// analyzer needs to be lock free
-						long accAveMilli = totalMilliSec.get() / totals;
+						long accAveMilli = totalMilliSec.get() / total;
 						int networkIssues = networkIssueCount.get();
 						int blocks = blockCount.get();
 
 						if (clearStatistics) {
 							periodStart = now;
+							periodIdx = 0;
 							totalMilliSec.set(0);
 							totalCount.set(0);
 							networkIssueCount.set(0);
 							blockCount.set(0);
 						}
 
-						analyze(now, clearStatistics, totals, accAveMilli, networkIssues, blocks);
+						analyze(now, clearStatistics, total, accAveMilli, networkIssues, blocks);
 					}
 				} finally {
+					periodIdx++;
 					analyzeRes.release();
 				}
 			}
@@ -673,35 +676,38 @@ public class Crawler<CTX extends UrlContext> {
 		 *
 		 * @param now           current milli-second time
 		 * @param isFinalPeriod all statistics data will be clear in final period
-		 * @param totals        total access count.
+		 * @param total         total access count.
 		 * @param accAveMilli   access average time (milli-second).
 		 * @param networkIssues network fails count.
 		 * @param blocks        blocked by remote server count.
 		 */
 		private void analyze(long now, boolean isFinalPeriod,
-		                     int totals, long accAveMilli, int networkIssues, int blocks) {
-			double networkIssueRate = 1.0 * networkIssues / totals;
-			double blockRate = 1.0 * blocks / (totals - networkIssues);
-			int accPerMinute = classifiedUrlCrawler.getRatePerMinute();
+		                     int total, long accAveMilli, int networkIssues, int blocks) {
+			double networkIssueRate = 1.0 * networkIssues / total;
+			double blockRate = 1.0 * blocks / (total - networkIssues);
+			int accPerMinute = cuCrawler.getRatePerMinute();
 
 			accPerMinute = Range.within(5, UrlClassifierConf.maxAccRatePM, accPerMinute);
 			if (networkIssueRate > 0.15 || blockRate > 0.05) { // speed down
 				lastSpeedDown = now;
-				classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
-				log.info(classifiedUrlCrawler.name + " speed down to APM:" + classifiedUrlCrawler.getRatePerMinute());
+				cuCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
+				log.info("{} speed down to APM:{}, networkIssues:{}, blocks:{}, total:{}",
+								cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 			} else if (isFinalPeriod && networkIssues == 0 && blocks == 0) { // speed up in final period
 				if (lastSpeedDown > lastSpeedUp && lastSpeedUp + 3600 * 1000 > now) {
 					// latest operation is speed down and latest speed up happened in 3 hours
 					// back to last work access rate
 					if (accPerMinute < lastWorkAccPerMinute) {
-						classifiedUrlCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
-						log.info(classifiedUrlCrawler.name + " speed back to APM:" + classifiedUrlCrawler.getRatePerMinute());
+						cuCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
+						log.info("{} speed back to APM:{}, networkIssues:{}, blocks:{}, total:{}",
+										cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 					}
 				} else {
 					lastSpeedUp = now;
 					lastWorkAccPerMinute = accPerMinute;
-					classifiedUrlCrawler.setRatePerMinute((int) (accPerMinute * (1.1 + rand.nextDouble() * 0.4)));
-					log.info(classifiedUrlCrawler.name + " speed up to APM:" + classifiedUrlCrawler.getRatePerMinute());
+					cuCrawler.setRatePerMinute((int) (accPerMinute * (1.1 + rand.nextDouble() * 0.4)));
+					log.info("{} speed up to APM:{}, networkIssues:{}, blocks:{}, total:{}",
+									cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 				}
 			}
 		}
