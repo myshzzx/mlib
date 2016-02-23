@@ -10,52 +10,72 @@ import java.util.concurrent.ConcurrentHashMap;
 import static java.util.Objects.requireNonNull;
 
 /**
+ * <a href='http://www.cs.berkeley.edu/CT/ag4.0/appendid.htm'>Time Zone Table</a>
+ * <a href='http://www.timeanddate.com/time/map/'>Time Zone Map</a>
+ *
  * @author Mysh
  * @since 2015/1/7 13:30
  */
 public class Times {
 
-	private static int timeOffset = TimeZone.getDefault().getRawOffset();
-
 	/**
-	 * check local time.
+	 * check time.
 	 *
-	 * @param hour   check hour, 0-23.
-	 * @param minute check minute, 0-59.
-	 * @param second check second, 0-59.
+	 * @param hour   check hour(24-hour). ignore when negative
+	 * @param minute check minute. ignore when negative
+	 * @param second check second. ignore when negative
 	 */
-	public static boolean isTime(int hour, int minute, int second) {
-		long now = (System.currentTimeMillis() + timeOffset) / 1000;
+	public static boolean isNow(ZoneId zone, int hour, int minute, int second) {
+		long now = nowSec(zone);
 
-		if (now % 60 == second) {
-			now /= 60;
-			if (now % 60 == minute) {
-				now /= 60;
-				if (now % 24 == hour)
-					return true;
-			}
-		}
+		if (second > -1 && now % 60 != second) return false;
+		now /= 60;
+		if (minute > -1 && now % 60 != minute) return false;
+		now /= 60;
+		return hour < 0 || now % 24 == hour;
+	}
 
-		return false;
+	private static long nowSec(ZoneId zone) {
+		return (System.currentTimeMillis() + TimeZone.getTimeZone(zone).getOffset(System.currentTimeMillis())) / 1000;
 	}
 
 	/**
 	 * check local time.
 	 *
-	 * @param hour   check hour, 0-23.
-	 * @param minute check minute, 0-59.
+	 * @param hour   check hour(24-hour). ignore when negative
+	 * @param minute check minute. ignore when negative
+	 * @param second check second. ignore when negative
 	 */
-	public static boolean isTime(int hour, int minute) {
-		long now = (System.currentTimeMillis() + timeOffset) / 1000;
+	public static boolean isNow(int hour, int minute, int second) {
+		return isNow(zoneSysDefault, hour, minute, second);
+	}
 
-		now /= 60;
-		if (now % 60 == minute) {
-			now /= 60;
-			if (now % 24 == hour)
-				return true;
-		}
+	private static boolean isNowBeforeAfter(boolean chkBefore, ZoneId zone, int hour, int minute, int second) {
+		long now = nowSec(zone);
+		now %= 24 * 3600;
 
-		return false;
+		if (hour < 0 || hour > 23) throw new IllegalArgumentException("wrong hour: " + hour);
+		if (minute < 0 || minute > 59) throw new IllegalArgumentException("wrong minute: " + minute);
+		if (second < 0 || second > 59) throw new IllegalArgumentException("wrong second: " + second);
+		long given = hour * 3600 + minute * 60 + second;
+
+		return chkBefore ? now < given : now > given;
+	}
+
+	public static boolean isNowBefore(ZoneId zone, int hour, int minute, int second) {
+		return isNowBeforeAfter(true, zone, hour, minute, second);
+	}
+
+	public static boolean isNowBefore(int hour, int minute, int second) {
+		return isNowBeforeAfter(true, zoneSysDefault, hour, minute, second);
+	}
+
+	public static boolean isNowAfter(ZoneId zone, int hour, int minute, int second) {
+		return isNowBeforeAfter(false, zone, hour, minute, second);
+	}
+
+	public static boolean isNowAfter(int hour, int minute, int second) {
+		return isNowBeforeAfter(false, zoneSysDefault, hour, minute, second);
 	}
 
 	public enum Formats {
@@ -88,24 +108,47 @@ public class Times {
 	}
 
 	private static final ZoneId zoneSysDefault = ZoneId.systemDefault();
-	public static final ZoneId zoneBeijing = ZoneId.of("Asia/Shanghai");
 	public static final ZoneId zoneUTC = ZoneId.of("UTC");
-	public static final ZoneId zoneTokyo = ZoneId.of("Asia/Tokyo");
 	/**
-	 * Eastern Standard Time with Day Light Saving Time, used in Canada/USA (Eastern)
-	 * <p>
-	 * <a href='http://www.cs.berkeley.edu/CT/ag4.0/appendid.htm'>Time Zone Table</a>
+	 * Beijing
 	 */
-	public static final ZoneId zoneEST5EDT = ZoneId.of("EST5EDT");
+	public static final ZoneId zoneBJ = ZoneId.of("Asia/Shanghai");
 	/**
-	 * Central Standard Time with Day Light Saving Time, used in Canada/USA (Central)
+	 * Hongkong
 	 */
-	public static final ZoneId zoneCST6CDT = ZoneId.of("CST6CDT");
-	public static final ZoneId zoneLondon = ZoneId.of("Europe/London");
+	public static final ZoneId zoneHK = ZoneId.of("Hongkong");
 	/**
-	 * Central Europe Time, used by most western european countries
+	 * Japan Standard Time, Tokyo
+	 */
+	public static final ZoneId zoneJP = ZoneId.of("Asia/Tokyo");
+	/**
+	 * Eastern Standard Time, Canada/USA (Eastern)
+	 */
+	public static final ZoneId zoneEST = ZoneId.of("EST5EDT");
+	/**
+	 * Central Standard Time, Canada/USA (Central)
+	 */
+	public static final ZoneId zoneCST = ZoneId.of("CST6CDT");
+	/**
+	 * Greenwich Mean Time, London
+	 */
+	public static final ZoneId zoneGMT = ZoneId.of("Europe/London");
+	/**
+	 * Central Europe Time, most western european countries
 	 */
 	public static final ZoneId zoneCET = ZoneId.of("CET");
+	/**
+	 * Singapore Time
+	 */
+	public static final ZoneId zoneSG = ZoneId.of("Asia/Singapore");
+	/**
+	 * Australian Eastern Daylight Time, Sydney, Canberra
+	 */
+	public static final ZoneId zoneAE = ZoneId.of("Australia/Sydney");
+	/**
+	 * New Zealand Daylight Time, Auckland, Wellington
+	 */
+	public static final ZoneId zoneNZ = ZoneId.of("Pacific/Auckland");
 
 	/**
 	 * @see #format(Object, Object, ZoneId)

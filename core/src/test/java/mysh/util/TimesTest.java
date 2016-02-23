@@ -11,10 +11,36 @@ import java.util.Date;
 
 public class TimesTest {
 
+
+	@Test
+	@Ignore
+	public void testZone() throws Exception {
+		ZoneId.getAvailableZoneIds().stream().forEach(System.out::println);
+		System.out.println(Times.zoneAE);
+	}
+
 	@Test
 	@Ignore
 	public void testIsTime() throws Exception {
-		System.out.println(Times.isTime(13, 18));
+		System.out.println(Times.isNow(19, 40, -1));
+		System.out.println(Times.isNow(Times.zoneEST, 6, 41, -1));
+		System.out.println(Times.isNow(Times.zoneCET, 12, 52, -1));
+	}
+
+	@Test
+	@Ignore
+	public void testIsTimeBefore() throws Exception {
+		System.out.println(Times.isNowBefore(20, 18, 0));
+		System.out.println(Times.isNowBefore(Times.zoneEST, 7, 18, 0));
+		System.out.println(Times.isNowBefore(Times.zoneCET, 13, 18, 0));
+	}
+
+	@Test
+	@Ignore
+	public void testIsTimeAfter() throws Exception {
+		System.out.println(Times.isNowAfter(20, 14, 0));
+		System.out.println(Times.isNowAfter(Times.zoneEST, 7, 14, 0));
+		System.out.println(Times.isNowAfter(Times.zoneCET, 13, 14, 0));
 	}
 
 	@Test
@@ -44,9 +70,9 @@ public class TimesTest {
 
 	@Test
 	public void dayLightSaving() {
-		dayLightSaving(LocalDateTime.of(2010, 8, 1, 10, 0, 0).atZone(Times.zoneBeijing));
+		dayLightSaving(LocalDateTime.of(2010, 8, 1, 10, 0, 0).atZone(Times.zoneBJ));
 		System.out.println(" ------------------------ ");
-		dayLightSaving(LocalDateTime.of(2010, 1, 1, 10, 0, 0).atZone(Times.zoneBeijing));
+		dayLightSaving(LocalDateTime.of(2010, 1, 1, 10, 0, 0).atZone(Times.zoneBJ));
 	}
 
 	private void dayLightSaving(ZonedDateTime time) {
