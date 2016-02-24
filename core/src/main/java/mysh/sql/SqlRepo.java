@@ -26,6 +26,7 @@ public class SqlRepo {
 
 	private final Map<String, String> repo = new HashMap<>();
 	private NamedParamQueryImpl jdbc;
+	private DictRepo dictRepo;
 
 	public void setMapperLocations(Resource[] locations) throws IOException {
 		if (locations != null) {
@@ -34,6 +35,15 @@ public class SqlRepo {
 				loadSqlFile(is);
 			}
 		}
+	}
+
+	public SqlRepo setDictRepo(DictRepo dictRepo) {
+		this.dictRepo = dictRepo;
+		return this;
+	}
+
+	public void setJdbc(NamedParamQueryImpl jdbc) {
+		this.jdbc = jdbc;
 	}
 
 	private void loadSqlFile(InputStream is) throws IOException {
@@ -143,7 +153,84 @@ public class SqlRepo {
 		return sqlHelper.fetch(type);
 	}
 
-	public void setJdbc(NamedParamQueryImpl jdbc) {
-		this.jdbc = jdbc;
+	/**
+	 * 从 sql 配置取查询结果.
+	 *
+	 * @param sqlId   配置的 sql 语句 id
+	 * @param params  sql 参数, 可 null
+	 * @param cond    外部条件, 可 null
+	 * @param dictMap 字典配置, 属性名->字典key
+	 */
+	public List<Map<String, Object>> fetchByConfig(String sqlId, Map<String, ?> params,
+	                                               SqlCondition cond, Map<String, String> dictMap) throws Exception {
+		SqlHelper sqlHelper = create(sqlId).appendParams(params).appendCond(cond);
+		handleDict(sqlHelper, dictMap);
+		return sqlHelper.fetch();
+	}
+
+	private void handleDict(SqlHelper sqlHelper, Map<String, String> dictMap) {
+		if (dictMap != null)
+			sqlHelper.onResult(
+							item -> {
+								for (Map.Entry<String, String> m : dictMap.entrySet()) {
+									String col = m.getKey();
+									String dictKey = m.getValue();
+									Object itemValue = item.get(col);
+									if (itemValue != null && dictRepo != null) {
+										String desc = dictRepo.getDesc(dictKey, itemValue);
+										if (desc != null)
+											item.put(col, desc);
+									}
+								}
+							});
+	}
+
+	/**
+	 * 从 sql 配置取查询结果.
+	 *
+	 * @param sqlId   配置的 sql 语句 id
+	 * @param params  sql 参数, 可 null
+	 * @param cond    外部条件, 可 null
+	 * @param type    返回结果封装类型
+	 * @param dictMap 字典配置, 属性名->字典key
+	 */
+	public <T> List<T> fetchByConfig(String sqlId, Map<String, ?> params,
+	                                 SqlCondition cond, Class<T> type, Map<String, String> dictMap) throws Exception {
+		SqlHelper sqlHelper = create(sqlId).appendParams(params).appendCond(cond);
+		handleDict(sqlHelper, dictMap);
+		return sqlHelper.fetch(type);
+	}
+
+	/**
+	 * 从 sql 取查询结果.
+	 *
+	 * @param sql     sql 语句
+	 * @param params  sql 参数, 可 null
+	 * @param cond    外部条件, 可 null
+	 * @param dictMap 字典配置, 属性名->字典key
+	 */
+	public List<Map<String, Object>> fetchBySql(String sql, Map<String, ?> params,
+	                                            SqlCondition cond, Map<String, String> dictMap) throws Exception {
+		SqlHelper sqlHelper = new SqlHelper(this.jdbc, new StringBuilder(sql), null)
+						.appendParams(params).appendCond(cond);
+		handleDict(sqlHelper, dictMap);
+		return sqlHelper.fetch();
+	}
+
+	/**
+	 * 从 sql 取查询结果.
+	 *
+	 * @param sql     sql 语句
+	 * @param params  sql 参数, 可 null
+	 * @param cond    外部条件, 可 null
+	 * @param type    返回结果封装类型
+	 * @param dictMap 字典配置, 属性名->字典key
+	 */
+	public <T> List<T> fetchBySql(String sql, Map<String, ?> params,
+	                              SqlCondition cond, Class<T> type, Map<String, String> dictMap) throws Exception {
+		SqlHelper sqlHelper = new SqlHelper(this.jdbc, new StringBuilder(sql), null)
+						.appendParams(params).appendCond(cond);
+		handleDict(sqlHelper, dictMap);
+		return sqlHelper.fetch(type);
 	}
 }
