@@ -265,6 +265,12 @@ public class Crawler<CTX extends UrlContext> {
 		return this.name;
 	}
 
+	static boolean isNetworkIssue(Throwable t) {
+		return t instanceof InterruptedIOException
+						|| t instanceof SocketException
+						|| t instanceof UnknownHostException;
+	}
+
 	private static final Pattern httpExp =
 					Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
 	private static final Pattern srcValueExp =
@@ -666,12 +672,6 @@ public class Crawler<CTX extends UrlContext> {
 		void onException(IOException ex) {
 			if (isNetworkIssue(ex))
 				networkIssueCount.incrementAndGet();
-		}
-
-		private boolean isNetworkIssue(Throwable t) {
-			return t instanceof InterruptedIOException
-							|| t instanceof SocketException
-							|| t instanceof UnknownHostException;
 		}
 
 		private volatile int lastWorkAccPerMinute;

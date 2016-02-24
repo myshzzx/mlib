@@ -333,10 +333,10 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 				result = newR;
 			}
 
-			for (Map<String, Object> map : result) {
-				if (this.resultHandler != null)
+			if (this.resultHandler != null)
+				for (Map<String, Object> map : result) {
 					this.resultHandler.handle(map);
-			}
+				}
 		}
 		return result;
 	}

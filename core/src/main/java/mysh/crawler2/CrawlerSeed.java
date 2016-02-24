@@ -79,4 +79,9 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	default String winFileNameEscape(String fileName, String replacer) {
 		return fileName.replaceAll("[\\\\/:*?\"><|]", replacer);
 	}
+
+	default boolean isNetworkIssue(Throwable t) {
+		return Crawler.isNetworkIssue(t);
+	}
+
 }
