@@ -12,6 +12,7 @@ import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 文件工具类.
@@ -102,7 +103,7 @@ public class FilesUtil {
 	}
 
 	private static File getWriteFile(File file) {
-		return new File(file.getAbsolutePath() + ".~write~");
+		return new File(file.getPath() + ".~write~");
 	}
 
 	/**
@@ -241,5 +242,31 @@ public class FilesUtil {
 	 */
 	public static String escapeFileName(String name, String replacement) {
 		return name.replaceAll("[:*?\"><\\|\\\\/]", replacement);
+	}
+
+	/**
+	 * compress object to file using fst-serialization
+	 */
+	public static void compress2FileFst(File file, Serializable obj) throws IOException {
+		file.getParentFile().mkdirs();
+		File writeFile = getWriteFile(file);
+		try (FileOutputStream out = new FileOutputStream(writeFile)) {
+			Compresses.compress("fst", new ByteArrayInputStream(Serializer.fst.serialize(obj)),
+							Long.MAX_VALUE, out, 1_000_000);
+		}
+		file.delete();
+		writeFile.renameTo(file);
+		log.debug("compressed to file: " + file.getAbsolutePath());
+	}
+
+	/**
+	 * decompress file using fst-serialization
+	 */
+	public static <T> T decompressFileFst(File file) throws IOException {
+		AtomicReference<T> result = new AtomicReference<>();
+		try (FileInputStream in = new FileInputStream(file)) {
+			Compresses.deCompress((entry, ein) -> result.set(Serializer.fst.deserialize(ein)), in);
+		}
+		return result.get();
 	}
 }

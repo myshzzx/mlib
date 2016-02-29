@@ -90,6 +90,8 @@ public class Compresses {
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,
 	                               OutputStream out, int bufSize) {
+		if (maxReadLen < 1) throw new IllegalArgumentException("maxReadLen must be positive");
+
 		try (
 						CheckedOutputStream cos = new CheckedOutputStream(out, new CRC32()) {
 							@Override
@@ -122,25 +124,12 @@ public class Compresses {
 		}
 	}
 
-	private static OutputStream wrapUnClosable(OutputStream out) {
-		return new OutputStream() {
-			@Override
-			public void write(int b) throws IOException {
-				out.write(b);
-			}
-
-			@Override
-			public void close() throws IOException {
-			}
-		};
-	}
-
 	/**
 	 * 解压缩数据. (完成后不会关闭IO流)<br/>
 	 * 此方法会阻塞直到完成(输入流关闭或输入结束).
 	 *
 	 * @param picker 压缩实体拾取器.
-	 * @param in     数据输入流(不要关闭).
+	 * @param in     数据输入流(不关闭).
 	 * @return 操作结果.
 	 */
 	public static boolean deCompress(EntryPicker picker, final InputStream in) {
