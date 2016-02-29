@@ -35,11 +35,6 @@ public class Compresses {
 
 	private static final Logger log = LoggerFactory.getLogger(Compresses.class);
 
-	/**
-	 * 默认缓冲区大小. (10M)
-	 */
-	public static final int DEFAULT_BUF_SIZE = 10_000_000;
-
 	private Compresses() {
 	}
 
@@ -57,7 +52,7 @@ public class Compresses {
 	 *
 	 * @param entry             压缩实体名.
 	 * @param compressedDataOut 压缩输出流.
-	 * @param bufSize           缓冲区大小. (有效范围: [100KB, 100MB], 默认: 10MB)
+	 * @param bufSize           缓冲区大小. (有效范围: [100KB, 10MB], 默认: 10MB)
 	 * @param result            压缩任务引用.
 	 * @return 数据输出流.
 	 */
@@ -68,7 +63,7 @@ public class Compresses {
 			throw new IllegalArgumentException();
 
 		PipedOutputStream dataOut = new PipedOutputStream();
-		PipedInputStream dataIn = new PipedInputStream(dataOut, Compresses.DEFAULT_BUF_SIZE);
+		PipedInputStream dataIn = new PipedInputStream(dataOut, getProperBufSize(bufSize));
 
 		RunnableFuture<Boolean> task = new FutureTask<>(
 						() -> compress(entry, dataIn, Long.MAX_VALUE, compressedDataOut, bufSize));
@@ -85,12 +80,13 @@ public class Compresses {
 	 * @param in         数据输入流.
 	 * @param maxReadLen 允许从输入流读取的最大字节数.
 	 * @param out        数据输出流.
-	 * @param bufSize    缓冲区大小. (有效范围: [100KB, 100MB], 默认: 10MB)
+	 * @param bufSize    缓冲区大小. (有效范围: [100KB, 10MB], 默认: 10MB)
 	 * @return 操作结果.
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,
 	                               OutputStream out, int bufSize) {
-		if (maxReadLen < 1) throw new IllegalArgumentException("maxReadLen must be positive");
+		if (maxReadLen == 0) return true;
+		if (maxReadLen < 0) throw new IllegalArgumentException("maxReadLen mustn't be negative");
 
 		try (
 						CheckedOutputStream cos = new CheckedOutputStream(out, new CRC32()) {
@@ -105,7 +101,7 @@ public class Compresses {
 			zos.putNextEntry(ze);
 
 			int len;
-			byte[] buf = Compresses.getProperBufSize(bufSize);
+			byte[] buf = new byte[Compresses.getProperBufSize(bufSize)];
 			while (maxReadLen > 0
 							&& (len = in.read(buf, 0, maxReadLen > buf.length ? buf.length
 							: (int) maxReadLen)) > -1) {
@@ -156,16 +152,11 @@ public class Compresses {
 	}
 
 	/**
-	 * 取合适的缓冲区. (有效范围: [100KB, 100MB], 默认: 10MB)
+	 * 取合适的缓冲区. (有效范围: [100KB, 10MB])
 	 *
 	 * @param bufSize 缓冲区大小.
 	 */
-	private static byte[] getProperBufSize(int bufSize) {
-
-		if (bufSize > 100_000_000 || bufSize < 100_000) {
-			return new byte[DEFAULT_BUF_SIZE];
-		}
-		return new byte[bufSize];
+	private static int getProperBufSize(int bufSize) {
+		return Range.within(100_000, 10_000_000, bufSize);
 	}
-
 }

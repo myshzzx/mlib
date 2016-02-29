@@ -102,7 +102,10 @@ public class FilesUtil {
 		log.debug("written file: " + file.getAbsolutePath());
 	}
 
-	private static File getWriteFile(File file) {
+	/**
+	 * return a new file with added extension "~write~", usually used as a temp file.
+	 */
+	public static File getWriteFile(File file) {
 		return new File(file.getPath() + ".~write~");
 	}
 
