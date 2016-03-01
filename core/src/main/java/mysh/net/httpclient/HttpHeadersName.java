@@ -8,11 +8,17 @@ package mysh.net.httpclient;
  * Created by mysh on 2015/6/28.
  */
 public interface HttpHeadersName {
-	String Connection = "Connection";
-	String Cookie = "Cookie";
-	String SetCookie = "Set-Cookie";
-	String Referer = "Referer";
-	String UserAgent = "User-Agent";
-	String ContentType = "Content-Type";
+	String Accept = "Accept";
+	String AcceptEncoding = "Accept-Encoding";
+	String AcceptLanguage = "Accept-Language";
 	String Authorization = "Authorization";
+	String CacheControl = "Cache-Control";
+	String Connection = "Connection";
+	String ContentType = "Content-Type";
+	String Cookie = "Cookie";
+	String Pragma = "Pragma";
+	String ProxyConnection = "Proxy-Connection";
+	String Referer = "Referer";
+	String SetCookie = "Set-Cookie";
+	String UserAgent = "User-Agent";
 }
