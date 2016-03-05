@@ -6,8 +6,11 @@ import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
+import mysh.collect.Colls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Collection;
 
 import static mysh.util.WinAPI.*;
 
@@ -32,7 +35,7 @@ public class HotKeysGlobal {
 		 */
 		void onKeyDown(boolean ctrl, boolean alt, boolean shift, int vkCode, String vkDesc, boolean winChanges, String winTitle);
 
-		default String friendlyKeyDesc(boolean ctrl, boolean alt, boolean shift, int vkCode) {
+		static String friendlyKeyDesc(boolean ctrl, boolean alt, boolean shift, int vkCode) {
 			if ((ctrl || alt || shift) && (vkCode < 16 || vkCode > 18 && vkCode < 160 || vkCode > 165)) {
 				StringBuilder sb = new StringBuilder();
 				if (ctrl) sb.append("Ctrl+");
@@ -45,6 +48,9 @@ public class HotKeysGlobal {
 		}
 	}
 
+	/**
+	 * listening all key actions
+	 */
 	public static synchronized void addWin32KeyboardListener(Win32KbAction action) {
 		chkWindows();
 		win32KbListeners.put(0, action);
@@ -57,6 +63,9 @@ public class HotKeysGlobal {
 		prepareWin32Hook();
 	}
 
+	/**
+	 * listening to specific key action
+	 */
 	public static synchronized void bindWin32KeyboardListener(
 					boolean ctrl, boolean alt, boolean shift, int vkCode, Win32KbAction action) {
 		chkWindows();
@@ -114,7 +123,7 @@ public class HotKeysGlobal {
 
 //							https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943(v=vs.85).aspx
 								user32.PeekMessage(msg, null, 0, 0, 1);
-								Thread.sleep(30);
+								Thread.sleep(25);
 							}
 						} catch (Throwable e) {
 							log.error("peek msg error", e);
@@ -151,20 +160,26 @@ public class HotKeysGlobal {
 											String vkDesc = (vkCode > 0 && vkCode < 255) ? win32Vks[vkCode] : null;
 											chkWindow();
 
-											for (Win32KbAction listener : win32KbListeners.get(0)) {
-												try {
-													listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
-												} catch (Throwable t) {
-													log.error("handle key action error", t);
-												}
-											}
-											if (win32KbListeners.size() > 0) {
-												int key = genKey(ctrl, alt, shift, vkCode);
-												for (Win32KbAction listener : win32KbListeners.get(key)) {
+											Collection<Win32KbAction> entireKeysActs = win32KbListeners.get(0);
+											if (Colls.isNotBlank(entireKeysActs))
+												for (Win32KbAction listener : entireKeysActs) {
 													try {
 														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
 													} catch (Throwable t) {
-														log.error("handle key action error", t);
+														log.error("handle entire keys action error: {}",
+																		Win32KbAction.friendlyKeyDesc(ctrl, alt, shift, vkCode), t);
+													}
+												}
+
+											int key = genKey(ctrl, alt, shift, vkCode);
+											Collection<Win32KbAction> specificKeyActs = win32KbListeners.get(key);
+											if (Colls.isNotBlank(specificKeyActs)) {
+												for (Win32KbAction listener : specificKeyActs) {
+													try {
+														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
+													} catch (Throwable t) {
+														log.error("handle specific key action error: {}",
+																		Win32KbAction.friendlyKeyDesc(ctrl, alt, shift, vkCode), t);
 													}
 												}
 											}

@@ -20,14 +20,12 @@ public class HotKeysGlobalTest {
 
 	@Test
 	public void testAddWin32KeyboardListener() throws Exception {
-		HotKeysGlobal.addWin32KeyboardListener(new HotKeysGlobal.Win32KbAction() {
-			@Override
-			public void onKeyDown(boolean c, boolean a, boolean s, int ch, String desc, boolean winChg, String winTitle) {
-				if (winChg)
-					System.out.println(winTitle);
-				log.info(friendlyKeyDesc(c, a, s, ch));
-			}
-		});
+		HotKeysGlobal.addWin32KeyboardListener(
+						(c, a, s, ch, desc, winChg, winTitle) -> {
+							if (winChg)
+								System.out.println(winTitle);
+							log.info(HotKeysGlobal.Win32KbAction.friendlyKeyDesc(c, a, s, ch));
+						});
 
 		new CountDownLatch(1).await();
 	}

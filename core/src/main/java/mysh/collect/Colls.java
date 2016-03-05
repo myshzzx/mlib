@@ -9,6 +9,10 @@ import java.util.*;
  * @since 2016/3/1
  */
 public abstract class Colls {
+	public static boolean isNotBlank(Collection<?> coll) {
+		return coll != null && !coll.isEmpty();
+	}
+
 	/**
 	 * create a hashMap without compile time type check.
 	 */
