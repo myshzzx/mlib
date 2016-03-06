@@ -6,6 +6,7 @@ import com.google.api.client.http.apache.ApacheHttpTransport;
 import com.google.api.client.util.Key;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
+import mysh.util.Strings;
 import org.apache.http.conn.params.ConnManagerParams;
 import org.apache.http.conn.params.ConnPerRouteBean;
 import org.apache.http.params.HttpConnectionParams;
@@ -301,15 +302,17 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
-	 * 将带有 ./ 和 ../ 的 URI 转换成简短的 URL 形式.
+	 * 将带有 ./ 或 ../ 或 // 或 \ 的 URI 转换成简短的 URL 形式.
+	 * uriString needs schema
 	 */
 	public static String getShortURL(String uriString) {
 
-		if (uriString == null) {
+		if (Strings.isBlank(uriString)) {
 			return "";
 		}
 
-		if (!uriString.contains("./") && uriString.indexOf("//", 7) < 0) {
+		uriString = uriString.replace('\\', '/');
+		if (!uriString.contains("./") && uriString.indexOf("//", 8) < 0) {
 			return uriString;
 		}
 
@@ -328,15 +331,15 @@ public class HttpClientAssist implements Closeable {
 		if (uri.getHost() != null) {
 			url.append(uri.getHost());
 			if (uri.getPort() != -1
-							&& !(uri.getScheme().equals("http") && uri.getPort() == 80)
-							&& !(uri.getScheme().equals("https") && uri.getPort() == 443)) {
+							&& !("http".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 80)
+							&& !("https".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 443)) {
 				url.append(":");
 				url.append(uri.getPort());
 			}
 		}
 
 		// 处理 URL Path 中的 . 和 ..
-		String[] tPath = uri.getPath().split("/");
+		String[] tPath = uri.getRawPath().split("/");
 		// int lastUnNullBlankIndex = -1;
 		Deque<Integer> lastUnNullBlankIndex = new LinkedList<>();
 		for (int index = 0; index < tPath.length; index++) {
@@ -372,13 +375,13 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		// 处理参数
-		if (uri.getQuery() != null) {
+		if (uri.getRawQuery() != null) {
 			url.append("?");
-			url.append(uri.getQuery());
+			url.append(uri.getRawQuery());
 		}
 
 		// 处理形如 g.cn/search?q=2 的情况
-		if (uri.getScheme() == null && !uri.getPath().startsWith("/")) {
+		if (uri.getScheme() == null && !uri.getRawPath().startsWith("/")) {
 			url.delete(0, 1);
 		}
 

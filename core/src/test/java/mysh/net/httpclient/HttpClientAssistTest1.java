@@ -1,13 +1,14 @@
 package mysh.net.httpclient;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Mysh
@@ -122,7 +123,12 @@ public class HttpClientAssistTest1 {
 
 	@Test
 	public void testGetShortURL() throws Exception {
-		String shortURL = HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a");
-		Assert.assertEquals("http://dfso.com/faf/fe/a", shortURL);
+		assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a"));
+		assertEquals("http://dfso.com/a/", HttpClientAssist.getShortURL("http://dfso.com//./a/"));
+		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//a/../b"));
+		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//./a/../b"));
+		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com/\\./a/../b"));
+		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com\\./a/../b"));
+		assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b"));
 	}
 }

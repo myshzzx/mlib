@@ -380,8 +380,9 @@ public class Crawler<CTX extends UrlContext> {
 				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
 			}
 
-			return urls.stream().map(
-							url -> url.replace('\\', '/')
+			return urls.stream()
+							.filter(url -> url.length() > 0)
+							.map(url -> url
 											.replace("&amp;", "&")
 											.replace("&lt;", "<")
 											.replace("&gt;", ">")
