@@ -48,6 +48,8 @@ interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 ```
 就好了。示例见[test目录](https://github.com/myshzzx/mlib/tree/master/core/src/test/java/mysh/crawler2)
 
+有个要注意的地方, 就是默认的 url 分类器会自动调速, 没有流控的小站很容易被爬崩, 小伙伴们要手下留情。
+关于调速机制，见 ```mysh.crawler2.Crawler.UrlClassifierAdjuster#analyze```
 
 ## <a name='dynasql'></a>DynamicSql 动态sql拼接(流式)
 控制器丢过来一个表单对象，要根据它动态地拼 sql 也是个令人恼火的活，要处理各种空值引号啥的，一不小心就出错。能像写 sql 一样写 java 或许还会好点。
@@ -94,7 +96,7 @@ try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 	ue.bufWriteTo(fileOutputStream);
 
 	// 响应状态码
-	ue.getStatusLine().getStatusCode(); // 200
+	ue.getStatusCode(); // 200
 }
 ```
 
