@@ -119,7 +119,7 @@ try(HttpClientAssist.UrlEntity ue = hca.access("https://hc.apache.org/")){
 * RPC 基于 Thrift 和 fast-serialization
 
 ### 自组织
-* 按照规则，某台机器 “天生” 就是 Master
+* 按照规则，某台机器 “天生” 就是 Master (按 启动时间+IP 字串的字典序, 序号最小的为 Master)
 * 节点通过广播包问答的方式发现其他节点及确认 Master，广播包内包含自身信息
 * 节点启动时进入 “Master 确认流程”，广播询问 “谁是 Master”
 	1. 超时没有收到回应，将自己设定为 Master，并广播 “我是 Master”
