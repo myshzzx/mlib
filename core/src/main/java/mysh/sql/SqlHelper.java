@@ -11,7 +11,6 @@ import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -26,7 +25,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 
 	private int pageNo;
 	private int pageSize;
-	private ResultHandler resultHandler;
+	private List<ResultHandler> resultHandlers;
 	private CacheLevel cacheLevel;
 
 	/**
@@ -83,11 +82,13 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 
 	private final ConcurrentHashMap<Class<?>, Map<String, Field>> classFields = new ConcurrentHashMap<>();
 
+	private static final EnumSet<KeyStrategy> upperCaseKey = EnumSet.of(KeyStrategy.UPPER_CASE);
+
 	/**
 	 * 取数据，返回给定类型的 list.
 	 */
 	public <M> List<M> fetch(Class<M> type) throws Exception {
-		List<Map<String, Object>> results = fetch();
+		List<Map<String, Object>> results = fetch(upperCaseKey);
 		if (results == null) return Collections.emptyList();
 
 		Map<String, Field> modelFields = getTypeFields(type);
@@ -208,10 +209,12 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	private class CacheKey {
 		private String sql;
 		private Map<String, Object> param;
+		private EnumSet<KeyStrategy> ks;
 
-		CacheKey(String sql, Map<String, Object> param) {
+		CacheKey(String sql, Map<String, Object> param, EnumSet<KeyStrategy> ks) {
 			this.sql = sql;
 			this.param = param;
+			this.ks = ks;
 		}
 
 		@Override
@@ -222,21 +225,46 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 			CacheKey cacheKey = (CacheKey) o;
 
 			if (!sql.equals(cacheKey.sql)) return false;
-			return param.equals(cacheKey.param);
+			if (!param.equals(cacheKey.param)) return false;
+			return ks != null ? ks.equals(cacheKey.ks) : cacheKey.ks == null;
 		}
 
 		@Override
 		public int hashCode() {
 			int result = sql.hashCode();
 			result = 31 * result + param.hashCode();
+			result = 31 * result + (ks != null ? ks.hashCode() : 0);
 			return result;
 		}
 	}
 
 	/**
-	 * 取数据
+	 * 取数据为 map 时 key 策略.
+	 */
+	public enum KeyStrategy {
+		/**
+		 * key is converted to upper case
+		 */
+		UPPER_CASE,
+		/**
+		 * key is converted upper case, then camel case.
+		 */
+		CAMEL
+	}
+
+	/**
+	 * fetch <code>list&lt;map&gt;</code>
 	 */
 	public List<Map<String, Object>> fetch() throws Exception {
+		return fetch((EnumSet<KeyStrategy>) null);
+	}
+
+	/**
+	 * fetch <code>list&lt;map&gt;</code>.
+	 *
+	 * @param ks key strategy of map.
+	 */
+	public List<Map<String, Object>> fetch(EnumSet<KeyStrategy> ks) throws Exception {
 		String sql = getCondStr();
 		if (pageNo > 0)
 			sql = genSql(sql, pageNo, pageSize);
@@ -246,17 +274,15 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		if (this.cacheLevel != null) {
 			final String finalSql = sql;
 			result = caches.get(this.cacheLevel)
-							.get(new CacheKey(sql, param), new Callable<List<Map<String, Object>>>() {
-								@Override
-								public List<Map<String, Object>> call() throws Exception {
-									return jdbc.queryForList(finalSql, param);
-								}
+							.get(new CacheKey(sql, param, ks), () -> {
+								List<Map<String, Object>> r = jdbc.queryForList(finalSql, param);
+								handleResult(r, ks);
+								return r;
 							});
-		} else
+		} else {
 			result = jdbc.queryForList(sql, param);
-
-		handleResult(result);
-
+			handleResult(result, ks);
+		}
 		return result;
 	}
 
@@ -274,10 +300,12 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	}
 
 	/**
-	 * 结果处理器
+	 * 结果处理器, 可调用多次添加多个结果处理器, 处理结果时按 handler 添加顺序依次调用.
 	 */
 	public SqlHelper onResult(ResultHandler rh) {
-		this.resultHandler = rh;
+		if (this.resultHandlers == null)
+			this.resultHandlers = new ArrayList<>();
+		this.resultHandlers.add(rh);
 		return this;
 	}
 
@@ -318,24 +346,28 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		return this;
 	}
 
-	private List<Map<String, Object>> handleResult(List<Map<String, Object>> result) {
+	private List<Map<String, Object>> handleResult(List<Map<String, Object>> result, EnumSet<KeyStrategy> ks) {
 		if (result != null) {
-			// Mysql: make sure value map is upper case key
-			if (!DbUtil.isOracle()) {
+			if (ks != null && (ks.contains(KeyStrategy.UPPER_CASE) || ks.contains(KeyStrategy.CAMEL))) {
 				List<Map<String, Object>> newR = new ArrayList<>();
 				for (Map<String, Object> r : result) {
 					Map<String, Object> newM = new HashMap<>();
 					for (Map.Entry<String, Object> e : r.entrySet()) {
-						newM.put(e.getKey().toUpperCase(), e.getValue());
+						String newKey = e.getKey().toUpperCase();
+						if (ks.contains(KeyStrategy.CAMEL))
+							newKey = CodeUtil.underline2camel(newKey);
+						newM.put(newKey, e.getValue());
 					}
 					newR.add(newM);
 				}
 				result = newR;
 			}
 
-			if (this.resultHandler != null)
+			if (this.resultHandlers != null)
 				for (Map<String, Object> map : result) {
-					this.resultHandler.handle(map);
+					for (ResultHandler handler : this.resultHandlers) {
+						handler.handle(map);
+					}
 				}
 		}
 		return result;

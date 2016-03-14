@@ -194,6 +194,7 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
+	 * post raw content. content type can be set using header: {@link HttpHeadersName#ContentType}<br/>
 	 * get url entity by post method.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
@@ -201,7 +202,7 @@ public class HttpClientAssist implements Closeable {
 	 * @param headers request headers.
 	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity accessSendContent(
+	public UrlEntity accessPostBytes(
 					String url, @Nullable Map<String, ?> headers, @Nullable byte[] buf) throws IOException {
 		ByteArrayContent content = null;
 		if (buf != null) {
@@ -231,6 +232,7 @@ public class HttpClientAssist implements Closeable {
 	 * @param headers request headers, can be null.
 	 * @throws IOException 连接异常.
 	 */
+
 	private UrlEntity access(HttpRequest req, Map<String, ?> headers) throws IOException {
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
