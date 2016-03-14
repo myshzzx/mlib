@@ -177,6 +177,23 @@ public class SqlRepo {
 	}
 
 	/**
+	 * 从 sql 取数值结果. 返回第一条结果第一列的值, 没有结果则返回 null.
+	 *
+	 * @param sqlId  配置的 sql 语句 id
+	 * @param params sql 参数, 可 null
+	 * @param cond   外部条件, 可 null
+	 */
+	public <T extends Number> T fetchNumberByConfig(String sqlId, Map<String, ?> params,
+	                                                SqlCondition cond) throws Exception {
+		List<Map<String, Object>> r = fetchByConfig(sqlId, params, cond);
+		if (r != null && r.size() > 0) {
+			Iterator<Map.Entry<String, Object>> it = r.get(0).entrySet().iterator();
+			return (T) it.next().getValue();
+		} else
+			return null;
+	}
+
+	/**
 	 * 从 sql 配置取查询结果.
 	 *
 	 * @param sqlId   配置的 sql 语句 id
