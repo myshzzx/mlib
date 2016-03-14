@@ -47,8 +47,13 @@ public class SqlRepo {
 	/**
 	 * keyStrategies used only in fetch <code>list&lt;map&gt;</code>
 	 */
-	public SqlRepo setKeyStrategies(EnumSet<SqlHelper.KeyStrategy> keyStrategies) {
-		this.keyStrategies = keyStrategies;
+	public SqlRepo setKeyStrategies(SqlHelper.KeyStrategy... ks) {
+		this.keyStrategies.clear();
+		if (ks != null) {
+			for (SqlHelper.KeyStrategy k : ks) {
+				this.keyStrategies.add(k);
+			}
+		}
 		return this;
 	}
 
