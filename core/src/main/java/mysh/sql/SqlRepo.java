@@ -1,5 +1,6 @@
 package mysh.sql;
 
+import mysh.codegen.CodeUtil;
 import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,7 +231,16 @@ public class SqlRepo {
 	}
 
 	private void handleDict(SqlHelper sqlHelper, final Map<String, String> dictMap) {
-		if (dictMap != null)
+		if (dictMap != null) {
+			if (keyStrategies.contains(SqlHelper.KeyStrategy.CAMEL)) {
+				Map<String, String> tMap = new HashMap<>();
+				for (Map.Entry<String, String> e : dictMap.entrySet()) {
+					tMap.put(CodeUtil.underline2FieldCamel(e.getKey()), e.getValue());
+				}
+				dictMap.clear();
+				dictMap.putAll(tMap);
+			}
+
 			sqlHelper.onResult(new ResultHandler() {
 				@Override
 				public void handle(Map<String, Object> item) {
@@ -238,15 +248,18 @@ public class SqlRepo {
 						String col = m.getKey();
 						String dictKey = m.getValue();
 						Object itemValue = item.get(col);
+
 						if (itemValue != null && dictRepo != null) {
 							String desc = dictRepo.getDesc(dictKey, itemValue);
-							if (desc != null)
+							if (desc != null) {
 								item.put(col, desc);
+							}
+							item.put(col + "Code", itemValue);
 						}
 					}
 				}
 			});
+		}
 	}
-
 
 }

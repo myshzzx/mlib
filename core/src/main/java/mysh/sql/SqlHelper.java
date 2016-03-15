@@ -355,7 +355,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 					for (Map.Entry<String, Object> e : r.entrySet()) {
 						String newKey = e.getKey().toUpperCase();
 						if (ks.contains(KeyStrategy.CAMEL))
-							newKey = CodeUtil.method2FieldSign(CodeUtil.underline2camel(newKey));
+							newKey = CodeUtil.underline2FieldCamel(newKey);
 						newM.put(newKey, e.getValue());
 					}
 					newR.add(newM);

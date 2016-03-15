@@ -21,6 +21,14 @@ public class CodeUtilTest {
 	}
 
 	@Test
+	public void testUnderline2FieldCamel() {
+		Assert.assertEquals("myshZzx", underline2FieldCamel("mysh_zzx"));
+		Assert.assertEquals("myshZZX", underline2FieldCamel("mysh_z_z_x"));
+		Assert.assertEquals("mysh", underline2FieldCamel("MYSH"));
+		Assert.assertEquals("mZZx", underline2FieldCamel("M_Z_ZX"));
+	}
+
+	@Test
 	public void testCamel2underline() {
 		Assert.assertEquals("MYSH_ZZX", camel2underline("MyshZzx"));
 		Assert.assertEquals("MYSH_Z_Z_X", camel2underline("MyshZZX"));

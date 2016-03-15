@@ -1,5 +1,6 @@
 package mysh.codegen;
 
+import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,17 +13,39 @@ public class CodeUtil {
 
 	private static final int alphaStep = 'a' - 'A';
 
+
 	/**
-	 * 下划线命名转为驼峰命名.
+	 * underline to camel , e.g. MYSH_ZZX-> MyshZzx or myshZzx, depends on param <code>startLowerCase</code>
 	 */
-	public static String underline2camel(String underline) {
+	public static String underline2camel(String underline, boolean startLowerCase) {
+		if (Strings.isBlank(underline)) return underline;
 		StringBuilder hump = new StringBuilder();
-		String[] words = underline.trim().toLowerCase().split("_");
-		for (String word : words) {
-			hump.append(toUpperCase(word.charAt(0)));
-			hump.append(word.substring(1));
+
+		char[] chars = underline.trim().toLowerCase().toCharArray();
+		boolean needUpperCase = !startLowerCase;
+		for (char c : chars) {
+			if (c == '_') {
+				needUpperCase = true;
+				continue;
+			}
+			hump.append((char) (c - (needUpperCase ? alphaStep : 0)));
+			needUpperCase = false;
 		}
 		return hump.toString();
+	}
+
+	/**
+	 * underline to camel , e.g. MYSH_ZZX-> MyshZzx
+	 */
+	public static String underline2camel(String underline) {
+		return underline2camel(underline, false);
+	}
+
+	/**
+	 * underline to field camel , e.g. MYSH_ZZX-> myshZzx
+	 */
+	public static String underline2FieldCamel(String underline) {
+		return underline2camel(underline, true);
 	}
 
 	/**
