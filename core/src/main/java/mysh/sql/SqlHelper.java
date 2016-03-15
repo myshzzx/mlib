@@ -264,7 +264,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	 *
 	 * @param ks key strategy of map.
 	 */
-	public List<Map<String, Object>> fetch(EnumSet<KeyStrategy> ks) throws Exception {
+	public List<Map<String, Object>> fetch(final EnumSet<KeyStrategy> ks) throws Exception {
 		String sql = getCondStr();
 		if (pageNo > 0)
 			sql = genSql(sql, pageNo, pageSize);
@@ -276,12 +276,12 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 			result = caches.get(this.cacheLevel)
 							.get(new CacheKey(sql, param, ks), () -> {
 								List<Map<String, Object>> r = jdbc.queryForList(finalSql, param);
-								handleResult(r, ks);
+								r = SqlHelper.this.handleResult(r, ks);
 								return r;
 							});
 		} else {
 			result = jdbc.queryForList(sql, param);
-			handleResult(result, ks);
+			result = handleResult(result, ks);
 		}
 		return result;
 	}
@@ -355,7 +355,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 					for (Map.Entry<String, Object> e : r.entrySet()) {
 						String newKey = e.getKey().toUpperCase();
 						if (ks.contains(KeyStrategy.CAMEL))
-							newKey = CodeUtil.underline2camel(newKey);
+							newKey = CodeUtil.method2FieldSign(CodeUtil.underline2camel(newKey));
 						newM.put(newKey, e.getValue());
 					}
 					newR.add(newM);
