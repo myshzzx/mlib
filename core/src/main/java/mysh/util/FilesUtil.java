@@ -7,12 +7,16 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.SKIP_SUBTREE;
 
 /**
  * 文件工具类.
@@ -271,5 +275,45 @@ public class FilesUtil {
 			Compresses.deCompress((entry, ein) -> result.set(Serializer.fst.deserialize(ein)), in);
 		}
 		return result.get();
+	}
+
+	/**
+	 * remove given file or dir.
+	 */
+	public static void deleteDirOrFile(Path p, boolean followSymLinkDir) throws IOException {
+		if (p == null) return;
+
+		if (!Files.isDirectory(p))
+			Files.delete(p);
+		else
+			Files.walkFileTree(p, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
+				@Override
+				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+					Files.delete(file);
+					return CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+					if (Files.isSymbolicLink(dir) && !followSymLinkDir) {
+						Files.delete(dir);
+						return SKIP_SUBTREE;
+					} else
+						return CONTINUE;
+				}
+
+				@Override
+				public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+					Files.delete(dir);
+					return CONTINUE;
+				}
+			});
+	}
+
+	/**
+	 * remove given file or dir. not follow symbolic link dir by default.
+	 */
+	public static void deleteDirOrFile(Path path) throws IOException {
+		deleteDirOrFile(path, false);
 	}
 }
