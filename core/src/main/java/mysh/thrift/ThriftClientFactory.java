@@ -150,78 +150,89 @@ public class ThriftClientFactory<TI> {
 		/**
 		 * thrift server interface.
 		 */
-		public void setIface(Class<T> iface) {
+		public Config<T> setIface(Class<T> iface) {
 			this.iface = iface;
+			return this;
 		}
 
 		/**
 		 * thrift client class.
 		 */
-		public void setTClientClass(Class<? extends T> tClientClass) {
+		public Config<T> setTClientClass(Class<? extends T> tClientClass) {
 			this.tClientClass = tClientClass;
+			return this;
 		}
 
 		/**
 		 * server host.
 		 */
-		public void setServerHost(String serverHost) {
+		public Config<T> setServerHost(String serverHost) {
 			this.serverHost = serverHost;
+			return this;
 		}
 
 		/**
 		 * server port.
 		 */
-		public void setServerPort(int serverPort) {
+		public Config<T> setServerPort(int serverPort) {
 			this.serverPort = serverPort;
+			return this;
 		}
 
 		/**
 		 * connect to server and wait for server response timeout. default is 0(never time out).
 		 */
-		public void setClientSocketTimeout(int clientSocketTimeout) {
+		public Config<T> setClientSocketTimeout(int clientSocketTimeout) {
 			this.clientSocketTimeout = clientSocketTimeout;
+			return this;
 		}
 
 		/**
 		 * use TLS connection.
 		 */
-		public void setUseTLS(boolean useTLS) {
+		public Config<T> setUseTLS(boolean useTLS) {
 			this.useTLS = useTLS;
+			return this;
 		}
 
 		/**
 		 * CA key store.
 		 */
-		public void setTrustKeyStore(String trustKeyStore) {
+		public Config<T> setTrustKeyStore(String trustKeyStore) {
 			this.trustKeyStore = trustKeyStore;
+			return this;
 		}
 
 		/**
 		 * CA key store password.
 		 */
-		public void setTrustKeyStorePw(String trustKeyStorePw) {
+		public Config<T> setTrustKeyStorePw(String trustKeyStorePw) {
 			this.trustKeyStorePw = trustKeyStorePw;
+			return this;
 		}
 
 		/**
 		 * need client connection auth.
 		 */
-		public void setRequireClientAuth(boolean isRequireClientAuth) {
+		public Config<T> setRequireClientAuth(boolean isRequireClientAuth) {
 			this.isRequireClientAuth = isRequireClientAuth;
+			return this;
 		}
 
 		/**
 		 * client key store.
 		 */
-		public void setSelfKeyStore(String selfKeyStore) {
+		public Config<T> setSelfKeyStore(String selfKeyStore) {
 			this.selfKeyStore = selfKeyStore;
+			return this;
 		}
 
 		/**
 		 * client key store password.
 		 */
-		public void setSelfKeyStorePw(String selfKeyStorePw) {
+		public Config<T> setSelfKeyStorePw(String selfKeyStorePw) {
 			this.selfKeyStorePw = selfKeyStorePw;
+			return this;
 		}
 	}
 

@@ -363,7 +363,7 @@ public class Crawler<CTX extends UrlContext> {
 				String protocolPrefix = ue.getProtocol() + ":";
 				while (srcValueMatcher.find()) {
 					tValue = srcValueMatcher.group(4);
-					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")) {
+					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#") || tValue.startsWith("mailto:")) {
 						continue;
 					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
 						tUrl = tValue;
