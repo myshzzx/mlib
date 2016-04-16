@@ -255,4 +255,22 @@ public class UIs {
 			log.error("Desktop not supported, url not opened: " + openUrl);
 		}
 	}
+
+	public static JDialog infoMsg(Component parent, int width, int height, String msg) {
+		JDialog j = new JDialog();
+		j.setAlwaysOnTop(true);
+		j.setUndecorated(true);
+		j.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+
+		Container cp = j.getContentPane();
+		cp.setLayout(new BorderLayout());
+		JLabel label = new JLabel(msg);
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		cp.add(label, BorderLayout.CENTER);
+
+		j.setBounds(0, 0, width, height);
+		j.setLocationRelativeTo(parent);
+		j.setVisible(true);
+		return j;
+	}
 }

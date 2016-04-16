@@ -81,14 +81,19 @@ public class Crawler<CTX extends UrlContext> {
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc, @Nullable ProxySelector proxySelector,
 	               int ratePerMin, int threadPoolSize) throws Exception {
-		this(seed, (url, ctx) ->
-						new UrlClassifierConf(
-										seed.getClass().getSimpleName() + "-default",
-										threadPoolSize,
-										Range.within(1, Integer.MAX_VALUE, ratePerMin),
-										new HttpClientAssist(hcc, proxySelector)
-						).setBlockChecker(new DefaultBlockChecker())
-		);
+		this(seed, new UrlClassifierConf.Factory<CTX>() {
+			UrlClassifierConf ucc = new UrlClassifierConf(
+							seed.getClass().getSimpleName() + "-default",
+							threadPoolSize,
+							Range.within(1, Integer.MAX_VALUE, ratePerMin),
+							new HttpClientAssist(hcc, proxySelector)
+			).setBlockChecker(new DefaultBlockChecker());
+
+			@Override
+			public UrlClassifierConf get(String url, CTX ctx) {
+				return ucc;
+			}
+		});
 	}
 
 	/**
