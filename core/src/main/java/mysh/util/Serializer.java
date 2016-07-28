@@ -142,13 +142,13 @@ public interface Serializer {
 		private byte[] getProperBuf() {
 			byte[] buf = properBuf.get();
 			if (buf == null) {
-				buf = new byte[300_000];
+				buf = new byte[50_000];
 				properBuf.set(buf);
 			}
 			return buf;
 		}
 
-		int BUF_LIMIT = 10_000_000;
+		int BUF_LIMIT = 500_000;
 
 		@Override
 		public byte[] serialize(Serializable obj) {
