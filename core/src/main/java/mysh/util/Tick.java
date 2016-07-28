@@ -65,6 +65,7 @@ public final class Tick {
 	}
 
 	private long nipsTotal;
+	private long nipsCount;
 
 	/**
 	 * time costs from creation/reset.
@@ -72,6 +73,7 @@ public final class Tick {
 	public long nip() {
 		long nip = (System.nanoTime() - this.from) / this.unit.fact;
 		nipsTotal += nip;
+		nipsCount++;
 		return nip;
 	}
 
@@ -108,6 +110,7 @@ public final class Tick {
 	 */
 	public void clearNipsTotal() {
 		nipsTotal = 0;
+		nipsCount = 0;
 	}
 
 	/**
@@ -115,6 +118,20 @@ public final class Tick {
 	 */
 	public long nipsTotal() {
 		return nipsTotal;
+	}
+
+	/**
+	 * nips count.
+	 */
+	public long nipsCount() {
+		return nipsCount;
+	}
+
+	/**
+	 * nips average.
+	 */
+	public long nipsAverage() {
+		return nipsTotal / nipsCount;
 	}
 
 	/**
@@ -145,11 +162,39 @@ public final class Tick {
 		System.out.println(nipsTotal2String(comment));
 	}
 
+	/**
+	 * nips average.
+	 */
+	public String nipsAverage2String() {
+		return this.name + " (AVG): " + nipsAverage() + " " + this.unit.desc;
+	}
+
+	/**
+	 * nips average.
+	 */
+	public void printNipsAverage() {
+		System.out.println(nipsAverage2String());
+	}
+
+	/**
+	 * nips average.
+	 */
+	public String nipsAverage2String(String comment) {
+		return this.name + " (" + comment + ") (AVG): " + nipsAverage() + " " + this.unit.desc;
+	}
+
+	/**
+	 * nips average.
+	 */
+	public void printNipsAverage(String comment) {
+		System.out.println(nipsAverage2String(comment));
+	}
+
 	@Override
 	public String toString() {
 		return "Tick{" +
-						"name='" + name + '\'' +
-						", unit=" + unit +
-						'}';
+				"name='" + name + '\'' +
+				", unit=" + unit +
+				'}';
 	}
 }
