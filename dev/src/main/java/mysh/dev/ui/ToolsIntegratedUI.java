@@ -6,6 +6,8 @@
 package mysh.dev.ui;
 
 import mysh.dev.codegen.ui.BeanPropCopy;
+import mysh.dev.codegen.ui.BeanPropCopy2;
+import mysh.dev.codegen.ui.FieldGetSet;
 import mysh.dev.codegen.ui.NameConvert;
 import mysh.dev.encoding.Encoding;
 import mysh.dev.filesearch.FileSearchFrame;
@@ -48,6 +50,10 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 
 		BeanPropCopy beanPropCopy = new BeanPropCopy();
 		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
+		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
+		this.tabPane.add("属性复制2", beanPropCopy2.getContentPane());
+		FieldGetSet fieldGetSet = new FieldGetSet();
+		this.tabPane.add("GetSet生成", fieldGetSet);
 		NameConvert nameConvert = new NameConvert();
 		this.tabPane.add("命名转换", nameConvert.getContentPane());
 		Encoding encoding = new Encoding();
