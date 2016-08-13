@@ -18,7 +18,7 @@ public class DefaultBlockChecker implements UrlClassifierConf.BlockChecker {
 	public boolean isBlocked(HttpClientAssist.UrlEntity ue) {
 		int statusCode = ue.getStatusCode();
 
-		return statusCode >= 400
+		return statusCode >= 400 && statusCode != 404
 						|| (!ue.getReqUrl().contains("login") && ue.getCurrentURL().contains("login"))
 						;
 	}

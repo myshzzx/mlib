@@ -9,8 +9,12 @@ import java.util.*;
  * @since 2016/3/1
  */
 public abstract class Colls {
-	public static boolean isNotBlank(Collection<?> coll) {
-		return coll != null && !coll.isEmpty();
+	public static boolean isEmpty(Collection<?> coll) {
+		return coll == null || coll.isEmpty();
+	}
+
+	public static boolean isNotEmpty(Collection<?> coll) {
+		return !isEmpty(coll);
 	}
 
 	/**

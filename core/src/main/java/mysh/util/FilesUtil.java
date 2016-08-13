@@ -252,24 +252,27 @@ public class FilesUtil {
 	}
 
 	/**
-	 * compress object to file using fst-serialization
+	 * compress object to file using fst-serialization.
+	 *
+	 * @return file write result.
 	 */
-	public static void compress2FileFst(File file, Serializable obj) throws IOException {
+	public static boolean compress2FileFst(File file, Serializable obj) throws IOException {
 		file.getParentFile().mkdirs();
 		File writeFile = getWriteFile(file);
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			Compresses.compress("fst", new ByteArrayInputStream(Serializer.fst.serialize(obj)),
-							Long.MAX_VALUE, out, 1_000_000);
+							Long.MAX_VALUE, out, 100_000);
 		}
 		file.delete();
-		writeFile.renameTo(file);
+		boolean result = writeFile.renameTo(file);
 		log.debug("compressed to file: " + file.getAbsolutePath());
+		return result;
 	}
 
 	/**
 	 * decompress file using fst-serialization
 	 */
-	public static <T> T decompressFileFst(File file) throws IOException {
+	public static <T extends Serializable> T decompressFileFst(File file) throws IOException {
 		AtomicReference<T> result = new AtomicReference<>();
 		try (FileInputStream in = new FileInputStream(file)) {
 			Compresses.deCompress((entry, ein) -> result.set(Serializer.fst.deserialize(ein)), in);

@@ -161,7 +161,7 @@ public class HotKeysGlobal {
 											chkWindow();
 
 											Collection<Win32KbAction> entireKeysActs = win32KbListeners.get(0);
-											if (Colls.isNotBlank(entireKeysActs))
+											if (Colls.isNotEmpty(entireKeysActs))
 												for (Win32KbAction listener : entireKeysActs) {
 													try {
 														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);
@@ -173,7 +173,7 @@ public class HotKeysGlobal {
 
 											int key = genKey(ctrl, alt, shift, vkCode);
 											Collection<Win32KbAction> specificKeyActs = win32KbListeners.get(key);
-											if (Colls.isNotBlank(specificKeyActs)) {
+											if (Colls.isNotEmpty(specificKeyActs)) {
 												for (Win32KbAction listener : specificKeyActs) {
 													try {
 														listener.onKeyDown(ctrl, alt, shift, vkCode, vkDesc, isWindowChanges, lastWindowTitle);

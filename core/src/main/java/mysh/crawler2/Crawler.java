@@ -169,7 +169,7 @@ public class Crawler<CTX extends UrlContext> {
 	 * start the crawler. a crawler can't be restarted.
 	 */
 	@SuppressWarnings("unchecked")
-	public void start() {
+	public Crawler<CTX> start() {
 		if (!this.status.compareAndSet(Status.INIT, Status.RUNNING)) {
 			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
 		}
@@ -180,6 +180,8 @@ public class Crawler<CTX extends UrlContext> {
 
 		if (seed.autoStop())
 			startAutoStopChk();
+
+		return this;
 	}
 
 	/**

@@ -24,8 +24,8 @@ public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 		return urls.map(UrlCtxHolder::new);
 	}
 
-	public static UrlCtxHolder of(String url) {
-		return new UrlCtxHolder(url);
+	public static <CTX extends UrlContext> UrlCtxHolder<CTX> of(String url) {
+		return new UrlCtxHolder<>(url);
 	}
 
 	@Override

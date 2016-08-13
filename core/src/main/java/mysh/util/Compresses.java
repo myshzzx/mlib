@@ -80,7 +80,7 @@ public class Compresses {
 	 * @param in         数据输入流.
 	 * @param maxReadLen 允许从输入流读取的最大字节数.
 	 * @param out        数据输出流.
-	 * @param bufSize    缓冲区大小. (有效范围: [100KB, 10MB], 默认: 10MB)
+	 * @param bufSize    缓冲区大小. (有效范围: [100KB, 10MB], 默认: 100KB)
 	 * @return 操作结果.
 	 */
 	public static boolean compress(String entry, InputStream in, long maxReadLen,

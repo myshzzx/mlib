@@ -32,7 +32,8 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	}
 
 	/**
-	 * whether the url & ctx should be crawled NOW.
+	 * whether the url & ctx should be crawled NOW.<br/>
+	 * need a EFFICIENT implementation.
 	 */
 	boolean accept(String url, CTX ctx);
 
@@ -44,6 +45,8 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	 *
 	 * @return whether fetch the entity successfully. <code>false</code> indicate the entity
 	 * need to be re-crawled.
+	 * @throws Exception if an exception thrown, the task will be pushed to unhandled tasks,
+	 *                   and will not be recrawled in this run.
 	 */
 	boolean onGet(HttpClientAssist.UrlEntity ue, CTX ctx);
 
