@@ -32,7 +32,7 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	public Queue<UrlCtxHolder<Ctx>> load() {
 		if (file.exists()) {
 			try {
-				Pair<Set<String>, Queue<UrlCtxHolder<Ctx>>> data = FilesUtil.decompressFileFst(file);
+				Pair<Set<String>, Queue<UrlCtxHolder<Ctx>>> data = FilesUtil.decompressFile(file);
 				urls = data.getL();
 				return data.getR();
 			} catch (IOException e) {
@@ -48,7 +48,7 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	public void save(Queue<UrlCtxHolder<Ctx>> tasks) {
 		Pair<Set<String>, Queue<UrlCtxHolder<Ctx>>> data = Pair.of(urls, tasks);
 		try {
-			FilesUtil.compress2FileFst(file, data);
+			FilesUtil.compress2File(file, data);
 		} catch (IOException e) {
 			throw new RuntimeException("save file error.", e);
 		}
