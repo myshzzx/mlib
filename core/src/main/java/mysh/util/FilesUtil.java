@@ -256,7 +256,7 @@ public class FilesUtil {
 	 *
 	 * @return file write result.
 	 */
-	public static boolean compress2File(File file, Serializable obj) throws IOException {
+	public static void compress2File(File file, Serializable obj) throws IOException {
 		file.getParentFile().mkdirs();
 		File writeFile = getWriteFile(file);
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
@@ -264,9 +264,9 @@ public class FilesUtil {
 							Long.MAX_VALUE, out, 100_000);
 		}
 		file.delete();
-		boolean result = writeFile.renameTo(file);
+		if (!writeFile.renameTo(file))
+			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
 		log.debug("compressed to file: " + file.getAbsolutePath());
-		return result;
 	}
 
 	/**
@@ -275,10 +275,9 @@ public class FilesUtil {
 	public static <T extends Serializable> T decompressFile(File file) throws IOException {
 		AtomicReference<T> result = new AtomicReference<>();
 		try (FileInputStream in = new FileInputStream(file)) {
-			if (!Compresses.deCompress((entry, ein) -> result.set(Serializer.buildIn.deserialize(ein)), in))
-				throw new RuntimeException("decompress error.");
+			Compresses.deCompress((entry, ein) -> result.set(Serializer.buildIn.deserialize(ein)), in);
+			return result.get();
 		}
-		return result.get();
 	}
 
 	/**

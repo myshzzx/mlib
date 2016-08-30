@@ -58,15 +58,22 @@ public class Compresses {
 	 */
 	public static OutputStream getCompressOutputStream(
 					String entry, OutputStream compressedDataOut, int bufSize,
-					AtomicReference<RunnableFuture<Boolean>> result) throws IOException {
+					AtomicReference<RunnableFuture<Object>> result) throws IOException {
 		if (entry == null || compressedDataOut == null || result == null)
 			throw new IllegalArgumentException();
 
 		PipedOutputStream dataOut = new PipedOutputStream();
 		PipedInputStream dataIn = new PipedInputStream(dataOut, getProperBufSize(bufSize));
 
-		RunnableFuture<Boolean> task = new FutureTask<>(
-						() -> compress(entry, dataIn, Long.MAX_VALUE, compressedDataOut, bufSize));
+		RunnableFuture<Object> task = new FutureTask<>(
+						() -> {
+							try {
+								compress(entry, dataIn, Long.MAX_VALUE, compressedDataOut, bufSize);
+								return true;
+							} catch (Exception e) {
+								return e;
+							}
+						});
 		result.set(task);
 		new Thread(task).start();
 		return dataOut;
@@ -83,9 +90,9 @@ public class Compresses {
 	 * @param bufSize    缓冲区大小. (有效范围: [100KB, 10MB], 默认: 100KB)
 	 * @return 操作结果.
 	 */
-	public static boolean compress(String entry, InputStream in, long maxReadLen,
-	                               OutputStream out, int bufSize) {
-		if (maxReadLen == 0) return true;
+	public static void compress(String entry, InputStream in, long maxReadLen,
+	                            OutputStream out, int bufSize) {
+		if (maxReadLen == 0) return;
 		if (maxReadLen < 0) throw new IllegalArgumentException("maxReadLen mustn't be negative");
 
 		try (
@@ -95,8 +102,8 @@ public class Compresses {
 								flush();
 							}
 						};
-						ZipOutputStream zos = new ZipOutputStream(cos)) {
-
+						ZipOutputStream zos = new ZipOutputStream(cos)
+		) {
 			ZipEntry ze = new ZipEntry(entry);
 			zos.putNextEntry(ze);
 
@@ -113,10 +120,9 @@ public class Compresses {
 			zos.flush();
 
 			// log.info("压缩成功: " + entry);
-			return true;
 		} catch (Exception e) {
 			log.error("压缩失败: " + entry, e);
-			return false;
+			throw Exps.unchecked(e);
 		}
 	}
 
@@ -128,7 +134,7 @@ public class Compresses {
 	 * @param in     数据输入流(不关闭).
 	 * @return 操作结果.
 	 */
-	public static boolean deCompress(EntryPicker picker, final InputStream in) {
+	public static void deCompress(EntryPicker picker, final InputStream in) {
 		try (
 						CheckedInputStream cis = new CheckedInputStream(in, new CRC32()) {
 							@Override
@@ -136,18 +142,16 @@ public class Compresses {
 								// do not close in
 							}
 						};
-						ZipInputStream zis = new ZipInputStream(cis)) {
+						ZipInputStream zis = new ZipInputStream(cis)
+		) {
 			ZipEntry entry;
 			while ((entry = zis.getNextEntry()) != null) {
 				picker.getEntry(entry, zis);
 				zis.closeEntry();
 			}
 
-			// log.info("解压缩成功.");
-			return true;
 		} catch (Exception e) {
-			log.error("解压缩失败.", e);
-			return false;
+			throw Exps.unchecked(e);
 		}
 	}
 
