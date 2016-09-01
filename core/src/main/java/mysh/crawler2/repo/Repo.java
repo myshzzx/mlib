@@ -14,12 +14,12 @@ import java.util.Queue;
 public interface Repo<CTX extends UrlContext> {
 
 	/**
-	 * load saved info. return unhandled tasks.
+	 * load saved info. return saved tasks.
 	 */
 	Queue<UrlCtxHolder<CTX>> load();
 
 	/**
-	 * save repo info and unhandled tasks.
+	 * save repo info and tasks.
 	 */
 	void save(Queue<UrlCtxHolder<CTX>> tasks);
 

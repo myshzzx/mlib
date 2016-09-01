@@ -278,6 +278,12 @@ public class Crawler<CTX extends UrlContext> {
 						|| t instanceof UnknownHostException;
 	}
 
+	private void storeUnhandledTask(String url, CTX ctx, Throwable t) {
+		unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+		if(t != null)
+			log.error("store unhandled task: " + url, t);
+	}
+
 	private static final Pattern httpExp =
 					Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
 	private static final Pattern srcValueExp =
@@ -306,7 +312,7 @@ public class Crawler<CTX extends UrlContext> {
 					if (!seed.accept(ue.getCurrentURL(), this.ctx))
 						return;
 					if (status.get() == Status.STOPPED) {
-						unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+						storeUnhandledTask(url, ctx, null);
 						return;
 					}
 
@@ -325,12 +331,12 @@ public class Crawler<CTX extends UrlContext> {
 				if (classifier.recrawlWhenFail(this, ex))
 					log.debug("recrawl scheduled: " + ex.toString() + " - " + this.url);
 				else
-					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+					storeUnhandledTask(url, ctx, ex);
 			} catch (UnknownHostException | InterruptedException ex) {
-				unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+				storeUnhandledTask(url, ctx, ex);
 			} catch (Exception ex) {
 				if (!isMalformedUrl(ex))
-					unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
+					storeUnhandledTask(url, ctx, ex);
 				else
 					log.error("malformed url will be ignored: " + this.url, ex);
 			} finally {
@@ -477,7 +483,7 @@ public class Crawler<CTX extends UrlContext> {
 							},
 							(work, executor) -> {
 								Worker w = (Worker) work;
-								unhandledTasks.add(new UrlCtxHolder<>(w.url, w.ctx));
+								storeUnhandledTask(w.url, w.ctx, null);
 							}
 			);
 			exec.allowCoreThreadTimeOut(true);
@@ -519,7 +525,7 @@ public class Crawler<CTX extends UrlContext> {
 			exec.shutdownNow().stream()
 							.forEach(r -> {
 								Worker work = (Worker) r;
-								unhandledTasks.add(new UrlCtxHolder<>(work.url, work.ctx));
+								storeUnhandledTask(work.url, work.ctx, null);
 							});
 		}
 
