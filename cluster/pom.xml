@@ -18,17 +18,6 @@
 			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
-		<!--<dependency>-->
-		<!--<groupId>org.eclipse.jetty</groupId>-->
-		<!--<artifactId>jetty-annotations</artifactId>-->
-		<!--<version>${jetty.version}</version>-->
-		<!--</dependency>-->
-		<!--<dependency>-->
-		<!--<groupId>org.eclipse.jetty</groupId>-->
-		<!--<artifactId>jetty-jsp</artifactId>-->
-		<!--<version>${jetty.version}</version>-->
-		<!--</dependency>-->
-
 		<dependency>
 			<groupId>org.apache.thrift</groupId>
 			<artifactId>libthrift</artifactId>
@@ -37,7 +26,7 @@
 		<dependency>
 			<groupId>commons-codec</groupId>
 			<artifactId>commons-codec</artifactId>
-			<version>1.9</version>
+			<version>1.10</version>
 		</dependency>
 		<dependency>
 			<groupId>de.ruedigermoeller</groupId>

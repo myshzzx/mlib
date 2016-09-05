@@ -60,10 +60,6 @@
 			<groupId>de.ruedigermoeller</groupId>
 			<artifactId>fst</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.esotericsoftware</groupId>
-			<artifactId>kryo-shaded</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>net.java.dev.jna</groupId>

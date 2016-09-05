@@ -1,9 +1,6 @@
 package mysh.benchmark;
 
 import com.alibaba.fastjson.JSON;
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 import mysh.util.Serializer;
 import mysh.util.Tick;
 import org.junit.Assert;
@@ -52,20 +49,20 @@ public class SerializationPerformance {
 	public void benchmarkSuite() throws Exception {
 		test(new FST(), t);
 //		test(new Java(), t); // 87% slower than fst
-		test(new KRYO(), t);
+//		test(new KRYO(), t);
 //		test(new Json(), t); // 42% slower than fst
 
 		test(new FST(), f);
 //		test(new Java(), f); // about 40% slower than fst
-		test(new KRYO(), f);
+//		test(new KRYO(), f);
 //		test(new Json(), f); // costs too much time, which unacceptable
 	}
 
-	@Test
-	public void kryoTest() throws Exception {
-		KRYO k = new KRYO();
-		k.s(null, 1);
-	}
+//	@Test
+//	public void kryoTest() throws Exception {
+//		KRYO k = new KRYO();
+//		k.s(null, 1);
+//	}
 
 	@Test
 	public void fstTest() throws IOException, ClassNotFoundException {
@@ -162,6 +159,7 @@ public class SerializationPerformance {
 		}
 	}
 
+	/*
 	private static class KRYO implements TI {
 		//		@NotThreadSafe
 		Kryo kryo = new Kryo();
@@ -188,6 +186,7 @@ public class SerializationPerformance {
 			}
 		}
 	}
+*/
 
 	private static class TC implements Serializable {
 		private static final long serialVersionUID = -3187284791599967033L;
