@@ -2,6 +2,7 @@ package mysh.crawler2;
 
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
+import mysh.util.Htmls;
 import mysh.util.Range;
 import org.apache.http.client.ClientProtocolException;
 import org.slf4j.Logger;
@@ -280,7 +281,7 @@ public class Crawler<CTX extends UrlContext> {
 
 	private void storeUnhandledTask(String url, CTX ctx, Throwable t) {
 		unhandledTasks.offer(new UrlCtxHolder<>(url, ctx));
-		if(t != null)
+		if (t != null)
 			log.error("store unhandled task: " + url, t);
 	}
 
@@ -393,13 +394,15 @@ public class Crawler<CTX extends UrlContext> {
 				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
 			}
 
+			String entityEncoding = ue.getEntityEncoding().name();
 			return urls.stream()
 							.filter(url -> url.length() > 0)
-							.map(url -> url
-											.replace("&amp;", "&")
-											.replace("&lt;", "<")
-											.replace("&gt;", ">")
-											.replace("&quot;", "\""));
+							.map(url ->
+											Htmls.urlDecode(url
+															.replace("&amp;", "&")
+															.replace("&lt;", "<")
+															.replace("&gt;", ">")
+															.replace("&quot;", "\""), entityEncoding));
 		}
 
 		private boolean isMalformedUrl(Exception ex) {

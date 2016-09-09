@@ -411,6 +411,7 @@ public class HttpClientAssist implements Closeable {
 		private String contentType;
 		private byte[] entityBuf;
 		private String entityStr;
+		private Charset entityEncoding;
 
 		public UrlEntity(HttpRequest req) throws IOException {
 			this.req = req;
@@ -435,7 +436,7 @@ public class HttpClientAssist implements Closeable {
 //				rsp.ignore();
 				rsp.disconnect();
 			} catch (Exception e) {
-				log.debug("abort req error. " + e);
+				log.debug("close connection error. " + e);
 			}
 		}
 
@@ -515,22 +516,37 @@ public class HttpClientAssist implements Closeable {
 		public synchronized String getEntityStr() throws IOException {
 			if (entityStr != null) return entityStr;
 
-			Charset enc = null;
-			if (contentType != null) {
-				String c = contentType.toUpperCase();
-				if (c.contains("UTF-8"))
-					enc = Encodings.UTF_8;
-				else if (c.contains("GBK"))
-					enc = Encodings.GBK;
-			}
-
-			downloadEntity2Buf();
-			if (enc == null) {
-				enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
-			}
-			entityStr = new String(entityBuf, enc);
+			downloadEntityAndParseEncoding();
+			entityStr = new String(entityBuf, entityEncoding);
 
 			return entityStr;
+		}
+
+		private void downloadEntityAndParseEncoding() throws IOException {
+			downloadEntity2Buf();
+
+			if (this.entityEncoding == null) {
+				Charset enc = null;
+				if (contentType != null) {
+					String c = contentType.toUpperCase();
+					if (c.contains("UTF-8"))
+						enc = Encodings.UTF_8;
+					else if (c.contains("GBK"))
+						enc = Encodings.GBK;
+				}
+				if (enc == null) {
+					enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
+				}
+				this.entityEncoding = enc;
+			}
+		}
+
+		/**
+		 * download entity content then parse encoding. useful in text content.
+		 */
+		public Charset getEntityEncoding() throws IOException {
+			this.downloadEntityAndParseEncoding();
+			return this.entityEncoding;
 		}
 
 		/**

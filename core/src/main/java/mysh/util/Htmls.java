@@ -2,6 +2,10 @@ package mysh.util;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+
 /**
  * html utils.
  * Created by mysh on 2015/7/14.
@@ -30,5 +34,27 @@ public class Htmls {
 						.replace("&gt;", ">")
 						.replace("&quot;", "\"")
 						.replace("&apos;", "'");
+	}
+
+	/**
+	 * encode urls to str like "%2C1200&"
+	 */
+	public static String urlEncode(String url, String enc) {
+		try {
+			return URLEncoder.encode(url, enc);
+		} catch (UnsupportedEncodingException e) {
+			throw Exps.unchecked(e);
+		}
+	}
+
+	/**
+	 * decode urls like "%2C1200&"
+	 */
+	public static String urlDecode(String url, String enc) {
+		try {
+			return URLDecoder.decode(url, enc);
+		} catch (UnsupportedEncodingException e) {
+			throw Exps.unchecked(e);
+		}
 	}
 }
