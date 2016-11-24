@@ -98,7 +98,7 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers, can be null.
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity access(String url, Map<String, ?> headers) throws IOException {
@@ -110,7 +110,7 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers, can be null.
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @param params  request params, can be null.
 	 * @throws IOException 连接异常.
 	 */
@@ -137,7 +137,7 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers.
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @param params  request params. upload type: multipart/form-data, support files
 	 * @throws IOException 连接异常.
 	 */
@@ -151,7 +151,7 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers.
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @param params  request params. upload type: multipart/form-data, support files
 	 * @param enc     param value encoding
 	 * @throws IOException 连接异常.
@@ -229,7 +229,7 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers, can be null.
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @throws IOException 连接异常.
 	 */
 

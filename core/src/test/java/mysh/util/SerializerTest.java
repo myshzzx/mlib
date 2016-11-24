@@ -1,5 +1,8 @@
 package mysh.util;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -10,7 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * @author mysh
@@ -21,17 +28,47 @@ public class SerializerTest {
 
 	public static class T implements Serializable {
 		int a;
+		Map m;
+		Set s;
+		List l;
 
 		public T(int a) {
 			this.a = a;
+			m = ImmutableMap.of(2, new File("f"));
+			s = ImmutableSet.of("a", 239, 293874);
+			l = ImmutableList.of(ThreadLocalRandom.current().nextLong());
 		}
 
 		@Override
 		public boolean equals(Object o) {
 			if (this == o) return true;
 			if (o == null || getClass() != o.getClass()) return false;
+
 			T t = (T) o;
-			return a == t.a;
+
+			if (a != t.a) return false;
+			if (m != null ? !m.equals(t.m) : t.m != null) return false;
+			if (s != null ? !s.equals(t.s) : t.s != null) return false;
+			return l != null ? l.equals(t.l) : t.l == null;
+		}
+
+		@Override
+		public int hashCode() {
+			int result = a;
+			result = 31 * result + (m != null ? m.hashCode() : 0);
+			result = 31 * result + (s != null ? s.hashCode() : 0);
+			result = 31 * result + (l != null ? l.hashCode() : 0);
+			return result;
+		}
+
+		@Override
+		public String toString() {
+			return "T{" +
+							"a=" + a +
+							", m=" + m +
+							", s=" + s +
+							", l=" + l +
+							'}';
 		}
 	}
 
@@ -147,4 +184,5 @@ public class SerializerTest {
 
 		Thread.sleep(10000000);
 	}
+
 }
