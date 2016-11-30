@@ -84,9 +84,11 @@ public class FilesUtil {
 		try (ObjectOutput out = new ObjectOutputStream(new FileOutputStream(writeFile))) {
 			out.writeObject(obj);
 		}
+
 		file.delete();
-		writeFile.renameTo(file);
-		log.debug("written file: " + file.getAbsolutePath());
+		if(!writeFile.renameTo(file))
+			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
+		log.debug("write to file: " + file.getAbsolutePath());
 	}
 
 	/**
@@ -101,9 +103,11 @@ public class FilesUtil {
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			out.write(data);
 		}
+
 		file.delete();
-		writeFile.renameTo(file);
-		log.debug("written file: " + file.getAbsolutePath());
+		if(!writeFile.renameTo(file))
+			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
+		log.debug("write to file: " + file.getAbsolutePath());
 	}
 
 	/**
@@ -182,7 +186,7 @@ public class FilesUtil {
 	public enum HandleType {FoldersAndFiles, FilesOnly}
 
 	/**
-	 * 递归处理(含子目录)目录下的所有文件或目录.<br/>
+	 * 递归处理(广度优先, 含子目录)目录下的所有文件或目录.<br/>
 	 * 若处理器抛异常, 处理将中断.
 	 *
 	 * @param dirRoot     起始目录.
@@ -218,7 +222,7 @@ public class FilesUtil {
 	}
 
 	/**
-	 * 递归处理(含子目录)目录下的所有文件.<br/>
+	 * 递归处理(广度优先, 含子目录)目录下的所有文件.<br/>
 	 * 若处理器抛异常, 处理将中断.
 	 *
 	 * @param dirRoot 目录.

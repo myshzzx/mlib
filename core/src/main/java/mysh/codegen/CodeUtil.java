@@ -114,7 +114,7 @@ public class CodeUtil {
         }
     }
 
-    private static final Pattern fieldsExp = Pattern.compile("(/\\*\\*.+?\\*/).*?private (.+?);", Pattern.DOTALL);
+    private static final Pattern fieldsExp = Pattern.compile("((/\\*\\*.+?\\*/)?|(//.+?)?)\\s+?(private|protected|public)\\s+(.+?)(=.+?)?;", Pattern.DOTALL);
 
     /**
      * @param className  类名, 用于 set 方法的返回类型.
@@ -126,7 +126,7 @@ public class CodeUtil {
         Matcher matcher = fieldsExp.matcher(fieldsCode);
         while (matcher.find()) {
             String comment = matcher.group(1);
-            String fieldDefine = matcher.group(2);
+            String fieldDefine = matcher.group(5).trim();
             int sep = fieldDefine.lastIndexOf(' ');
             String type = fieldDefine.substring(0, sep + 1);
             String getMethodPrefix = type.toLowerCase().equals("boolean ") ? "is" : "get";
@@ -164,8 +164,8 @@ public class CodeUtil {
             String comment = matcher.group(1).replace("/**", "").replace("*/", "").trim()
                     .replaceAll("((\r)?\n)*\\s*?\\*\\s*", "//");
             if (!comment.startsWith("//")) comment = "//" + comment;
-            String fieldDefine = matcher.group(2);
-            int sep = fieldDefine.lastIndexOf(' ');
+            String fieldDefine = matcher.group(5).trim();
+            int sep = fieldDefine.indexOf(' ');
             String type = fieldDefine.substring(0, sep + 1);
             String getMethodPrefix = type.toLowerCase().equals("boolean ") ? "is" : "get";
             String field = fieldDefine.substring(sep + 1);

@@ -5,7 +5,6 @@
  */
 package mysh.dev.ui;
 
-import mysh.dev.codegen.ui.BeanPropCopy;
 import mysh.dev.codegen.ui.BeanPropCopy2;
 import mysh.dev.codegen.ui.FieldGetSet;
 import mysh.dev.codegen.ui.NameConvert;
@@ -48,8 +47,8 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		initComponents();
 
 
-		BeanPropCopy beanPropCopy = new BeanPropCopy();
-		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
+//		BeanPropCopy beanPropCopy = new BeanPropCopy();
+//		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
 		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
 		this.tabPane.add("属性复制2", beanPropCopy2.getContentPane());
 		FieldGetSet fieldGetSet = new FieldGetSet();
@@ -65,7 +64,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		TcpPortScannerUI tcpPortScannerUI = new TcpPortScannerUI();
 		this.tabPane.add("TCP端口扫描", tcpPortScannerUI.getContentPane());
 
-		frames.add(beanPropCopy);
+		frames.add(beanPropCopy2);
 		frames.add(nameConvert);
 		frames.add(encoding);
 		frames.add(fileSearchFrame);
