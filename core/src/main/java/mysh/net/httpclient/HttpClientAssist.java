@@ -1,9 +1,21 @@
 
 package mysh.net.httpclient;
 
-import com.google.api.client.http.*;
+import com.google.api.client.http.ByteArrayContent;
+import com.google.api.client.http.FileContent;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpContent;
+import com.google.api.client.http.HttpMediaType;
+import com.google.api.client.http.HttpRequest;
+import com.google.api.client.http.HttpRequestFactory;
+import com.google.api.client.http.HttpResponse;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.MultipartContent;
+import com.google.api.client.http.UrlEncodedContent;
 import com.google.api.client.http.apache.ApacheHttpTransport;
 import com.google.api.client.util.Key;
+import com.google.api.client.util.Maps;
+import com.google.common.net.HttpHeaders;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
@@ -16,14 +28,28 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 
 /**
  * HTTP 客户端组件.
@@ -77,7 +103,7 @@ public class HttpClientAssist implements Closeable {
 				req.getHeaders().putAll(hcc.headers);
 			req.getHeaders()
 							.setUserAgent(hcc.userAgent)
-							.put(HttpHeadersName.Connection, hcc.isKeepAlive ? "keep-alive" : "close")
+							.put(HttpHeaders.CONNECTION, hcc.isKeepAlive ? "keep-alive" : "close")
 			;
 		});
 	}
@@ -133,7 +159,7 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
-	 * get url entity by post method.<br/>
+	 * get url entity by post form data.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
@@ -141,13 +167,13 @@ public class HttpClientAssist implements Closeable {
 	 * @param params  request params. upload type: multipart/form-data, support files
 	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity accessPost(
+	public UrlEntity accessPostMultipartForm(
 					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
-		return accessPost(url, headers, params, null);
+		return accessPostMultipartForm(url, headers, params, null);
 	}
 
 	/**
-	 * get url entity by post method.<br/>
+	 * get url entity by post form data.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
@@ -156,7 +182,7 @@ public class HttpClientAssist implements Closeable {
 	 * @param enc     param value encoding
 	 * @throws IOException 连接异常.
 	 */
-	public UrlEntity accessPost(
+	public UrlEntity accessPostMultipartForm(
 					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
 					@Nullable Charset enc) throws IOException {
 		MultipartContent content = null;
@@ -175,14 +201,14 @@ public class HttpClientAssist implements Closeable {
 					File file = (File) value;
 					FileContent fileContent = new FileContent(null, file);
 					part = new MultipartContent.Part(fileContent);
-					part.setHeaders(new HttpHeaders().set(
+					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
 									"Content-Disposition",
 									String.format("form-data; name=\"%s\"; filename=\"%s\"", key, file.getName())));
 				} else {
 					if (value == null) value = "";
 					part = new MultipartContent.Part(
 									new ByteArrayContent(null, String.valueOf(value).getBytes(enc)));
-					part.setHeaders(new HttpHeaders().set(
+					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
 									"Content-Disposition", String.format("form-data; name=\"%s\"", key)));
 				}
 				content.addPart(part);
@@ -193,8 +219,15 @@ public class HttpClientAssist implements Closeable {
 		return access(req, headers);
 	}
 
+	public UrlEntity accessPostUrlEncodedForm(
+					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
+		HttpContent content = new UrlEncodedContent(params);
+		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
+		return access(req, headers);
+	}
+
 	/**
-	 * post raw content. content type can be set using header: {@link HttpHeadersName#ContentType}<br/>
+	 * post raw content. content type can be set using header: {@link HttpHeaders#CONTENT_TYPE}<br/>
 	 * get url entity by post method.<br/>
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
@@ -216,7 +249,7 @@ public class HttpClientAssist implements Closeable {
 	public static final Set<String> httpHeadersListFields = new HashSet<>();
 
 	static {
-		for (Field field : HttpHeaders.class.getDeclaredFields()) {
+		for (Field field : com.google.api.client.http.HttpHeaders.class.getDeclaredFields()) {
 			Key headerKey = field.getAnnotation(Key.class);
 			if (headerKey != null) {
 				httpHeadersListFields.add(headerKey.value());
@@ -240,7 +273,7 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		if (headers != null) {
-			HttpHeaders reqHeaders = req.getHeaders();
+			com.google.api.client.http.HttpHeaders reqHeaders = req.getHeaders();
 			for (Map.Entry<String, ?> he : headers.entrySet()) {
 				String name = he.getKey();
 				Object value = he.getValue();
@@ -388,6 +421,36 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		return url.toString();
+	}
+
+	/**
+	 * parse headers string in lines
+	 */
+	public static Map<String, String> parseHeaders(String headerStr) {
+		if (Strings.isNotBlank(headerStr)) {
+			Map<String, String> hm = Maps.newHashMap();
+			for (String line : headerStr.split("[\\r\\n]+")) {
+				String[] header = line.split(": *", 2);
+				hm.put(header[0], header[1]);
+			}
+			return hm;
+		} else
+			return Collections.emptyMap();
+	}
+
+	/**
+	 * parse params string like key=value&k=v
+	 */
+	public static Map<String, String> parseParams(String paramStr) {
+		if (Strings.isNotBlank(paramStr)) {
+			Map<String, String> pm = new HashMap<>();
+			for (String kv : paramStr.split("&")) {
+				String[] kav = kv.split("=", 2);
+				pm.put(kav[0], kav[1]);
+			}
+			return pm;
+		} else
+			return Collections.emptyMap();
 	}
 
 	private static final byte[] EMPTY_BUF = new byte[0];

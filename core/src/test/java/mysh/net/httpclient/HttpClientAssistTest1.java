@@ -101,7 +101,7 @@ public class HttpClientAssistTest1 {
 		hcc.setKeepAlive(false);
 		HttpClientAssist hca = new HttpClientAssist(hcc);
 		ImmutableMap<String, String> params = ImmutableMap.of("k", "v");
-		try (HttpClientAssist.UrlEntity ue = hca.accessPost("http://l:8080/abc?key=value", null, params)) {
+		try (HttpClientAssist.UrlEntity ue = hca.accessPostMultipartForm("http://l:8080/abc?key=value", null, params)) {
 			System.out.println(ue.getReqUrl());
 			System.out.println(ue.getCurrentURL());
 		}
