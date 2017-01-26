@@ -665,6 +665,10 @@ public class HttpClientAssist implements Closeable {
 			return this.entityBuf;
 		}
 
+		public String getCookies(){
+			return req.getResponseHeaders().getCookie();
+		}
+
 		@Override
 		public String toString() {
 			return getCurrentURL();
