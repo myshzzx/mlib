@@ -227,3 +227,4 @@ new IClusterUser<float[][], float[][], Float, Float>() {
 
 ### 更多示例
 详见[test目录](https://github.com/myshzzx/mlib/tree/master/cluster/src/test/java/mysh/cluster)
+
