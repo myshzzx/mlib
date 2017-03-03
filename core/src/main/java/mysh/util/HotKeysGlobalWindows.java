@@ -9,7 +9,9 @@ import com.sun.jna.platform.win32.WinUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
+import javax.annotation.concurrent.GuardedBy;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * bind global hot keys. this is OS relative.
@@ -21,8 +23,10 @@ import java.util.Collection;
 public class HotKeysGlobalWindows implements WinAPI {
     private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalWindows.class);
 
-    private static Thread win32MsgPeekThread;
-    private static final Multimap<Integer, Win32KbAction> win32KbListeners = HashMultimap.create();
+    @GuardedBy("Class")
+    private static Thread msgPeekThread;
+    private static final List<Win32KbAction> fullListeners = new CopyOnWriteArrayList<>();
+    private static final Multimap<Integer, Win32KbAction> specialListeners = HashMultimap.create();
 
     public static class KeyDown {
         private boolean ctrl;
@@ -103,6 +107,10 @@ public class HotKeysGlobalWindows implements WinAPI {
     }
 
     public interface Win32KbAction {
+
+        /**
+         * key down event. need unblock implementation.
+         */
         void onKeyDown(KeyDown keyDown);
     }
 
@@ -110,15 +118,15 @@ public class HotKeysGlobalWindows implements WinAPI {
      * listening all key actions
      */
     public static synchronized void addWin32KeyboardListener(Win32KbAction action) {
-        chkWindows();
-        win32KbListeners.put(0, action);
-        prepareWin32Hook();
+        chkOS();
+        fullListeners.add(action);
+        prepareHook();
     }
 
     public static synchronized void removeWin32KeyboardListener(Win32KbAction action) {
-        chkWindows();
-        win32KbListeners.remove(0, action);
-        prepareWin32Hook();
+        chkOS();
+        fullListeners.remove(action);
+        prepareHook();
     }
 
     /**
@@ -126,18 +134,18 @@ public class HotKeysGlobalWindows implements WinAPI {
      */
     public static synchronized void bindWin32KeyboardListener(
             boolean ctrl, boolean alt, boolean shift, int vkCode, Win32KbAction action) {
-        chkWindows();
+        chkOS();
         int key = genKey(ctrl, alt, shift, vkCode);
-        win32KbListeners.put(key, action);
-        prepareWin32Hook();
+        specialListeners.put(key, action);
+        prepareHook();
     }
 
     public static synchronized void unbindWin32KeyboardListener(
             boolean ctrl, boolean alt, boolean shift, int vkCode, Win32KbAction action) {
-        chkWindows();
+        chkOS();
         int key = genKey(ctrl, alt, shift, vkCode);
-        win32KbListeners.remove(key, action);
-        prepareWin32Hook();
+        specialListeners.remove(key, action);
+        prepareHook();
     }
 
     private static int genKey(boolean ctrl, boolean alt, boolean shift, int vkCode) {
@@ -148,20 +156,20 @@ public class HotKeysGlobalWindows implements WinAPI {
         return vkCode;
     }
 
-    private static void chkWindows() {
+    private static void chkOS() {
         if (OSs.getOS() != OSs.OS.Windows)
             throw new RuntimeException("current OS is: " + OSs.getOS());
     }
 
-    private static void prepareWin32Hook() {
-        if (win32KbListeners.size() == 0) {
-            if (win32MsgPeekThread != null) {
-                win32MsgPeekThread.interrupt();
-                win32MsgPeekThread = null;
+    private static synchronized void prepareHook() {
+        if (fullListeners.isEmpty() && specialListeners.isEmpty()) {
+            if (msgPeekThread != null) {
+                msgPeekThread.interrupt();
+                msgPeekThread = null;
             }
         } else {
-            if (win32MsgPeekThread == null) {
-                win32MsgPeekThread = new Thread("win32MsgPeekThread") {
+            if (msgPeekThread == null) {
+                msgPeekThread = new Thread("msgPeekThread") {
                     User32.HHOOK kbHook;
 
                     @Override
@@ -170,20 +178,10 @@ public class HotKeysGlobalWindows implements WinAPI {
 
                         User32.MSG msg = new User32.MSG();
                         try {
-                            long lastHookTime = 0, now;
+                            kbHook();
                             while (!this.isInterrupted()) {
                                 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943
                                 user32.PeekMessage(msg, null, 0, 0, 1);
-
-                                now = System.currentTimeMillis();
-                                // rehook every moment, in case of hook fails in a few minutes
-                                long hookTime = now - lastHookTime;
-                                if (hookTime > 130_000) {
-                                    kbUnHook();
-                                    kbHook();
-                                    lastHookTime = now;
-                                }
-
                                 Thread.sleep(29);
                             }
                         } catch (Throwable e) {
@@ -194,12 +192,12 @@ public class HotKeysGlobalWindows implements WinAPI {
                     }
 
                     private boolean isWindowChanges;
-                    private Pointer lastWindowPointer;
+                    private long lastWindowPointer;
                     private String lastWindowTitle;
 
                     private void chkWindow() {
-                        Pointer winPtr = user32.GetForegroundWindow().getPointer();
-                        if (!winPtr.equals(lastWindowPointer)) {
+                        long winPtr = Pointer.nativeValue(user32.GetForegroundWindow().getPointer());
+                        if (winPtr != lastWindowPointer) {
                             isWindowChanges = true;
                             lastWindowPointer = winPtr;
                             lastWindowTitle = WinAPI.getForeGroundWindowTitle();
@@ -224,8 +222,7 @@ public class HotKeysGlobalWindows implements WinAPI {
                                     KeyDown keyDown = new KeyDown(ctrl, alt, shift, vkCode, vkDesc,
                                             isWindowChanges, lastWindowTitle);
 
-                                    Collection<Win32KbAction> fullKeysActs = win32KbListeners.get(0);
-                                    for (Win32KbAction listener : fullKeysActs) {
+                                    for (Win32KbAction listener : fullListeners) {
                                         try {
                                             listener.onKeyDown(keyDown);
                                         } catch (Throwable t) {
@@ -234,12 +231,13 @@ public class HotKeysGlobalWindows implements WinAPI {
                                     }
 
                                     int key = genKey(ctrl, alt, shift, vkCode);
-                                    Collection<Win32KbAction> specificKeyActs = win32KbListeners.get(key);
-                                    for (Win32KbAction listener : specificKeyActs) {
-                                        try {
-                                            listener.onKeyDown(keyDown);
-                                        } catch (Throwable t) {
-                                            log.error("handle specific keyDown action error: " + keyDown, t);
+                                    if (specialListeners.containsKey(key)) {
+                                        for (Win32KbAction listener : specialListeners.get(key)) {
+                                            try {
+                                                listener.onKeyDown(keyDown);
+                                            } catch (Throwable t) {
+                                                log.error("handle specific keyDown action error: " + keyDown, t);
+                                            }
                                         }
                                     }
                                 }
@@ -254,7 +252,8 @@ public class HotKeysGlobalWindows implements WinAPI {
                      * hook and msg peek need to be within the same thread
                      */
                     private void kbHook() {
-                        if (kbHook != null) kbUnHook();
+                        if (kbHook != null)
+                            kbUnHook();
 
                         // https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990
                         kbHook = user32.SetWindowsHookEx(User32.WH_KEYBOARD_LL, kbProc, hMod, 0);
@@ -262,7 +261,6 @@ public class HotKeysGlobalWindows implements WinAPI {
 
                     private void kbUnHook() {
                         if (kbHook != null) {
-//							log.info("UnhookWindowsHookEx");
                             if (!user32.UnhookWindowsHookEx(kbHook)) {
                                 log.error("UnhookWindowsHookEx fail");
                             }
@@ -270,8 +268,8 @@ public class HotKeysGlobalWindows implements WinAPI {
                         }
                     }
                 };
-                win32MsgPeekThread.setDaemon(true);
-                win32MsgPeekThread.start();
+                msgPeekThread.setDaemon(true);
+                msgPeekThread.start();
             }
         }
     }

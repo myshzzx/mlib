@@ -1,5 +1,6 @@
 package mysh.util;
 
+import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Kernel32;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
@@ -19,6 +20,6 @@ public interface WinAPI {
         int len = user32.GetWindowTextLength(hwnd);
         char[] title = new char[len];
         user32.GetWindowText(hwnd, title, len + 1);
-        return new String(title);
+        return Native.toString(title);
     }
 }
