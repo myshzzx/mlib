@@ -15,16 +15,16 @@ import java.util.concurrent.CountDownLatch;
  * @since 2015/8/17
  */
 @Ignore
-public class HotKeysGlobalTest {
-	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalTest.class);
+public class HotKeysGlobalWindowsTest {
+	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalWindowsTest.class);
 
 	@Test
 	public void testAddWin32KeyboardListener() throws Exception {
-		HotKeysGlobal.addWin32KeyboardListener(
-						(c, a, s, ch, desc, winChg, winTitle) -> {
-							if (winChg)
-								System.out.println(winTitle);
-							log.info(HotKeysGlobal.Win32KbAction.friendlyKeyDesc(c, a, s, ch));
+		HotKeysGlobalWindows.addWin32KeyboardListener(
+						keyDown -> {
+							if (keyDown.isWinChanges())
+								System.out.println(keyDown.getWinTitle());
+							log.info(keyDown.toString());
 						});
 
 		new CountDownLatch(1).await();
@@ -32,10 +32,8 @@ public class HotKeysGlobalTest {
 
 	@Test
 	public void bindWin32Key() throws InterruptedException {
-		HotKeysGlobal.bindWin32KeyboardListener(true, true, false, KeyEvent.VK_S,
-						(c, a, s, vc, vcd, wc, wt) -> {
-							System.out.println(wt);
-						});
+		HotKeysGlobalWindows.bindWin32KeyboardListener(true, true, false, KeyEvent.VK_S,
+				System.out::println);
 
 		new CountDownLatch(1).await();
 	}
