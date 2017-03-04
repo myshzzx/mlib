@@ -22,7 +22,7 @@ public class HotKeysGlobalWindowsTest {
 	public void testAddWin32KeyboardListener() throws Exception {
 		HotKeysGlobalWindows.addWin32KeyboardListener(
 						keyDown -> {
-							if (keyDown.isWinChanges())
+							if (keyDown.isWindowChanges())
 								System.out.println(keyDown.getWinTitle());
 							log.info(keyDown.toString());
 						});

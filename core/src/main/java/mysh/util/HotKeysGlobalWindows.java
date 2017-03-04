@@ -25,8 +25,8 @@ public class HotKeysGlobalWindows implements WinAPI {
 
     @GuardedBy("Class")
     private static Thread msgPeekThread;
-    private static final List<Win32KbAction> fullListeners = new CopyOnWriteArrayList<>();
-    private static final Multimap<Integer, Win32KbAction> specialListeners = HashMultimap.create();
+    private static final List<KbAction> fullListeners = new CopyOnWriteArrayList<>();
+    private static final Multimap<Integer, KbAction> specialListeners = HashMultimap.create();
 
     public static class KeyDown {
         private boolean ctrl;
@@ -97,7 +97,7 @@ public class HotKeysGlobalWindows implements WinAPI {
         /**
          * whether window changes since last action. may not work properly when bind to a combination key.
          */
-        public boolean isWinChanges() {
+        public boolean isWindowChanges() {
             return winChanges;
         }
 
@@ -106,7 +106,7 @@ public class HotKeysGlobalWindows implements WinAPI {
         }
     }
 
-    public interface Win32KbAction {
+    public interface KbAction {
 
         /**
          * key down event. need unblock implementation.
@@ -117,13 +117,13 @@ public class HotKeysGlobalWindows implements WinAPI {
     /**
      * listening all key actions
      */
-    public static synchronized void addWin32KeyboardListener(Win32KbAction action) {
+    public static synchronized void addWin32KeyboardListener(KbAction action) {
         chkOS();
         fullListeners.add(action);
         prepareHook();
     }
 
-    public static synchronized void removeWin32KeyboardListener(Win32KbAction action) {
+    public static synchronized void removeWin32KeyboardListener(KbAction action) {
         chkOS();
         fullListeners.remove(action);
         prepareHook();
@@ -133,7 +133,7 @@ public class HotKeysGlobalWindows implements WinAPI {
      * listening to specific key action
      */
     public static synchronized void bindWin32KeyboardListener(
-            boolean ctrl, boolean alt, boolean shift, int vkCode, Win32KbAction action) {
+            boolean ctrl, boolean alt, boolean shift, int vkCode, KbAction action) {
         chkOS();
         int key = genKey(ctrl, alt, shift, vkCode);
         specialListeners.put(key, action);
@@ -141,7 +141,7 @@ public class HotKeysGlobalWindows implements WinAPI {
     }
 
     public static synchronized void unbindWin32KeyboardListener(
-            boolean ctrl, boolean alt, boolean shift, int vkCode, Win32KbAction action) {
+            boolean ctrl, boolean alt, boolean shift, int vkCode, KbAction action) {
         chkOS();
         int key = genKey(ctrl, alt, shift, vkCode);
         specialListeners.remove(key, action);
@@ -222,7 +222,7 @@ public class HotKeysGlobalWindows implements WinAPI {
                                     KeyDown keyDown = new KeyDown(ctrl, alt, shift, vkCode, vkDesc,
                                             isWindowChanges, lastWindowTitle);
 
-                                    for (Win32KbAction listener : fullListeners) {
+                                    for (KbAction listener : fullListeners) {
                                         try {
                                             listener.onKeyDown(keyDown);
                                         } catch (Throwable t) {
@@ -232,7 +232,7 @@ public class HotKeysGlobalWindows implements WinAPI {
 
                                     int key = genKey(ctrl, alt, shift, vkCode);
                                     if (specialListeners.containsKey(key)) {
-                                        for (Win32KbAction listener : specialListeners.get(key)) {
+                                        for (KbAction listener : specialListeners.get(key)) {
                                             try {
                                                 listener.onKeyDown(keyDown);
                                             } catch (Throwable t) {
