@@ -22,21 +22,25 @@
 		<dependency>
 			<groupId>gov.nist.math</groupId>
 			<artifactId>jama</artifactId>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.imagescience</groupId>
 			<artifactId>imagescience</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<!--for captcha-->
 		<dependency>
 			<groupId>com.jhlabs</groupId>
 			<artifactId>filters</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>com.amd</groupId>
 			<artifactId>aparapi</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 	</dependencies>
