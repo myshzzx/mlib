@@ -4,7 +4,6 @@ package mysh.net.httpclient;
 import com.google.api.client.http.ByteArrayContent;
 import com.google.api.client.http.FileContent;
 import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpContent;
 import com.google.api.client.http.HttpMediaType;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
@@ -150,7 +149,8 @@ public class HttpClientAssist implements Closeable {
 			for (Map.Entry<String, ?> pe : params.entrySet()) {
 				usb.append(pe.getKey()).append('=').append(pe.getValue()).append('&');
 			}
-			if (usb.charAt(usb.length() - 1) == '&') usb.deleteCharAt(usb.length() - 1);
+			if (usb.charAt(usb.length() - 1) == '&')
+				usb.deleteCharAt(usb.length() - 1);
 			url = usb.toString();
 		}
 
@@ -191,7 +191,8 @@ public class HttpClientAssist implements Closeable {
 							new HttpMediaType("multipart/form-data")
 											.setParameter("boundary", "__END_OF_PART__"));
 
-			if (enc == null) enc = Charset.defaultCharset();
+			if (enc == null)
+				enc = Charset.defaultCharset();
 			for (Map.Entry<String, ?> entry : params.entrySet()) {
 				String key = entry.getKey();
 				Object value = entry.getValue();
@@ -219,9 +220,29 @@ public class HttpClientAssist implements Closeable {
 		return access(req, headers);
 	}
 
+	/**
+	 * @see #accessPostUrlEncodedForm(String, Map, Map, Charset)
+	 */
 	public UrlEntity accessPostUrlEncodedForm(
 					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
-		HttpContent content = new UrlEncodedContent(params);
+		return accessPostUrlEncodedForm(url, headers, params, null);
+	}
+
+	/**
+	 * get url entity by post url encoded data.<br/>
+	 * WARNING: the entity must be closed in time,
+	 * because an unclosed entity will hold a connection from connection-pool.
+	 *
+	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
+	 * @param params  request params. upload type: multipart/form-data, support files
+	 * @param enc     param value encoding
+	 * @throws IOException 连接异常.
+	 */
+	public UrlEntity accessPostUrlEncodedForm(
+					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
+					@Nullable Charset enc) throws IOException {
+		UrlEncodedContent content = new UrlEncodedContent(params);
+		content.getMediaType().setCharsetParameter(enc == null ? Charset.defaultCharset() : enc);
 		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
 		return access(req, headers);
 	}
