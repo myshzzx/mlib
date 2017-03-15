@@ -10,6 +10,7 @@ import java.io.Serializable;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
+import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -221,9 +222,9 @@ public class OSs {
      * list all windows processes. it's a heavy operation.
      */
     public static List<ProcessInfoWin32> allWinProcesses() throws IOException {
+        Charset winCharset = Encodings.GBK;
         Process p = Runtime.getRuntime().exec("wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize,CommandLine");
-        Map<String, ProcessInfoWin32> r = new HashMap<>();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
             String header = reader.readLine();
             String[] cols = header.split("\\s+");
             int[] colsIdx = new int[cols.length];
@@ -236,10 +237,12 @@ public class OSs {
             reader.lines()
                     .filter(line -> line.length() > 0)
                     .forEach(line -> {
+                        byte[] lineBytes = line.getBytes(winCharset);
                         for (int i = 0; i < cols.length; i++) {
                             String key = cols[i];
                             String value = i < cols.length - 1 ?
-                                    line.substring(colsIdx[i], colsIdx[i + 1]) : line.substring(colsIdx[i]);
+                                    new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset)
+                                    : new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
                             value = value.trim();
                             infoMap.put(key, value);
                         }
