@@ -1,6 +1,6 @@
 package mysh.cluster;
 
-import mysh.util.OSs;
+import mysh.util.Oss;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -273,7 +273,7 @@ public class FilesMgr implements Closeable {
 				// write delete script
 				String updateScriptFile, script;
 				Charset charset;
-				if (OSs.getOS() == OSs.OS.Windows) {
+				if (Oss.getOS() == Oss.OS.Windows) {
 					updateScriptFile = "update.bat";
 					charset = StandardCharsets.US_ASCII;
 					script = "del /f /q \"" + mainDir + "\\" + type.dir + "\\" + fileName + "\"";
@@ -326,9 +326,9 @@ public class FilesMgr implements Closeable {
 	 * get restart cmd.
 	 */
 	public String[] getRestartCmd() {
-		final String pid = String.valueOf(OSs.getPid());
+		final String pid = String.valueOf(Oss.getPid());
 
-		if (OSs.getOS() == OSs.OS.Windows)
+		if (Oss.getOS() == Oss.OS.Windows)
 			return new String[]{"startCluster.bat", pid};
 		else
 			return new String[]{"/bin/sh", "startCluster.sh", pid};

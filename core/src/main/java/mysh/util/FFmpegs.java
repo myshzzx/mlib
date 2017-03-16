@@ -21,7 +21,7 @@ public class FFmpegs {
 						dst.getAbsolutePath()
 		);
 		System.out.println("execute: " + cmd);
-		OSs.executeCmd(cmd, true).waitFor();
+		Oss.executeCmd(cmd, true).waitFor();
 	}
 
 	private String overwrite = "";
@@ -100,6 +100,6 @@ public class FFmpegs {
 						+ audioBitRate + audioChannels
 						+ output;
 		System.out.println("execute: " + cmd);
-		OSs.executeCmd(cmd, true).waitFor();
+		Oss.executeCmd(cmd, true).waitFor();
 	}
 }
