@@ -3,7 +3,7 @@ package mysh.cluster;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.util.Exps;
-import mysh.util.OSs;
+import mysh.util.Oss;
 import org.apache.thrift.server.TServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +87,7 @@ public class ClusterNode {
 	 */
 	public ClusterNode(ClusterConf conf) throws Throwable {
 		try {
-			OSs.changePriority(OSs.getPid(), OSs.OsProcPriority.BelowNormal);
+			Oss.changePriority(Oss.getPid(), Oss.OsProcPriority.BelowNormal);
 		} catch (Throwable e) {
 			log.info("change process failed.", e);
 		}
@@ -513,7 +513,7 @@ public class ClusterNode {
 					} catch (IOException e) {
 						log.error("restartVM cluster node error, try restartVM process", e);
 						try {
-							OSs.restart(true);
+							Oss.restart(true);
 						} catch (IOException ex) {
 							log.error("restartVM process error, the cluster node need manual start.", ex);
 						}
