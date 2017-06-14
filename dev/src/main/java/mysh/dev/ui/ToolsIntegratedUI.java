@@ -12,6 +12,7 @@ import mysh.dev.encoding.Encoding;
 import mysh.dev.filesearch.FileSearchFrame;
 import mysh.dev.regexp.RegExpTestFrame;
 import mysh.dev.tcpportscanner.TcpPortScannerUI;
+import mysh.dev.video.FFmpegUI;
 import mysh.util.UIs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,25 +52,34 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 //		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
 		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
 		this.tabPane.add("属性复制2", beanPropCopy2.getContentPane());
+		frames.add(beanPropCopy2);
+
 		FieldGetSet fieldGetSet = new FieldGetSet();
 		this.tabPane.add("GetSet生成", fieldGetSet);
+
 		NameConvert nameConvert = new NameConvert();
 		this.tabPane.add("命名转换", nameConvert.getContentPane());
+		frames.add(nameConvert);
+
 		Encoding encoding = new Encoding();
 		this.tabPane.add("编码转换", encoding.getContentPane());
+		frames.add(encoding);
+
 		FileSearchFrame fileSearchFrame = new FileSearchFrame();
 		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
+		frames.add(fileSearchFrame);
+
 		RegExpTestFrame regExpTestFrame = new RegExpTestFrame();
 		this.tabPane.add("正则判断", regExpTestFrame.getContentPane());
+		frames.add(regExpTestFrame);
+
 		TcpPortScannerUI tcpPortScannerUI = new TcpPortScannerUI();
 		this.tabPane.add("TCP端口扫描", tcpPortScannerUI.getContentPane());
-
-		frames.add(beanPropCopy2);
-		frames.add(nameConvert);
-		frames.add(encoding);
-		frames.add(fileSearchFrame);
-		frames.add(regExpTestFrame);
 		frames.add(tcpPortScannerUI);
+
+		FFmpegUI ffmpegUI = new FFmpegUI();
+		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
+		frames.add(ffmpegUI);
 
 //        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
 //        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());

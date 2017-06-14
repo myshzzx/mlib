@@ -67,7 +67,7 @@ public class FilesUtil {
 			log.debug("load object from file: " + file);
 			return obj;
 		} finally {
-//			http://stackoverflow.com/questions/2972986/how-to-unmap-a-file-from-memory-mapped-using-filechannel-in-java
+			//			http://stackoverflow.com/questions/2972986/how-to-unmap-a-file-from-memory-mapped-using-filechannel-in-java
 			System.gc();
 		}
 	}
@@ -86,7 +86,7 @@ public class FilesUtil {
 		}
 
 		file.delete();
-		if(!writeFile.renameTo(file))
+		if (!writeFile.renameTo(file))
 			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
 		log.debug("write to file: " + file.getAbsolutePath());
 	}
@@ -105,7 +105,7 @@ public class FilesUtil {
 		}
 
 		file.delete();
-		if(!writeFile.renameTo(file))
+		if (!writeFile.renameTo(file))
 			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
 		log.debug("write to file: " + file.getAbsolutePath());
 	}
@@ -161,22 +161,20 @@ public class FilesUtil {
 	 * 取给定文件路径可写的File, 若文件已存在, 则在文件名后加 "(数字)", 以保证可写入.<br/>
 	 * 如若给定的路径 c:/a.txt, 目录下 a.txt 和 a (1).txt 已存在, 则返回 c:/a (2).txt 的可写文件.<br/>
 	 * 注意: 可写文件的状态是瞬时的, 此方法不能锁定此文件, 它随时可能被其他程序锁定.
-	 *
-	 * @param filePath 文件路径(可以是相对路径).
-	 * @return 带绝对路径的 File.
 	 */
-	public static File getWritableFile(String filePath) {
-
-		File file = new File(filePath);
+	public static File getWritableFile(File file) {
 		if (file.exists()) {
-			String dir = file.getParent() + File.separatorChar;
+			File dir = file.getParentFile();
 			String fName = FilesUtil.getFileNameWithoutExtension(file);
 			String fExt = FilesUtil.getFileExtension(file);
-			int i = 0;
-			while (new File(filePath = (dir + fName + " (" + (++i) + ")" + (fExt.length() > 0 ? ("." + fExt)
-							: ""))).exists()) ;
+			fExt = fExt.length() > 0 ? ("." + fExt) : "";
 
-			return new File(filePath);
+			int i = 0;
+			File test;
+			do {
+				test = new File(dir, fName + " (" + (++i) + ")" + fExt);
+			} while (test.exists());
+			return test;
 		} else {
 			file.getParentFile().mkdirs();
 			return file;
@@ -288,7 +286,8 @@ public class FilesUtil {
 	 * remove given file or dir.
 	 */
 	public static void deleteDirOrFile(Path p, boolean followSymLinkDir) throws IOException {
-		if (p == null) return;
+		if (p == null)
+			return;
 
 		if (!Files.isDirectory(p))
 			Files.delete(p);

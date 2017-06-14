@@ -37,6 +37,9 @@ import java.util.concurrent.TimeUnit;
 public class Oss {
 	private static final Logger log = LoggerFactory.getLogger(Oss.class);
 
+	public static final String fileSep = System.getProperty("file.separator");
+	public static final String lineSep = System.getProperty("line.separator");
+
 	public enum OS {
 		Windows, Linux, Mac, Unix, Unknown
 	}
@@ -69,25 +72,25 @@ public class Oss {
 		return Integer.parseInt(name.substring(0, idx));
 	}
 
-    /**
-     * get command line of current process.
-     */
-    public static String getCmdLine() throws IOException {
-        Runtime runtime = Runtime.getRuntime();
-        int pid = getPid();
-        String cmd;
-        switch (getOS()) {
-            case Windows:
-                cmd = "wmic process where processid=" + pid + " get commandline";
-                break;
-            case Linux:
-            case Unix:
-            case Mac:
-                cmd = "ps -fhp " + pid + " -o cmd";
-                break;
-            default:
-                throw new RuntimeException("can't get cmdLine from unknown os.");
-        }
+	/**
+	 * get command line of current process.
+	 */
+	public static String getCmdLine() throws IOException {
+		Runtime runtime = Runtime.getRuntime();
+		int pid = getPid();
+		String cmd;
+		switch (getOS()) {
+			case Windows:
+				cmd = "wmic process where processid=" + pid + " get commandline";
+				break;
+			case Linux:
+			case Unix:
+			case Mac:
+				cmd = "ps -fhp " + pid + " -o cmd";
+				break;
+			default:
+				throw new RuntimeException("can't get cmdLine from unknown os.");
+		}
 
 		Process proc = runtime.exec(cmd);
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
@@ -122,7 +125,7 @@ public class Oss {
 	 * @param inheritIO inherit current process IO, then child process will output to current process.
 	 */
 	public static Process executeCmd(String cmd, boolean inheritIO) throws IOException {
-		log.info("executeCmd: {}", cmd);
+		log.debug("executeCmd: {}", cmd);
 
 		StringTokenizer st = new StringTokenizer(cmd);
 		String[] cmdArray = new String[st.countTokens()];
@@ -179,7 +182,8 @@ public class Oss {
 	public static List<String> parseCmdLine(String cmd) {
 		Objects.requireNonNull(cmd, "cmd line should not be null");
 		cmd = cmd.trim();
-		if (cmd.length() == 0) return Collections.emptyList();
+		if (cmd.length() == 0)
+			return Collections.emptyList();
 
 		List<String> r = new ArrayList<>();
 		char[] chars = cmd.toCharArray();
@@ -197,14 +201,16 @@ public class Oss {
 						i += 2;
 					else if (c != waiting)
 						i++;
-					else break;
+					else
+						break;
 				}
 				i = i > len ? len : i;
 				r.add(new String(chars, start, i - start));
 				i++;
 			} else if (c > ' ') {
 				start = i;
-				while (i < len && chars[i] > ' ') i++;
+				while (i < len && chars[i] > ' ')
+					i++;
 				r.add(new String(chars, start, i - start));
 			}
 		}
@@ -227,76 +233,77 @@ public class Oss {
 		}
 	}
 
-    /**
-     * list all windows processes. it's a heavy operation.
-     *
-    * @param fetchCmdLine fetch cmd line or not. it's an expensive op, fetch them only if you need to iterate all processes' cmd lines.
-     */public static List<ProcessInfoWin32> getAllWinProcesses(boolean fetchCmdLine) throws IOException {
-        Charset winCharset = getOsCharset();
-        String wmicGetProcs ="wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize";
-        if (fetchCmdLine)
-            wmicGetProcs += ",CommandLine";
-        Process p = executeCmd(wmicGetProcs, false);
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
-            String header = reader.readLine();
-            String[] cols = header.split("\\s+");
-            int[] colsIdx = new int[cols.length];
-            for (int i = 1; i < cols.length; i++) {
-                colsIdx[i] = header.indexOf(cols[i], colsIdx[i - 1]);
-            }
+	/**
+	 * list all windows processes. it's a heavy operation.
+	 *
+	 * @param fetchCmdLine fetch cmd line or not. it's an expensive op, fetch them only if you need to iterate all processes' cmd lines.
+	 */
+	public static List<ProcessInfoWin32> getAllWinProcesses(boolean fetchCmdLine) throws IOException {
+		Charset winCharset = getOsCharset();
+		String wmicGetProcs = "wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize";
+		if (fetchCmdLine)
+			wmicGetProcs += ",CommandLine";
+		Process p = executeCmd(wmicGetProcs, false);
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
+			String header = reader.readLine();
+			String[] cols = header.split("\\s+");
+			int[] colsIdx = new int[cols.length];
+			for (int i = 1; i < cols.length; i++) {
+				colsIdx[i] = header.indexOf(cols[i], colsIdx[i - 1]);
+			}
 
-            List<ProcessInfoWin32> processes = new ArrayList<>();
-            Map<String, String> infoMap = new HashMap<>();
-            reader.lines()
-                    .filter(line -> line.length() > 0)
-                    .forEach(line -> {
-                        byte[] lineBytes = line.getBytes(winCharset);for (int i = 0; i < cols.length; i++) {
-                            String key = cols[i];
-                            String value = i < cols.length - 1 ?
-                                    new String(lineBytes,colsIdx[i], colsIdx[i + 1]-colsIdx[i], winCharset)
-                                    : new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
-                            value = value.trim();
-                            infoMap.put(key, value);
-                        }
-                        processes.add(new ProcessInfoWin32(infoMap));
-                    });
-            return processes;
-
-        }
-    }
+			List<ProcessInfoWin32> processes = new ArrayList<>();
+			Map<String, String> infoMap = new HashMap<>();
+			reader.lines()
+							.filter(line -> line.length() > 0)
+							.forEach(line -> {
+								byte[] lineBytes = line.getBytes(winCharset); for (int i = 0; i < cols.length; i++) {
+									String key = cols[i];
+									String value = i < cols.length - 1 ?
+													new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset)
+													: new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
+									value = value.trim();
+									infoMap.put(key, value);
+								}
+								processes.add(new ProcessInfoWin32(infoMap));
+							});
+			return processes;
+		}
+	}
 
 	private static final DateTimeFormatter CREATION_DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
 	public static class ProcessInfoWin32 implements Serializable {
 		private static final long serialVersionUID = -2891053091206604968L;
 
-        private static Cache<Long, String> cmdLineCache = CacheBuilder.newBuilder()
-                .maximumSize(1000)
-                .expireAfterWrite(10, TimeUnit.HOURS)
-                .build();private int pid, parentPid, priority;
-        private String name,  exePath, cmdLine;
-        private LocalDateTime startTime;
-        private int threadCount, handleCount;
-        private long userModeMicroSec, kernelModeMicroSec;
-        private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
+		private static Cache<Long, String> cmdLineCache = CacheBuilder.newBuilder()
+						.maximumSize(1000)
+						.expireAfterWrite(10, TimeUnit.HOURS)
+						.build();
+		private int pid, parentPid, priority;
+		private String name, exePath, cmdLine;
+		private LocalDateTime startTime;
+		private int threadCount, handleCount;
+		private long userModeMicroSec, kernelModeMicroSec;
+		private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
 
-        private ProcessInfoWin32(Map<String, String> m) {
-            name = m.get("Name");
-            pid = Integer.parseInt(m.get("ProcessId"));
-            parentPid = Integer.parseInt(m.get("ParentProcessId"));
+		private ProcessInfoWin32(Map<String, String> m) {
+			name = m.get("Name");
+			pid = Integer.parseInt(m.get("ProcessId"));
+			parentPid = Integer.parseInt(m.get("ParentProcessId"));
 
-            startTime = LocalDateTime.parse(m.get("CreationDate").substring(0, 14), CREATION_DATE_FMT);
-            exePath = m.get("ExecutablePath");cmdLine = m.get("CommandLine");
-            priority = Integer.parseInt(m.get("Priority"));
-            threadCount = Integer.parseInt(m.get("ThreadCount"));
-            handleCount = Integer.parseInt(m.get("HandleCount"));
-            userModeMicroSec = Long.parseLong(m.get("UserModeTime")) / 10;
-            kernelModeMicroSec = Long.parseLong(m.get("KernelModeTime")) / 10;
-            virtualSize = Long.parseLong(m.get("VirtualSize"));
-            workingSetSize = Long.parseLong(m.get("WorkingSetSize"));
-            peakVirtualSize = Long.parseLong(m.get("PeakVirtualSize"));
-            peakWorkingSetSize = Long.parseLong(m.get("PeakWorkingSetSize"));
-        }
+			startTime = LocalDateTime.parse(m.get("CreationDate").substring(0, 14), CREATION_DATE_FMT);
+			exePath = m.get("ExecutablePath"); cmdLine = m.get("CommandLine");
+			priority = Integer.parseInt(m.get("Priority"));
+			threadCount = Integer.parseInt(m.get("ThreadCount"));
+			handleCount = Integer.parseInt(m.get("HandleCount"));
+			userModeMicroSec = Long.parseLong(m.get("UserModeTime")) / 10;
+			kernelModeMicroSec = Long.parseLong(m.get("KernelModeTime")) / 10;
+			virtualSize = Long.parseLong(m.get("VirtualSize"));
+			workingSetSize = Long.parseLong(m.get("WorkingSetSize"));
+			peakVirtualSize = Long.parseLong(m.get("PeakVirtualSize"));
+			peakWorkingSetSize = Long.parseLong(m.get("PeakWorkingSetSize"));
+		}
 
 		@Override
 		public String toString() {
@@ -308,28 +315,30 @@ public class Oss {
 							'}';
 		}
 
-        /**
-         * 取命令行(非常耗时), 并缓存
-         */
-        public String getCmdLine() {
-            if (cmdLine != null)
-                return cmdLine;
+		/**
+		 * 取命令行(非常耗时), 并缓存
+		 */
+		public String getCmdLine() {
+			if (cmdLine != null)
+				return cmdLine;
 
-            try {
-                return cmdLine = cmdLineCache.get(
-                        ((long) pid << 34) | startTime.toEpochSecond(ZoneOffset.UTC),
-                        () -> {
-                            byte[] infoBytes = readFromProcess("wmic process where processid=" + pid + " get CommandLine");
-                            String info = new String(infoBytes, getOsCharset());
-                            return info.startsWith("CommandLine") ? info.substring(11).trim() : "";
-                        });
-            } catch (ExecutionException e) {
-                log.error("get cmd line error. " + this, e);
-                return null;
-            }
-        }public int getPid() {
-            return pid;
-        }
+			try {
+				return cmdLine = cmdLineCache.get(
+								((long) pid << 34) | startTime.toEpochSecond(ZoneOffset.UTC),
+								() -> {
+									byte[] infoBytes = readFromProcess("wmic process where processid=" + pid + " get CommandLine");
+									String info = new String(infoBytes, getOsCharset());
+									return info.startsWith("CommandLine") ? info.substring(11).trim() : "";
+								});
+			} catch (ExecutionException e) {
+				log.error("get cmd line error. " + this, e);
+				return null;
+			}
+		}
+
+		public int getPid() {
+			return pid;
+		}
 
 		public int getParentPid() {
 			return parentPid;
@@ -344,10 +353,9 @@ public class Oss {
 		}
 
 
-
-        public String getExePath() {
-            return exePath;
-        }
+		public String getExePath() {
+			return exePath;
+		}
 
 		public LocalDateTime getStartTime() {
 			return startTime;
@@ -406,34 +414,34 @@ public class Oss {
 		}
 	}
 
-    /**
-     * read process output content.
-     * this method will block until process terminate, so make sure the process will exit immediately.
-     */
-    public static byte[] readFromProcess(String cmd) throws IOException {
-        Process process = executeCmd(cmd, false);
-        byte[] buf = new byte[1000];
-        ByteArrayOutputStream aos = new ByteArrayOutputStream(buf.length);
-        try (InputStream in = process.getInputStream()) {
-            int len;
-            while ((len = in.read(buf)) > -1) {
-                aos.write(buf, 0, len);
-            }
-        }
-        return aos.toByteArray();
-    }
+	/**
+	 * read process output content.
+	 * this method will block until process terminate, so make sure the process will exit immediately.
+	 */
+	public static byte[] readFromProcess(String cmd) throws IOException {
+		Process process = executeCmd(cmd, false);
+		byte[] buf = new byte[1000];
+		ByteArrayOutputStream aos = new ByteArrayOutputStream(buf.length);
+		try (InputStream in = process.getInputStream()) {
+			int len;
+			while ((len = in.read(buf)) > -1) {
+				aos.write(buf, 0, len);
+			}
+		}
+		return aos.toByteArray();
+	}
 
-    /**
-     * default app charset of current OS
-     */
-    public static Charset getOsCharset() {
-        String enc = System.getProperty("sun.jnu.encoding");
-        if (enc == null)
-            enc = System.getProperty("ibm.system.encoding");
+	/**
+	 * default app charset of current OS
+	 */
+	public static Charset getOsCharset() {
+		String enc = System.getProperty("sun.jnu.encoding");
+		if (enc == null)
+			enc = System.getProperty("ibm.system.encoding");
 
-        if (enc == null)
-            return Oss.getOS() == OS.Windows ? Encodings.GBK : Encodings.UTF_8;
-        else
-            return Charset.forName(enc);
-    }
+		if (enc == null)
+			return Oss.getOS() == OS.Windows ? Encodings.GBK : Encodings.UTF_8;
+		else
+			return Charset.forName(enc);
+	}
 }

@@ -1,8 +1,17 @@
 package mysh.util;
 
+import com.google.common.base.Joiner;
+import com.google.common.io.Files;
+import mysh.collect.Colls;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.annotation.concurrent.NotThreadSafe;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.List;
 
 /**
  * Ffmpegs
@@ -12,6 +21,8 @@ import java.io.IOException;
  */
 @NotThreadSafe
 public class FFmpegs {
+	private static final Logger log = LoggerFactory.getLogger(FFmpegs.class);
+
 	public static void h265(boolean accelerate, File file, int h265Crf, int audioChannel, File dst) throws IOException, InterruptedException {
 
 		String cmd = String.format("ffmpeg -y %s -i \"%s\" -c:v libx265 -x265-params crf=%d -ac %d \"%s\"",
@@ -31,6 +42,7 @@ public class FFmpegs {
 	private String audioOptions = " -c:a copy";
 	private String audioChannels = "";
 	private String audioBitRate = "";
+	private String ss, to;
 	private String output = "";
 
 	private FFmpegs() {
@@ -52,6 +64,57 @@ public class FFmpegs {
 
 	public FFmpegs input(File file) {
 		input = " -i \"" + file.getAbsolutePath() + "\"";
+		return this;
+	}
+
+	public FFmpegs merge(List<File> files) {
+		if (Colls.isEmpty(files))
+			throw new RuntimeException("merge files can't be blank");
+		try {
+			File fileList = File.createTempFile("ffmpeg-merge", ".txt");
+			fileList.deleteOnExit();
+			try (BufferedWriter out = Files.newWriter(fileList, Charset.defaultCharset())) {
+				for (File file : files) {
+					out.write("file '");
+					out.write(file.getAbsolutePath());
+					out.write("'");
+					out.newLine();
+				}
+			}
+			input = " -f concat -safe 0 -i \"" + fileList.getAbsolutePath() + "\"";
+		} catch (IOException e) {
+			throw new RuntimeException("write list file error.", e);
+		}
+		return this;
+	}
+
+	private static final Joiner colonJoiner = Joiner.on(":");
+
+	/**
+	 * set start time, expression can be separate using: [\s,.:/\\]+
+	 *
+	 * @param fromTime time exp, can be like -> 3:37 2/34/11 03.21
+	 */
+	public FFmpegs from(String fromTime) {
+		if (Strings.isNotBlank(fromTime)) {
+			ss = colonJoiner.join(fromTime.trim().split("[\\s,.:/\\\\]+"));
+		} else {
+			ss = null;
+		}
+		return this;
+	}
+
+	/**
+	 * set to time, expression can be separate using: [\s,.:/\\]+
+	 *
+	 * @param toTime time exp, can be like -> 3:37 2/34/11 03.21
+	 */
+	public FFmpegs to(String toTime) {
+		if (Strings.isNotBlank(toTime)) {
+			to = colonJoiner.join(toTime.trim().split("[\\s,.:/\\\\]+"));
+		} else {
+			to = null;
+		}
 		return this;
 	}
 
@@ -91,15 +154,22 @@ public class FFmpegs {
 		return this;
 	}
 
-	public void go() throws IOException, InterruptedException {
-		String cmd = "ffmpeg"
+	/** return immediately, not wait the process terminate */
+	public Process go() throws IOException, InterruptedException {
+		String cmd = getCmd();
+		log.info("execute: " + cmd);
+		return Oss.executeCmd(cmd, true);
+	}
+
+	public String getCmd() {
+		return "ffmpeg"
 						+ overwrite + hardwareAccelerate
 						+ input
+						+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
+						+ (Strings.isNotBlank(to) ? " -to " + to : "")
 						+ videoOptions
 						+ audioOptions
 						+ audioBitRate + audioChannels
 						+ output;
-		System.out.println("execute: " + cmd);
-		Oss.executeCmd(cmd, true).waitFor();
 	}
 }

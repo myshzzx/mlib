@@ -138,7 +138,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 							.replace('?', '-')
 							.replace('/', '-');
 
-			File f = FilesUtil.getWritableFile(new File(SAVE_DIR, imgName).getAbsolutePath());
+			File f = FilesUtil.getWritableFile(new File(SAVE_DIR, imgName));
 			if (!f.getAbsoluteFile().getParentFile().exists())
 				f.getAbsoluteFile().getParentFile().mkdirs();
 			if (f.exists() && f.length() > 0) return true;
@@ -227,7 +227,7 @@ public class StanleyDl implements CrawlerSeed<UrlContext> {
 				c.pause();
 				Thread.sleep(5000);
 
-				File zipFile = FilesUtil.getWritableFile(REPO_FILE);
+				File zipFile = FilesUtil.getWritableFile(new File(REPO_FILE));
 				zipFile.getParentFile().mkdirs();
 				Process process = Runtime.getRuntime().exec(
 								"zip -q -r \"" + zipFile.getAbsolutePath() + "\" \"" + SAVE_DIR + "\"");
