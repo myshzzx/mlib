@@ -4,10 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.SocketAddress;
-import java.net.URI;
+import java.net.*;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,5 +38,10 @@ public class SingleProxySelector extends ProxySelector {
 
 	public static ProxySelector of(Proxy proxy) {
 		return new SingleProxySelector(proxy);
+	}
+
+	public static ProxySelector ofHttpProxy(String host, int port) {
+		return new SingleProxySelector(new Proxy(
+				Proxy.Type.HTTP, new InetSocketAddress(host, port)));
 	}
 }

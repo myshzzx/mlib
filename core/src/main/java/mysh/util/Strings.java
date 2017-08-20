@@ -24,7 +24,7 @@ public class Strings {
 	 * check whether str is null or "", or consists of \s.
 	 */
 	public static boolean isBlank(String s) {
-		if (s == null) {
+		if (isEmpty(s)) {
 			return true;
 		}
 		for (int i = 0; i < s.length(); i++) {

@@ -1,16 +1,7 @@
 
 package mysh.net.httpclient;
 
-import com.google.api.client.http.ByteArrayContent;
-import com.google.api.client.http.FileContent;
-import com.google.api.client.http.GenericUrl;
-import com.google.api.client.http.HttpMediaType;
-import com.google.api.client.http.HttpRequest;
-import com.google.api.client.http.HttpRequestFactory;
-import com.google.api.client.http.HttpResponse;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.http.MultipartContent;
-import com.google.api.client.http.UrlEncodedContent;
+import com.google.api.client.http.*;
 import com.google.api.client.http.apache.ApacheHttpTransport;
 import com.google.api.client.util.Key;
 import com.google.api.client.util.Maps;
@@ -27,28 +18,15 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.lang.reflect.Field;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 /**
  * HTTP 客户端组件.
@@ -686,7 +664,37 @@ public class HttpClientAssist implements Closeable {
 			return this.entityBuf;
 		}
 
-		public String getCookies(){
+		/**
+		 * download resource directly to file, without cache to entityBuf.
+		 *
+		 * @param file    file will not be overwritten, if this file exists, a new file will be created.
+		 * @param stopChk check stop download or not.
+		 */
+		public synchronized void downloadDirectlyToFile(File file, Function<?, Boolean> stopChk) throws IOException {
+			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(null))) {
+				return;
+			}
+
+			File writableFile = FilesUtil.getWritableFile(file);
+			try (OutputStream out = Files.newOutputStream(writableFile.toPath())) {
+				InputStream is = rsp.getContent();
+				Thread thread = Thread.currentThread();
+
+				byte[] buf = getDownloadBuf();
+				int rl;
+				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
+					out.write(buf, 0, rl);
+					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(null))) {
+						break;
+					}
+				}
+				if (thread.isInterrupted()) {
+					throw new InterruptedIOException("download interrupted: " + reqUrl);
+				}
+			}
+		}
+
+		public String getCookies() {
 			return req.getResponseHeaders().getCookie();
 		}
 
