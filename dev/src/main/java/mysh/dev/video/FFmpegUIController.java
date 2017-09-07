@@ -3,7 +3,6 @@ package mysh.dev.video;
 import mysh.collect.Pair;
 import mysh.util.FFmpegs;
 import mysh.util.FilesUtil;
-import mysh.util.Oss;
 import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,10 +10,8 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -77,15 +74,15 @@ class FFmpegUIController {
 						realTarget = FilesUtil.getWritableFile(realTarget);
 
 					process = f.input(srcFile).output(realTarget).go();
-					Oss.getAllWinProcesses(true).stream()
-									.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
-									.forEach(p -> {
-										try {
-											Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
-										} catch (IOException e) {
-											log.info("change priority fail: " + p.getCmdLine(), e);
-										}
-									});
+					// Oss.getAllWinProcesses(true).stream()
+					// 				.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
+					// 				.forEach(p -> {
+					// 					try {
+					// 						Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+					// 					} catch (IOException e) {
+					// 						log.info("change priority fail: " + p.getCmdLine(), e);
+					// 					}
+					// 				});
 					process.waitFor();
 				}
 			} catch (InterruptedException e) {

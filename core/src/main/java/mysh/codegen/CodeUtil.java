@@ -4,6 +4,10 @@ import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -114,7 +118,38 @@ public class CodeUtil {
         }
     }
 
-    private static final Pattern fieldsExp = Pattern.compile("((/\\*\\*.+?\\*/)?|(//.+?)?)\\s+?(private|protected|public)\\s+(.+?)(=.+?)?;", Pattern.DOTALL);
+    private static final Pattern fieldsFullExp = Pattern.compile("(/\\*\\*.+?\\*/).+?(\\w+(<.+?>)?)\\s+(\\w+);", Pattern.DOTALL);
+    private static final Pattern fieldsExp = Pattern.compile("(\\w+(<.+?>)?)\\s+(\\w+);", Pattern.DOTALL);
+
+    private static class FieldDef {
+        String comment, type, field;
+
+        public FieldDef(String comment, String type, String field) {
+            this.comment = comment;
+            this.type = type;
+            this.field = field;
+        }
+    }
+
+    private static List<FieldDef> parseFields(String fieldsCode) {
+        List<FieldDef> fields = new ArrayList<>();
+        Matcher matcher = fieldsExp.matcher(fieldsCode);
+        Map<String, FieldDef> fieldsMap = new HashMap<>();
+        while (matcher.find()) {
+            FieldDef def = new FieldDef("", matcher.group(1), matcher.group(3));
+            fields.add(def);
+            fieldsMap.put(def.field, def);
+        }
+
+        Matcher matcherFull = fieldsFullExp.matcher(fieldsCode);
+        while (matcherFull.find()) {
+            FieldDef fieldDef = fieldsMap.get(matcherFull.group(4));
+            if (fieldDef != null)
+                fieldDef.comment = matcherFull.group(1);
+        }
+
+        return fields;
+    }
 
     /**
      * @param className  类名, 用于 set 方法的返回类型.
@@ -123,29 +158,32 @@ public class CodeUtil {
      */
     public static String genGetSetByFields(String className, String fieldsCode) {
         StringBuilder sb = new StringBuilder();
-        Matcher matcher = fieldsExp.matcher(fieldsCode);
-        while (matcher.find()) {
-            String comment = matcher.group(1);
-            String fieldDefine = matcher.group(5).trim();
-            int sep = fieldDefine.lastIndexOf(' ');
-            String type = fieldDefine.substring(0, sep + 1);
+        List<FieldDef> fieldDefs = parseFields(fieldsCode);
+        fieldDefs.forEach(def -> {
+            String comment = def.comment;
+            String type = def.type;
             String getMethodPrefix = type.toLowerCase().equals("boolean ") ? "is" : "get";
-            String field = fieldDefine.substring(sep + 1);
+            String field = def.field;
             String fieldMethod = field2MethodSign(field);
 
+            if (Strings.isNotBlank(comment)) {
+                sb.append(comment).append('\n');
+            }
             sb
-                    .append(comment).append('\n')
                     .append("public ").append(type).append(getMethodPrefix).append(fieldMethod).append("() {").append('\n')
-                    .append('\t').append("return this.").append(field).append(";\n}\n\n")
+                    .append('\t').append("return this.").append(field).append(";\n}\n\n");
 
-                    .append(comment).append('\n')
+            if (Strings.isNotBlank(comment)) {
+                sb.append(comment).append('\n');
+            }
+            sb
                     .append("public ").append(className).append(" set").append(fieldMethod).append('(')
                     .append(type).append(field)
                     .append(") {").append('\n')
                     .append("\tthis.").append(field).append(" = ").append(field).append(";\n")
                     .append('\t').append("return this;\n}\n\n")
             ;
-        }
+        });
         return sb.toString();
     }
 
@@ -159,24 +197,25 @@ public class CodeUtil {
      */
     public static String genPropCopy(String dstVar, String srcVar, String fieldsCode) {
         StringBuilder sb = new StringBuilder();
-        Matcher matcher = fieldsExp.matcher(fieldsCode);
-        while (matcher.find()) {
-            String comment = matcher.group(1).replace("/**", "").replace("*/", "").trim()
+        List<FieldDef> fieldDefs = parseFields(fieldsCode);
+        fieldDefs.forEach(def -> {
+            String comment = def.comment.replace("/**", "").replace("*/", "").trim()
                     .replaceAll("((\r)?\n)*\\s*?\\*\\s*", "//");
-            if (!comment.startsWith("//")) comment = "//" + comment;
-            String fieldDefine = matcher.group(5).trim();
-            int sep = fieldDefine.indexOf(' ');
-            String type = fieldDefine.substring(0, sep + 1);
-            String getMethodPrefix = type.toLowerCase().equals("boolean ") ? "is" : "get";
-            String field = fieldDefine.substring(sep + 1);
+            if (Strings.isNotBlank(comment) && !comment.startsWith("//"))
+                comment = "//" + comment;
+            String type = def.type;
+            String getMethodPrefix = type.toLowerCase().equals("boolean") ? "is" : "get";
+            String field = def.field;
             String fieldMethod = field2MethodSign(field);
 
+            if (Strings.isNotBlank(comment)) {
+                sb.append(comment).append('\n');
+            }
             sb
-                    .append(comment).append('\n')
                     .append(dstVar).append(".set").append(fieldMethod).append('(')
                     .append(srcVar).append(".").append(getMethodPrefix).append(fieldMethod).append("());\n")
             ;
-        }
+        });
         return sb.toString();
     }
 }
