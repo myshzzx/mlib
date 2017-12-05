@@ -1,4 +1,3 @@
-
 package mysh.net.httpclient;
 
 import com.google.api.client.http.*;
@@ -52,14 +51,15 @@ public class HttpClientAssist implements Closeable {
 	public HttpClientAssist(@Nullable HttpClientConfig conf, @Nullable ProxySelector proxySelector) {
 		HttpClientConfig hcc = conf == null ? defaultHcc : conf.clone();
 
-//		httpTransport = new NetHttpTransport.Builder()
-//						.setConnectionFactory(url -> {
-//							Proxy proxy = hcc.proxy;
-//							if (proxyPicker != null)
-//								proxy = proxyPicker.pick();
-//							HttpURLConnection conn = (HttpURLConnection) (proxy == null ? url.openConnection() : url.openConnection(proxy));
-//							return conn;
-//						}).build();
+		//    httpTransport = new NetHttpTransport.Builder()
+		//                .setConnectionFactory(url -> {
+		//                   Proxy proxy = hcc.proxy;
+		//                   if (proxyPicker != null)
+		//                      proxy = proxyPicker.pick();
+		//                   HttpURLConnection conn = (HttpURLConnection) (proxy == null ? url.openConnection()
+		// : url.openConnection(proxy));
+		//                   return conn;
+		//                }).build();
 		ApacheHttpTransport.Builder apacheBuilder = new ApacheHttpTransport.Builder().setProxySelector(proxySelector);
 		HttpParams httpParams = apacheBuilder.getHttpParams();
 		HttpConnectionParams.setSoTimeout(httpParams, hcc.soTimeout);
@@ -71,16 +71,17 @@ public class HttpClientAssist implements Closeable {
 
 		reqFactory = httpTransport.createRequestFactory(req -> {
 			req.setConnectTimeout(hcc.connectionTimeout)
-							.setReadTimeout(hcc.soTimeout)
-							.setSuppressUserAgentSuffix(true)
-							.setThrowExceptionOnExecuteError(false)
+					.setReadTimeout(hcc.soTimeout)
+					.setSuppressUserAgentSuffix(true)
+					.setThrowExceptionOnExecuteError(false)
 			;
 
-			if (hcc.headers != null)
+			if (hcc.headers != null) {
 				req.getHeaders().putAll(hcc.headers);
+			}
 			req.getHeaders()
-							.setUserAgent(hcc.userAgent)
-							.put(HttpHeaders.CONNECTION, hcc.isKeepAlive ? "keep-alive" : "close")
+					.setUserAgent(hcc.userAgent)
+					.put(HttpHeaders.CONNECTION, hcc.isKeepAlive ? "keep-alive" : "close")
 			;
 		});
 	}
@@ -120,15 +121,17 @@ public class HttpClientAssist implements Closeable {
 	public UrlEntity access(String url, Map<String, ?> headers, Map<String, ?> params) throws IOException {
 		if (params != null && params.size() > 0) {
 			StringBuilder usb = new StringBuilder(url);
-			if (!url.contains("?"))
+			if (!url.contains("?")) {
 				usb.append('?');
-			else
+			} else {
 				usb.append('&');
+			}
 			for (Map.Entry<String, ?> pe : params.entrySet()) {
 				usb.append(pe.getKey()).append('=').append(pe.getValue()).append('&');
 			}
-			if (usb.charAt(usb.length() - 1) == '&')
+			if (usb.charAt(usb.length() - 1) == '&') {
 				usb.deleteCharAt(usb.length() - 1);
+			}
 			url = usb.toString();
 		}
 
@@ -146,7 +149,7 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostMultipartForm(
-					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
+			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
 		return accessPostMultipartForm(url, headers, params, null);
 	}
 
@@ -161,16 +164,17 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostMultipartForm(
-					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
-					@Nullable Charset enc) throws IOException {
+			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
+			@Nullable Charset enc) throws IOException {
 		MultipartContent content = null;
 		if (params != null && params.size() > 0) {
 			content = new MultipartContent().setMediaType(
-							new HttpMediaType("multipart/form-data")
-											.setParameter("boundary", "__END_OF_PART__"));
+					new HttpMediaType("multipart/form-data")
+							.setParameter("boundary", "__END_OF_PART__"));
 
-			if (enc == null)
+			if (enc == null) {
 				enc = Charset.defaultCharset();
+			}
 			for (Map.Entry<String, ?> entry : params.entrySet()) {
 				String key = entry.getKey();
 				Object value = entry.getValue();
@@ -181,14 +185,16 @@ public class HttpClientAssist implements Closeable {
 					FileContent fileContent = new FileContent(null, file);
 					part = new MultipartContent.Part(fileContent);
 					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
-									"Content-Disposition",
-									String.format("form-data; name=\"%s\"; filename=\"%s\"", key, file.getName())));
+							"Content-Disposition",
+							String.format("form-data; name=\"%s\"; filename=\"%s\"", key, file.getName())));
 				} else {
-					if (value == null) value = "";
+					if (value == null) {
+						value = "";
+					}
 					part = new MultipartContent.Part(
-									new ByteArrayContent(null, String.valueOf(value).getBytes(enc)));
+							new ByteArrayContent(null, String.valueOf(value).getBytes(enc)));
 					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
-									"Content-Disposition", String.format("form-data; name=\"%s\"", key)));
+							"Content-Disposition", String.format("form-data; name=\"%s\"", key)));
 				}
 				content.addPart(part);
 			}
@@ -202,7 +208,7 @@ public class HttpClientAssist implements Closeable {
 	 * @see #accessPostUrlEncodedForm(String, Map, Map, Charset)
 	 */
 	public UrlEntity accessPostUrlEncodedForm(
-					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
+			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params) throws IOException {
 		return accessPostUrlEncodedForm(url, headers, params, null);
 	}
 
@@ -217,8 +223,8 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostUrlEncodedForm(
-					String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
-					@Nullable Charset enc) throws IOException {
+			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
+			@Nullable Charset enc) throws IOException {
 		UrlEncodedContent content = new UrlEncodedContent(params);
 		content.getMediaType().setCharsetParameter(enc == null ? Charset.defaultCharset() : enc);
 		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
@@ -235,7 +241,7 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostBytes(
-					String url, @Nullable Map<String, ?> headers, @Nullable byte[] buf) throws IOException {
+			String url, @Nullable Map<String, ?> headers, @Nullable byte[] buf) throws IOException {
 		ByteArrayContent content = null;
 		if (buf != null) {
 			content = new ByteArrayContent("application/octet-stream", buf);
@@ -308,11 +314,12 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException IO异常
 	 */
 	public boolean saveToFile(
-					String url, Map<String, ?> headers, File file, boolean overwrite
+			String url, Map<String, ?> headers, File file, boolean overwrite
 	) throws IOException {
 
-		if (!overwrite && file.exists())
+		if (!overwrite && file.exists()) {
 			return false;
+		}
 
 		try (UrlEntity ue = this.access(url, headers)) {
 			File writeFile = new File(file.getPath() + ".~write~");
@@ -326,8 +333,9 @@ public class HttpClientAssist implements Closeable {
 				while (!thread.isInterrupted() && (readLen = in.read(buf)) > -1) {
 					os.write(buf, 0, readLen);
 				}
-				if (thread.isInterrupted())
+				if (thread.isInterrupted()) {
 					throw new InterruptedIOException("download interrupted: " + url);
+				}
 			}
 			file.delete();
 			writeFile.renameTo(file);
@@ -365,8 +373,8 @@ public class HttpClientAssist implements Closeable {
 		if (uri.getHost() != null) {
 			url.append(uri.getHost());
 			if (uri.getPort() != -1
-							&& !("http".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 80)
-							&& !("https".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 443)) {
+					&& !("http".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 80)
+					&& !("https".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 443)) {
 				url.append(":");
 				url.append(uri.getPort());
 			}
@@ -433,8 +441,9 @@ public class HttpClientAssist implements Closeable {
 				hm.put(header[0], header[1]);
 			}
 			return hm;
-		} else
+		} else {
 			return Collections.emptyMap();
+		}
 	}
 
 	/**
@@ -448,8 +457,9 @@ public class HttpClientAssist implements Closeable {
 				pm.put(kav[0], kav[1]);
 			}
 			return pm;
-		} else
+		} else {
 			return Collections.emptyMap();
+		}
 	}
 
 	private static final byte[] EMPTY_BUF = new byte[0];
@@ -458,8 +468,9 @@ public class HttpClientAssist implements Closeable {
 
 	private static byte[] getDownloadBuf() {
 		byte[] buf = threadDownloadBuf.get();
-		if (buf == null)
+		if (buf == null) {
 			threadDownloadBuf.set(buf = new byte[DOWNLOAD_BUF_LEN]);
+		}
 		return buf;
 	}
 
@@ -483,9 +494,10 @@ public class HttpClientAssist implements Closeable {
 			rsp = req.execute();
 
 			int statusCode = rsp.getStatusCode();
-			if (statusCode >= 400)
+			if (statusCode >= 400) {
 				log.warn("access unsuccessful, status={}, msg={}, url={}",
-								statusCode, rsp.getStatusMessage(), this.reqUrl);
+						statusCode, rsp.getStatusMessage(), this.reqUrl);
+			}
 			this.contentType = rsp.getContentType();
 		}
 
@@ -495,7 +507,7 @@ public class HttpClientAssist implements Closeable {
 		@Override
 		public void close() {
 			try {
-//				rsp.ignore();
+				//          rsp.ignore();
 				rsp.disconnect();
 			} catch (Exception e) {
 				log.debug("close connection error. " + e);
@@ -520,8 +532,9 @@ public class HttpClientAssist implements Closeable {
 		 * @return request reqUrl may jump several times, get the real access url.
 		 */
 		public String getCurrentURL() {
-			if (this.currentUrl == null)
+			if (this.currentUrl == null) {
 				this.currentUrl = req.getUrl().build();
+			}
 
 			return this.currentUrl;
 		}
@@ -576,7 +589,9 @@ public class HttpClientAssist implements Closeable {
 		 * buf then convert to string. the buf is saved and can be reused.
 		 */
 		public synchronized String getEntityStr() throws IOException {
-			if (entityStr != null) return entityStr;
+			if (entityStr != null) {
+				return entityStr;
+			}
 
 			downloadEntityAndParseEncoding();
 			entityStr = new String(entityBuf, entityEncoding);
@@ -591,10 +606,11 @@ public class HttpClientAssist implements Closeable {
 				Charset enc = null;
 				if (contentType != null) {
 					String c = contentType.toUpperCase();
-					if (c.contains("UTF-8"))
+					if (c.contains("UTF-8")) {
 						enc = Encodings.UTF_8;
-					else if (c.contains("GBK"))
+					} else if (c.contains("GBK")) {
 						enc = Encodings.GBK;
+					}
 				}
 				if (enc == null) {
 					enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
@@ -622,10 +638,12 @@ public class HttpClientAssist implements Closeable {
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
 				byte[] buf = getDownloadBuf();
 				int rl;
-				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1)
+				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
 					os.write(buf, 0, rl);
-				if (thread.isInterrupted())
+				}
+				if (thread.isInterrupted()) {
 					throw new InterruptedIOException("download interrupted: " + reqUrl);
+				}
 				entityBuf = os.toByteArray();
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
@@ -642,14 +660,16 @@ public class HttpClientAssist implements Closeable {
 
 		/**
 		 * buf entire entity then save to file. the buf is saved and can be reused.<br>
-		 * <b>WARNING</b>: make sure entire entity can be save to vm heap, or <code>OutOfMemoryError</code> will be thrown
+		 * <b>WARNING</b>: make sure entire entity can be save to vm heap, or <code>OutOfMemoryError</code> will be
+		 * thrown
 		 *
 		 * @return whether file is overwritten
 		 * @throws IOException
 		 */
 		public synchronized boolean saveToFile(File file, boolean overwrite) throws IOException {
-			if (!overwrite && file.exists())
+			if (!overwrite && file.exists()) {
 				return false;
+			}
 
 			downloadEntity2Buf();
 			FilesUtil.writeFile(file, entityBuf);
@@ -664,11 +684,21 @@ public class HttpClientAssist implements Closeable {
 			return this.entityBuf;
 		}
 
+		public String getCookies() {
+			return req.getResponseHeaders().getCookie();
+		}
+
+		@Override
+		public String toString() {
+			return getCurrentURL();
+		}
+
 		/**
 		 * download resource directly to file, without cache to entityBuf.
 		 *
 		 * @param file    file will not be overwritten, if this file exists, a new file will be created.
 		 * @param stopChk check stop download or not.
+		 * @throws IOException
 		 */
 		public synchronized void downloadDirectlyToFile(File file, Function<?, Boolean> stopChk) throws IOException {
 			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(null))) {
@@ -693,14 +723,8 @@ public class HttpClientAssist implements Closeable {
 				}
 			}
 		}
-
-		public String getCookies() {
-			return req.getResponseHeaders().getCookie();
-		}
-
-		@Override
-		public String toString() {
-			return getCurrentURL();
-		}
 	}
 }
+
+
+

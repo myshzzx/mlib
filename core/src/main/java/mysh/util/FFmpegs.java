@@ -26,10 +26,10 @@ public class FFmpegs {
 	public static void h265(boolean accelerate, File file, int h265Crf, int audioChannel, File dst) throws IOException, InterruptedException {
 
 		String cmd = String.format("ffmpeg -y %s -i \"%s\" -c:v libx265 -x265-params crf=%d -ac %d \"%s\"",
-						accelerate ? "-hwaccel auto" : "",
-						file.getAbsolutePath(),
-						h265Crf, audioChannel,
-						dst.getAbsolutePath()
+				accelerate ? "-hwaccel auto" : "",
+				file.getAbsolutePath(),
+				h265Crf, audioChannel,
+				dst.getAbsolutePath()
 		);
 		System.out.println("execute: " + cmd);
 		Oss.executeCmd(cmd, true).waitFor();
@@ -39,6 +39,7 @@ public class FFmpegs {
 	private String hardwareAccelerate = "";
 	private String input = "";
 	private String videoOptions = " -c:v copy";
+	private String videoFrameRate = "";
 	private String audioOptions = " -c:a copy";
 	private String audioChannels = "";
 	private String audioBitRate = "";
@@ -126,6 +127,11 @@ public class FFmpegs {
 		return this;
 	}
 
+	public FFmpegs frameRate(int rate) {
+		videoFrameRate = " -r " + rate;
+		return this;
+	}
+
 	public FFmpegs audioOpus() {
 		audioOptions = " -c:a libopus";
 		return this;
@@ -154,7 +160,9 @@ public class FFmpegs {
 		return this;
 	}
 
-	/** return immediately, not wait the process terminate */
+	/**
+	 * return immediately, not wait the process terminate
+	 */
 	public Process go() throws IOException, InterruptedException {
 		String cmd = getCmd();
 		log.info("execute: " + cmd);
@@ -163,13 +171,14 @@ public class FFmpegs {
 
 	public String getCmd() {
 		return "ffmpeg"
-						+ overwrite + hardwareAccelerate
-						+ input
-						+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
-						+ (Strings.isNotBlank(to) ? " -to " + to : "")
-						+ videoOptions
-						+ audioOptions
-						+ audioBitRate + audioChannels
-						+ output;
+				+ overwrite + hardwareAccelerate
+				+ input
+				+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
+				+ (Strings.isNotBlank(to) ? " -to " + to : "")
+				+ videoOptions
+				+ videoFrameRate
+				+ audioOptions
+				+ audioBitRate + audioChannels
+				+ output;
 	}
 }
