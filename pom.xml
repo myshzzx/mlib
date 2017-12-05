@@ -54,6 +54,12 @@
 	<dependencyManagement>
 		<dependencies>
 			<dependency>
+				<groupId>org.projectlombok</groupId>
+				<artifactId>lombok</artifactId>
+				<version>1.16.18</version>
+			</dependency>
+
+			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-webmvc</artifactId>
 				<version>${springVersion}</version>
@@ -103,13 +109,13 @@
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
-				<version>21.0</version>
+				<version>23.5-jre</version>
 			</dependency>
 
 			<dependency>
 				<groupId>org.apache.thrift</groupId>
 				<artifactId>libthrift</artifactId>
-				<version>0.9.3</version>
+				<version>0.10.0</version>
 			</dependency>
 
 			<dependency>

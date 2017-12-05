@@ -6,10 +6,11 @@ package mysh.util;
  */
 public class Asserts {
 
-	/**
-	 * if !flag, throws a RuntimeException with expMsg.
-	 */
-	public static void require(boolean flag, String expMsg) {
-		if (!flag) throw new RuntimeException(expMsg);
-	}
+    /**
+     * if !flag, throws a RuntimeException with expMsg.
+     */
+    public static void require(boolean flag, String expMsg) {
+        if (!flag)
+            throw new RuntimeException(expMsg);
+    }
 }

@@ -30,4 +30,12 @@ public class Pair<L, R> implements Serializable {
 	public static <L, R> Pair<L, R> of(L l, R r) {
 		return new Pair<>(l, r);
 	}
+
+	@Override
+	public String toString() {
+		return "Pair{" +
+				"l=" + l +
+				", r=" + r +
+				'}';
+	}
 }

@@ -646,4 +646,11 @@ public class Math2 {
 		return valid;
 	}
 
+    public static double cutFloor(double v, double floor) {
+        return v > floor ? v : floor;
+    }
+
+    public static double cutCeil(double v, double ceil) {
+        return v < ceil ? v : ceil;
+    }
 }

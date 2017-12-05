@@ -103,7 +103,7 @@ public class RMITest implements Serializable {
 			ExecutorService exec = Executors.newFixedThreadPool(4);
 
 			Runnable task = () -> {
-				log.info("invoke remote method...");
+				log.info("invoke-remote-method...");
 				try {
 					System.out.println(riClient.getValue(() -> 10000));
 				} catch (RemoteException e) {
@@ -115,7 +115,7 @@ public class RMITest implements Serializable {
 				Thread.sleep(10000);
 			}
 		} catch (Exception e) {
-			log.error("invoke error.", e);
+			log.error("invoke-error.", e);
 		}
 	}
 

@@ -333,7 +333,7 @@ public class HttpClientAssist implements Closeable {
 
         try (UrlEntity ue = this.access(url, headers)) {
             File writeFile = new File(file.getPath() + ".~write~");
-            file.getParentFile().mkdirs();
+            file.getAbsoluteFile().getParentFile().mkdirs();
             try (OutputStream os = Files.newOutputStream(writeFile.toPath());
                  InputStream in = ue.rsp.getContent()) {
                 byte[] buf = getDownloadBuf();

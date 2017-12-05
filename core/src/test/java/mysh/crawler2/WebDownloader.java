@@ -73,7 +73,7 @@ public class WebDownloader implements CrawlerSeed<UrlContext> {
 			fUri = fUri.substring(0, endIdx);
 		}
 		File f = new File("l:/a/" + fUri);
-		f.getParentFile().mkdirs();
+		f.getAbsoluteFile().getParentFile().mkdirs();
 		if (f.exists() && f.length() > 0) return true;
 
 		try (OutputStream out = new FileOutputStream(f)) {

@@ -1,5 +1,7 @@
 package mysh.cluster;
 
+import mysh.collect.Colls;
+
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -12,7 +14,7 @@ import java.util.concurrent.*;
 public class Cu3Perm extends IClusterUser<String, String, String, String> {
 	@Override
 	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
-		return pack(new String[1], null);
+		return pack(Colls.fillNull(1), null);
 	}
 
 	private void test() {
@@ -100,18 +102,13 @@ public class Cu3Perm extends IClusterUser<String, String, String, String> {
 	}
 
 	@Override
-	public Class<String> getSubResultType() {
-		return String.class;
-	}
-
-	@Override
 	public String procSubTask(String subTask, int timeout) throws InterruptedException {
 		test();
 		return null;
 	}
 
 	@Override
-	public String join(String masterNode, String[] assignedNodeIds, String[] subResults) {
+	public String join(String masterNode, List<String> assignedNodeIds, List<String> subResults) {
 		return null;
 	}
 

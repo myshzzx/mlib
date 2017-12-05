@@ -23,7 +23,7 @@ public class ClusterMgrTest1 {
 	@Test
 	public void getWorkersState1() throws Throwable {
 		ClusterClient c = new ClusterClient(cmdPort);
-		final Map<String, WorkerState> workerStates = c.mgrGetWorkerStates(WorkerState.class);
+		final Map<String, WorkerState> workerStates = c.mgrGetWorkerStates();
 		System.out.println(workerStates);
 	}
 
@@ -78,6 +78,6 @@ public class ClusterMgrTest1 {
 	public void updateConf1() throws Throwable {
 		ClusterClient c = new ClusterClient(8030);
 
-		c.mgrUpdateConf(-1, -1, 25);
+		c.mgrUpdateConf(new ClusterConf().setServerPoolSize(10));
 	}
 }

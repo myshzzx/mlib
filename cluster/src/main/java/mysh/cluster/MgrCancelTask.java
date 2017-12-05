@@ -1,6 +1,7 @@
 package mysh.cluster;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -14,12 +15,7 @@ final class MgrCancelTask extends IClusterMgr<Integer, Object, Object, Object> {
 	@Override
 	public SubTasksPack<Object> fork(Integer taskId, String masterNode, List<String> workerNodes) {
 		master.cancelTask(taskId, null);
-		return pack(new Object[0], null);
-	}
-
-	@Override
-	public Class<Object> getSubResultType() {
-		return Object.class;
+		return pack(Collections.emptyList(), null);
 	}
 
 	@Override
@@ -28,7 +24,7 @@ final class MgrCancelTask extends IClusterMgr<Integer, Object, Object, Object> {
 	}
 
 	@Override
-	public Object join(String masterNode, String[] assignedNodeIds, Object[] subResults) {
+	public Object join(String masterNode, List<String> assignedNodeIds, List<Object> subResults) {
 		return null;
 	}
 }

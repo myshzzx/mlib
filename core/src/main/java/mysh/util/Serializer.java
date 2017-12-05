@@ -18,212 +18,226 @@ import java.util.Objects;
  */
 public interface Serializer {
 
-	/**
-	 * serialize object to byte array.
-	 */
-	byte[] serialize(Serializable obj);
+    /**
+     * serialize object to byte array.
+     */
+    byte[] serialize(Serializable obj);
 
-	/**
-	 * serialize object to output stream.
-	 */
-	void serialize(Serializable obj, OutputStream out);
+    byte[] serialize(Serializable obj, int bufSize);
 
-	/**
-	 * deserialize obj from buf using default class loader.
-	 */
-	default <T extends Serializable> T deserialize(byte[] buf) {
-		return deserialize(buf, 0, buf.length, null);
-	}
+    /**
+     * serialize object to output stream.
+     */
+    void serialize(Serializable obj, OutputStream out);
 
-	/**
-	 * deserialize obj from buf.
-	 *
-	 * @param cl nullable
-	 */
-	default <T extends Serializable> T deserialize(byte[] buf, @Nullable ClassLoader cl) {
-		return deserialize(buf, 0, buf.length, cl);
-	}
+    /**
+     * deserialize obj from buf using default class loader.
+     */
+    default <T extends Serializable> T deserialize(byte[] buf) {
+        return deserialize(buf, 0, buf.length, null);
+    }
 
-	/**
-	 * deserialize obj from buf.
-	 *
-	 * @param cl nullable
-	 */
-	<T extends Serializable> T deserialize(byte[] buf, int offset, int length, @Nullable ClassLoader cl);
+    /**
+     * deserialize obj from buf.
+     *
+     * @param cl nullable
+     */
+    default <T extends Serializable> T deserialize(byte[] buf, @Nullable ClassLoader cl) {
+        return deserialize(buf, 0, buf.length, cl);
+    }
 
-	/**
-	 * deserialize obj from input stream.
-	 *
-	 * @param cl nullable
-	 */
-	<T extends Serializable> T deserialize(InputStream is, ClassLoader cl);
+    /**
+     * deserialize obj from buf.
+     *
+     * @param cl nullable
+     */
+    <T extends Serializable> T deserialize(byte[] buf, int offset, int length, @Nullable ClassLoader cl);
 
-	/**
-	 * deserialize obj from input stream.
-	 */
-	<T extends Serializable> T deserialize(InputStream is);
+    /**
+     * deserialize obj from input stream.
+     *
+     * @param cl nullable
+     */
+    <T extends Serializable> T deserialize(InputStream is, ClassLoader cl);
 
-	/**
-	 * java build-in serializer.
-	 */
-	Serializer buildIn = new Serializer() {
+    /**
+     * deserialize obj from input stream.
+     */
+    <T extends Serializable> T deserialize(InputStream is);
 
-		public byte[] serialize(Serializable obj) {
-			ByteArrayOutputStream arrOut = new ByteArrayOutputStream();
-			serialize(obj, arrOut);
-			return arrOut.toByteArray();
-		}
+    /**
+     * java build-in serializer.
+     */
+    Serializer buildIn = new Serializer() {
 
-		public void serialize(Serializable obj, OutputStream out) {
-			try {
-				ObjectOutputStream oos = new ObjectOutputStream(out);
-				oos.writeObject(obj);
-				oos.flush();
-			} catch (Exception e) {
-				throw Exps.unchecked(e);
-			}
-		}
+        public byte[] serialize(Serializable obj) {
+            ByteArrayOutputStream arrOut = new ByteArrayOutputStream();
+            serialize(obj, arrOut);
+            return arrOut.toByteArray();
+        }
 
-		public <T extends Serializable> T deserialize(byte[] buf, int offset, int length, ClassLoader cl) {
-			Objects.requireNonNull(buf);
+        @Override
+        public byte[] serialize(Serializable obj, int bufSize) {
+            ByteArrayOutputStream arrOut = new ByteArrayOutputStream(bufSize);
+            serialize(obj, arrOut);
+            return arrOut.toByteArray();
+        }
 
-			ByteArrayInputStream bis = new ByteArrayInputStream(buf, offset, length);
-			return deserialize(bis, cl);
-		}
+        public void serialize(Serializable obj, OutputStream out) {
+            try {
+                ObjectOutputStream oos = new ObjectOutputStream(out);
+                oos.writeObject(obj);
+                oos.flush();
+            } catch (Exception e) {
+                throw Exps.unchecked(e);
+            }
+        }
 
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
-			try {
-				CustObjIS in = new CustObjIS(is, cl);
-				return (T) in.readObject();
-			} catch (Exception e) {
-				throw Exps.unchecked(e);
-			}
-		}
+        public <T extends Serializable> T deserialize(byte[] buf, int offset, int length, ClassLoader cl) {
+            Objects.requireNonNull(buf);
 
-		public <T extends Serializable> T deserialize(InputStream is) {
-			return deserialize(is, null);
-		}
-	};
+            ByteArrayInputStream bis = new ByteArrayInputStream(buf, offset, length);
+            return deserialize(bis, cl);
+        }
 
-	class CustObjIS extends ObjectInputStream {
+        @SuppressWarnings("unchecked")
+        public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+            try {
+                CustObjIS in = new CustObjIS(is, cl);
+                return (T) in.readObject();
+            } catch (Exception e) {
+                throw Exps.unchecked(e);
+            }
+        }
 
-		private ClassLoader cl;
+        public <T extends Serializable> T deserialize(InputStream is) {
+            return deserialize(is, null);
+        }
+    };
 
-		public CustObjIS(InputStream in, ClassLoader cl) throws IOException {
-			super(in);
-			this.cl = cl;
-		}
+    class CustObjIS extends ObjectInputStream {
 
-		@Override
-		protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-			return cl == null ?
-							super.resolveClass(desc) :
-							Class.forName(desc.getName(), false, cl);
-		}
-	}
+        private ClassLoader cl;
 
-	/**
-	 * fast-serialization.
-	 * 由于不同版本序列化数据无法兼容, 故需要长时间保存的序列化数据不可使用此序列化器, 以免 fst 版本升级后无法处理旧数据.
-	 */
-	Serializer fst = new Serializer() {
-		private ThreadLocal<FSTConfiguration> coder = new ThreadLocal<>();
-		private ThreadLocal<byte[]> properBuf = new ThreadLocal<>();
+        public CustObjIS(InputStream in, ClassLoader cl) throws IOException {
+            super(in);
+            this.cl = cl;
+        }
 
-		private FSTConfiguration getCoder() {
-			FSTConfiguration c = coder.get();
-			if (c == null) {
-				c = FSTConfiguration.createDefaultConfiguration();
-				coder.set(c);
-			}
-			return c;
-		}
+        @Override
+        protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+            return cl == null ?
+                    super.resolveClass(desc) :
+                    Class.forName(desc.getName(), false, cl);
+        }
+    }
 
-		private byte[] getProperBuf() {
-			byte[] buf = properBuf.get();
-			if (buf == null) {
-				buf = new byte[50_000];
-				properBuf.set(buf);
-			}
-			return buf;
-		}
+    /**
+     * fast-serialization.
+     * 由于不同版本序列化数据无法兼容, 故需要长时间保存的序列化数据不可使用此序列化器, 以免 fst 版本升级后无法处理旧数据.
+     */
+    Serializer fst = new Serializer() {
+        private ThreadLocal<FSTConfiguration> coder = new ThreadLocal<>();
+        private ThreadLocal<byte[]> properBuf = new ThreadLocal<>();
 
-		int BUF_LIMIT = 500_000;
+        private FSTConfiguration getCoder() {
+            FSTConfiguration c = coder.get();
+            if (c == null) {
+                c = FSTConfiguration.createDefaultConfiguration();
+                coder.set(c);
+            }
+            return c;
+        }
 
-		@Override
-		public byte[] serialize(Serializable obj) {
-			try {
-				FSTObjectOutput fo = getCoder().getObjectOutput();
-				fo.writeObject(obj);
-				byte[] buf = fo.getCopyOfWrittenBuffer();
+        private byte[] getProperBuf() {
+            byte[] buf = properBuf.get();
+            if (buf == null) {
+                buf = new byte[50_000];
+                properBuf.set(buf);
+            }
+            return buf;
+        }
 
-				if (fo.getBuffer().length > BUF_LIMIT)
-					fo.resetForReUse(getProperBuf());
-				return buf;
-			} catch (IOException e) {
-				throw Exps.unchecked(e);
-			}
-		}
+        int BUF_LIMIT = 500_000;
 
-		final ByteArrayOutputStream emptyOut = new ByteArrayOutputStream();
+        @Override
+        public byte[] serialize(Serializable obj) {
+            try {
+                FSTObjectOutput fo = getCoder().getObjectOutput();
+                fo.writeObject(obj);
+                byte[] buf = fo.getCopyOfWrittenBuffer();
 
-		@Override
-		public void serialize(Serializable obj, OutputStream out) {
-			try {
-				FSTConfiguration c = getCoder();
-				FSTObjectOutput fo = c.getObjectOutput(out);
-				fo.writeObject(obj);
-				fo.flush();
+                if (fo.getBuffer().length > BUF_LIMIT)
+                    fo.resetForReUse(getProperBuf());
+                return buf;
+            } catch (IOException e) {
+                throw Exps.unchecked(e);
+            }
+        }
 
-				if (fo.getBuffer().length > BUF_LIMIT)
-					fo.resetForReUse(getProperBuf());
-				c.getObjectOutput(emptyOut);
-			} catch (IOException e) {
-				throw Exps.unchecked(e);
-			}
-		}
+        @Override
+        public byte[] serialize(Serializable obj, int bufSize) {
+            return serialize(obj);
+        }
 
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
-			try {
-				FSTConfiguration c = getCoder();
-				c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
-				FSTObjectInput fi = offset == 0 ?
-								c.getObjectInput(b, length) : c.getObjectInputCopyFrom(b, offset, length);
-				T obj = (T) fi.readObject();
+        final ByteArrayOutputStream emptyOut = new ByteArrayOutputStream();
 
-				if (length > BUF_LIMIT)
-					fi.resetForReuseUseArray(getProperBuf());
-				return obj;
-			} catch (Exception e) {
-				throw Exps.unchecked(e);
-			}
-		}
+        @Override
+        public void serialize(Serializable obj, OutputStream out) {
+            try {
+                FSTConfiguration c = getCoder();
+                FSTObjectOutput fo = c.getObjectOutput(out);
+                fo.writeObject(obj);
+                fo.flush();
 
-		ByteArrayInputStream emptyIn = new ByteArrayInputStream(new byte[0]);
+                if (fo.getBuffer().length > BUF_LIMIT)
+                    fo.resetForReUse(getProperBuf());
+                c.getObjectOutput(emptyOut);
+            } catch (IOException e) {
+                throw Exps.unchecked(e);
+            }
+        }
 
-		@SuppressWarnings("unchecked")
-		public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
-			FSTConfiguration c = getCoder();
-			c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
-			try {
-				FSTObjectInput fi = c.getObjectInput(is);
-				T obj = (T) fi.readObject();
+        @SuppressWarnings("unchecked")
+        public <T extends Serializable> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
+            try {
+                FSTConfiguration c = getCoder();
+                c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
+                FSTObjectInput fi = offset == 0 ?
+                        c.getObjectInput(b, length) : c.getObjectInputCopyFrom(b, offset, length);
+                T obj = (T) fi.readObject();
 
-				if (fi.getCodec().getBuffer().length > BUF_LIMIT)
-					fi.resetForReuseUseArray(getProperBuf());
-				c.getObjectInput(emptyIn);
-				return obj;
-			} catch (Exception e) {
-				throw Exps.unchecked(e);
-			}
-		}
+                if (length > BUF_LIMIT)
+                    fi.resetForReuseUseArray(getProperBuf());
+                return obj;
+            } catch (Exception e) {
+                throw Exps.unchecked(e);
+            }
+        }
 
-		public <T extends Serializable> T deserialize(InputStream is) {
-			return deserialize(is, null);
-		}
-	};
+        ByteArrayInputStream emptyIn = new ByteArrayInputStream(new byte[0]);
+
+        @SuppressWarnings("unchecked")
+        public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+            FSTConfiguration c = getCoder();
+            c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
+            try {
+                FSTObjectInput fi = c.getObjectInput(is);
+                T obj = (T) fi.readObject();
+
+                if (fi.getCodec().getBuffer().length > BUF_LIMIT)
+                    fi.resetForReuseUseArray(getProperBuf());
+                c.getObjectInput(emptyIn);
+                return obj;
+            } catch (Exception e) {
+                throw Exps.unchecked(e);
+            }
+        }
+
+        public <T extends Serializable> T deserialize(InputStream is) {
+            return deserialize(is, null);
+        }
+    };
 
 
 }

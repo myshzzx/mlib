@@ -1,8 +1,13 @@
 package mysh.cluster;
 
-import java.io.FileOutputStream;
+import mysh.collect.Colls;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.stream.Stream;
 
 /**
  * @author Mysh
@@ -10,65 +15,52 @@ import java.util.concurrent.CountDownLatch;
  */
 public class Cu4Perm extends IClusterUser<String, String, String, String> {
 
-	@Override
-	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
-		return pack(new String[1], null);
-	}
+    @Override
+    public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
+        test();
+        return pack(Colls.fillNull(1), null);
+    }
 
-	@Override
-	public Class<String> getSubResultType() {
-		return String.class;
-	}
+    @Override
+    public String procSubTask(String subTask, int timeout) throws InterruptedException {
+        test();
+        return null;
+    }
 
-	@Override
-	public String procSubTask(String subTask, int timeout) throws InterruptedException {
-		test();
-		return null;
-	}
+    private void test() {
+        Stream.of("a.txt", "abc/a.txt", "../../a.txt").forEach(path -> {
+            File file = fileGet(path);
+            try {
+                Files.write(file.toPath(), "mysh".getBytes());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
 
-	private void test() {
-		try (FileOutputStream out = fileOut(fileGet("a.txt"))) {
-			out.write("mysh".getBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        try {
+            Thread t = new Thread();
+            t.start();
+            System.out.println("uncontrolled thread started");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-		try (FileOutputStream out = fileOut(fileGet("abc/a.txt"))) {
-			out.write("mysh".getBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+        try {
+            threadFactory().newThread(() -> {
+                System.out.println("user thread.");
+                try {
+                    new CountDownLatch(1).await();
+                } catch (InterruptedException e) {
+                    System.out.println("user thread interrupted");
+                }
+            }).start();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
-		try (FileOutputStream out = fileOut(fileGet("../../a.txt"))) {
-			out.write("mysh".getBytes());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		try {
-			Thread t = new Thread();
-			t.start();
-			System.out.println("uncontrolled thread started");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		try {
-			threadFactory().newThread(() -> {
-				System.out.println("user thread.");
-				try {
-					new CountDownLatch(1).await();
-				} catch (InterruptedException e) {
-					System.out.println("user thread interrupted");
-				}
-			}).start();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public String join(String masterNode, String[] assignedNodeIds, String[] subResults) {
-		return null;
-	}
+    @Override
+    public String join(String masterNode, List<String> assignedNodeIds, List<String> subResults) {
+        return null;
+    }
 }

@@ -2,8 +2,10 @@ package mysh.cluster;
 
 import mysh.cluster.FilesMgr.FileType;
 import mysh.cluster.FilesMgr.UpdateType;
+import mysh.collect.Colls;
 import mysh.util.Exps;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -17,70 +19,78 @@ import java.util.List;
  * @since 2014/12/12 15:57
  */
 final class MgrFileUpdate extends IClusterMgr<String, String, String, String> {
-	private static final long serialVersionUID = -674837947039151106L;
-	private static final String[] emptyArray = new String[0];
+    private static final long serialVersionUID = -674837947039151106L;
+    private static final String[] emptyArray = new String[0];
 
-	private FileType fileType;
-	private String ns;
-	private UpdateType updateType;
-	private String fileName;
-	private byte[] ctx;
+    private FileType fileType;
+    private String ns;
+    private UpdateType updateType;
+    private String fileName;
+    private byte[] ctx;
 
-	public MgrFileUpdate(FileType fileType, String ns, UpdateType updateType, String fileName, byte[] ctx) {
-		this.fileType = fileType;
-		this.ns = ns;
-		this.updateType = updateType;
-		this.fileName = fileName;
-		this.ctx = ctx;
-	}
+    private MgrFileUpdate() {
+    }
 
-	@Override
-	public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
-		updateFile(master.getFilesMgr());
+    static MgrFileUpdate remove(String ns) {
+        MgrFileUpdate m = new MgrFileUpdate();
+        m.ns = ns;
+        return m;
+    }
 
-		if (fileType == FileType.CORE) {
-			return pack(emptyArray, emptyArray);
-		} else if (fileType == FileType.USER || fileType == FileType.SU) {
-			workerNodes.remove(masterNode);
-			return pack(new String[workerNodes.size()], workerNodes.toArray(new String[workerNodes.size()]));
-		} else
-			throw new RuntimeException("unknown fileType: " + fileType);
-	}
+    static MgrFileUpdate update(FileType fileType, String ns, UpdateType updateType, String fileName, byte[] ctx) {
+        MgrFileUpdate m = new MgrFileUpdate();
+        m.fileType = fileType;
+        m.ns = ns;
+        m.updateType = updateType;
+        m.fileName = fileName;
+        m.ctx = ctx;
+        return m;
+    }
 
-	private void updateFile(FilesMgr filesMgr) {
-		try {
-			if (updateType == UpdateType.UPDATE)
-				filesMgr.putFile(fileType, ns, fileName, ctx);
-			else if (updateType == UpdateType.DELETE)
-				filesMgr.removeFile(fileType, ns, fileName);
-		} catch (Throwable e) {
-			throw Exps.unchecked(e);
-		}
-	}
+    @Override
+    public SubTasksPack<String> fork(String task, String masterNode, List<String> workerNodes) {
+        updateFile(master.getFilesMgr());
 
-	@Override
-	public Class<String> getSubResultType() {
-		return String.class;
-	}
+        if (fileType == FileType.CORE) {
+            return pack(Collections.emptyList(), Collections.emptyList());
+        } else if (fileType == null || fileType == FileType.USER || fileType == FileType.SU) {
+            workerNodes.remove(masterNode);
+            return pack(Colls.fillNull(workerNodes.size()), workerNodes);
+        } else
+            throw new RuntimeException("unknown fileType: " + fileType);
+    }
 
-	@Override
-	public String procSubTask(String subTask, int timeout) throws InterruptedException {
-		updateFile(worker.getFilesMgr());
-		return "";
-	}
+    private void updateFile(FilesMgr filesMgr) {
+        try {
+            if (updateType == UpdateType.UPDATE)
+                filesMgr.putFile(fileType, ns, fileName, ctx);
+            else if (updateType == UpdateType.DELETE)
+                filesMgr.removeFile(fileType, ns, fileName);
+            else if (updateType == null)
+                filesMgr.clearNsFiles(ns);
+        } catch (Throwable e) {
+            throw Exps.unchecked(e);
+        }
+    }
 
-	@Override
-	public String join(String masterNode, String[] assignedNodeIds, String[] subResults) {
-		return null;
-	}
+    @Override
+    public String procSubTask(String subTask, int timeout) throws InterruptedException {
+        updateFile(worker.getFilesMgr());
+        return "";
+    }
 
-	@Override
-	public String toString() {
-		return "MgrFileUpdate{" +
-						"ns='" + ns + '\'' +
-						", fileType=" + fileType +
-						", updateType=" + updateType +
-						", fileName='" + fileName + '\'' +
-						'}';
-	}
+    @Override
+    public String join(String masterNode, List<String> assignedNodeIds, List<String> subResults) {
+        return null;
+    }
+
+    @Override
+    public String toString() {
+        return "MgrFileUpdate{" +
+                "ns='" + ns + '\'' +
+                ", fileType=" + fileType +
+                ", updateType=" + updateType +
+                ", fileName='" + fileName + '\'' +
+                '}';
+    }
 }

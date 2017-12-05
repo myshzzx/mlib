@@ -10,6 +10,7 @@ del /s /q update
 rd /s /q update
 
 @echo off
+set CLUSTER_ROOT=%cd%
 set CLUSTER_CP=.\main\core\
 for %%F in (.\main\core\*.jar) do call :cp %%F
 @echo on
