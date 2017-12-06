@@ -3,6 +3,7 @@ package mysh.dev.video;
 import mysh.collect.Pair;
 import mysh.util.FFmpegs;
 import mysh.util.FilesUtil;
+import mysh.util.Oss;
 import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,8 +11,10 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -37,7 +40,8 @@ class FFmpegUIController {
 	}
 
 	void h265(String src, String target, String start, String to, int crf,
-	          boolean overwrite, boolean hwAccel, boolean mono,
+	          boolean overwrite, boolean hwAccel, boolean frameRate, int frameRateValue,
+	          boolean copyAudio, boolean mono, boolean opusKps, int opusKpsValue,
 	          Runnable taskStart, Runnable taskComplete) {
 		ForkJoinPool.commonPool().execute(() -> {
 
@@ -59,9 +63,20 @@ class FFmpegUIController {
 					f.overwrite();
 				if (hwAccel)
 					f.hardwareAccel();
-				if (mono)
-					f.audioChannels(1);
-				f.from(start).to(to).videoH265Params(crf).audioOpus();
+				if(frameRate)
+					f.frameRate(frameRateValue);
+				if (!copyAudio) {
+					f.audioOpus();
+					if (mono)
+						f.audioChannels(1);
+					if (opusKps) {
+						f.audioKiloBitRate(opusKpsValue);
+						if (opusKpsValue < 96)
+							f.audioOpusVoip();
+					}
+				}
+
+				f.from(start).to(to).videoH265Params(crf);
 
 				stopAction = renewStopAction();
 
@@ -69,20 +84,20 @@ class FFmpegUIController {
 				for (File srcFile : srcFiles) {
 					if (isTargetDir)
 						realTarget = new File(targetFile,
-										FilesUtil.getFileNameWithoutExtension(srcFile) + ".mkv");
+								FilesUtil.getFileNameWithoutExtension(srcFile) + ".mkv");
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
 
 					process = f.input(srcFile).output(realTarget).go();
-					// Oss.getAllWinProcesses(true).stream()
-					// 				.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
-					// 				.forEach(p -> {
-					// 					try {
-					// 						Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
-					// 					} catch (IOException e) {
-					// 						log.info("change priority fail: " + p.getCmdLine(), e);
-					// 					}
-					// 				});
+					Oss.getAllWinProcesses(true).stream()
+							.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
+							.forEach(p -> {
+								try {
+									Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+								} catch (IOException e) {
+									log.info("change priority fail: " + p.getCmdLine(), e);
+								}
+							});
 					process.waitFor();
 				}
 			} catch (InterruptedException e) {

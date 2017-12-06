@@ -107,6 +107,11 @@ public class FFmpegUI extends javax.swing.JFrame {
         jLabel1 = new javax.swing.JLabel();
         fromText = new mysh.ui.JTextFieldWithTips();
         toText = new mysh.ui.JTextFieldWithTips();
+        opusKpsSpinner = new javax.swing.JSpinner();
+        copyAudioChk = new javax.swing.JCheckBox();
+        opusKpsChk = new javax.swing.JCheckBox();
+        frameRateChk = new javax.swing.JCheckBox();
+        frameRateSpinner = new javax.swing.JSpinner();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -186,6 +191,16 @@ public class FFmpegUI extends javax.swing.JFrame {
 
         jLabel1.setText("h265-crf =");
 
+        opusKpsSpinner.setValue(128);
+
+        copyAudioChk.setText("copy audio");
+
+        opusKpsChk.setText("opus.kps=");
+
+        frameRateChk.setText("frame rate=");
+
+        frameRateSpinner.setValue(24);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -203,7 +218,13 @@ public class FFmpegUI extends javax.swing.JFrame {
                                 .addGap(18, 18, 18)
                                 .addComponent(hwAccelChk)
                                 .addGap(18, 18, 18)
-                                .addComponent(monoChk))
+                                .addComponent(copyAudioChk)
+                                .addGap(18, 18, 18)
+                                .addComponent(monoChk)
+                                .addGap(18, 18, 18)
+                                .addComponent(opusKpsChk)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(opusKpsSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 61, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(jLabel1)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -211,26 +232,36 @@ public class FFmpegUI extends javax.swing.JFrame {
                                 .addGap(18, 18, 18)
                                 .addComponent(fromText, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addGap(18, 18, 18)
-                                .addComponent(toText, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(0, 234, Short.MAX_VALUE)))
+                                .addComponent(toText, javax.swing.GroupLayout.PREFERRED_SIZE, 160, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(frameRateChk)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(frameRateSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 58, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(0, 67, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 300, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 294, Short.MAX_VALUE)
                 .addGap(18, 18, 18)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(crfSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addComponent(fromText, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(toText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(15, 15, 15)
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(toText, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(frameRateChk)
+                        .addComponent(frameRateSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(9, 9, 9)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(overwriteChk)
                     .addComponent(hwAccelChk)
-                    .addComponent(monoChk))
+                    .addComponent(monoChk)
+                    .addComponent(opusKpsSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(copyAudioChk)
+                    .addComponent(opusKpsChk))
                 .addGap(18, 18, 18)
                 .addComponent(targetText, javax.swing.GroupLayout.PREFERRED_SIZE, 36, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -251,7 +282,10 @@ public class FFmpegUI extends javax.swing.JFrame {
     private void h265BtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_h265BtnActionPerformed
         controller.h265(srcText.getText(), targetText.getText(),
                 fromText.getText(), toText.getText(), (Integer) crfSpinner.getValue(),
-                overwriteChk.isSelected(), hwAccelChk.isSelected(), monoChk.isSelected(),
+                overwriteChk.isSelected(), hwAccelChk.isSelected(),
+                frameRateChk.isSelected(), (Integer) frameRateSpinner.getValue(),
+                copyAudioChk.isSelected(), monoChk.isSelected(), opusKpsChk.isSelected(),
+                (Integer) opusKpsSpinner.getValue(),
                 this::taskStart, this::taskComplete
         );
     }//GEN-LAST:event_h265BtnActionPerformed
@@ -303,7 +337,10 @@ public class FFmpegUI extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JCheckBox copyAudioChk;
     private javax.swing.JSpinner crfSpinner;
+    private javax.swing.JCheckBox frameRateChk;
+    private javax.swing.JSpinner frameRateSpinner;
     private mysh.ui.JTextFieldWithTips fromText;
     private javax.swing.JButton h265Btn;
     private javax.swing.JCheckBox hwAccelChk;
@@ -312,6 +349,8 @@ public class FFmpegUI extends javax.swing.JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton mergeBtn;
     private javax.swing.JCheckBox monoChk;
+    private javax.swing.JCheckBox opusKpsChk;
+    private javax.swing.JSpinner opusKpsSpinner;
     private javax.swing.JCheckBox overwriteChk;
     private javax.swing.JButton splitBtn;
     private javax.swing.JTextArea srcText;
