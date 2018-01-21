@@ -156,10 +156,11 @@ public class FFmpegs {
 		return this;
 	}
 
+	@Deprecated
 	public FFmpegs threads(int t) {
 		if (t < 1)
 			throw new IllegalArgumentException("threads should be positive");
-		threads = " -threads " + t;
+//		threads = " -threads " + t;
 		return this;
 	}
 

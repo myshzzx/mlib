@@ -1,10 +1,7 @@
 package mysh.dev.video;
 
 import mysh.collect.Pair;
-import mysh.util.FFmpegs;
-import mysh.util.FilesUtil;
-import mysh.util.Oss;
-import mysh.util.Strings;
+import mysh.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
@@ -100,6 +98,10 @@ class FFmpegUIController {
 
 					f.input(srcFile);
 
+					Thread.sleep(2000);
+					double cpuUsageSystem = Oss.getCpuUsageSystem();
+					int threads = (int) Math.max(1, (1 - cpuUsageSystem) * Runtime.getRuntime().availableProcessors());
+
 					File tempFile = null;
 					if (tempDir != null) {
 						tempFile = new File(tempDir, System.nanoTime() + "-" + realTarget.getName());
@@ -111,8 +113,14 @@ class FFmpegUIController {
 							.forEach(p -> {
 								try {
 									Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+									if (Oss.getOS() == Oss.OS.Windows) {
+										char[] maskChars = new char[threads];
+										Arrays.fill(maskChars, '1');
+										String mask = new String(maskChars);
+										WinAPI.setProcessAffinityMask(p.getPid(), Long.parseLong(mask, 2));
+									}
 								} catch (IOException e) {
-									log.info("change priority fail: " + p.getCmdLine(), e);
+									log.info("change process resource fail: " + p.getCmdLine(), e);
 								}
 							});
 					process.waitFor();
@@ -167,11 +175,7 @@ class FFmpegUIController {
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
 
-					Thread.sleep(2000);
-					double cpuUsageSystem = Oss.getCpuUsageSystem();
-					int threads = (int) Math.max(1, (1 - cpuUsageSystem) * Runtime.getRuntime().availableProcessors());
-
-					process = f.input(srcFile).threads(threads).output(realTarget).go();
+					process = f.input(srcFile).output(realTarget).go();
 					process.waitFor();
 				}
 			} catch (InterruptedException e) {
