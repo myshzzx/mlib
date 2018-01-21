@@ -12,6 +12,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,13 +41,21 @@ class FFmpegUIController {
 			stopAction.run();
 	}
 
-	void h265(String src, String target, String start, String to, int crf,
+	void h265(String src, String target, String temp, String start, String to, int crf,
 	          boolean overwrite, boolean hwAccel, boolean frameRate, int frameRateValue,
 	          boolean copyAudio, boolean mono, boolean opusKps, int opusKpsValue,
 	          Runnable taskStart, Runnable taskComplete) {
 		ForkJoinPool.commonPool().execute(() -> {
 
 			try {
+				File tempDir = null;
+				if (Strings.isNotBlank(temp)) {
+					tempDir = new File(temp.trim());
+					if (!tempDir.isDirectory()) {
+						JOptionPane.showMessageDialog(parent, "临时目录不存在或不是目录");
+						return;
+					}
+				}
 				Pair<List<File>, File> filePair = parseFiles(src, target, overwrite);
 				if (filePair == null)
 					return;
@@ -63,7 +73,7 @@ class FFmpegUIController {
 					f.overwrite();
 				if (hwAccel)
 					f.hardwareAccel();
-				if(frameRate)
+				if (frameRate)
 					f.frameRate(frameRateValue);
 				if (!copyAudio) {
 					f.audioOpus();
@@ -88,7 +98,14 @@ class FFmpegUIController {
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
 
-					process = f.input(srcFile).output(realTarget).go();
+					f.input(srcFile);
+
+					File tempFile = null;
+					if (tempDir != null) {
+						tempFile = new File(tempDir, System.nanoTime() + "-" + realTarget.getName());
+						process = f.output(tempFile).go();
+					} else
+						process = f.output(realTarget).go();
 					Oss.getAllWinProcesses(true).stream()
 							.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
 							.forEach(p -> {
@@ -99,6 +116,10 @@ class FFmpegUIController {
 								}
 							});
 					process.waitFor();
+
+					if (tempFile != null) {
+						Files.move(tempFile.toPath(), realTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
+					}
 				}
 			} catch (InterruptedException e) {
 				log.info("task terminated");
@@ -111,12 +132,14 @@ class FFmpegUIController {
 		});
 	}
 
-	void split(String src, String target, String start, String to,
+	void split(String src, String target, String temp, String start, String to,
 	           boolean overwrite, boolean hwAccel,
 	           Runnable taskStart, Runnable taskComplete) {
 		ForkJoinPool.commonPool().execute(() -> {
 			try {
-				Pair<List<File>, File> filePair = parseFiles(src, target, overwrite);
+				Pair<List<File>, File> filePair = parseFiles(src, temp, overwrite);
+				if (filePair == null)
+					filePair = parseFiles(src, target, overwrite);
 				if (filePair == null)
 					return;
 
@@ -144,7 +167,11 @@ class FFmpegUIController {
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
 
-					process = f.input(srcFile).output(realTarget).go();
+					Thread.sleep(2000);
+					double cpuUsageSystem = Oss.getCpuUsageSystem();
+					int threads = (int) Math.max(1, (1 - cpuUsageSystem) * Runtime.getRuntime().availableProcessors());
+
+					process = f.input(srcFile).threads(threads).output(realTarget).go();
 					process.waitFor();
 				}
 			} catch (InterruptedException e) {

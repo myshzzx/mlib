@@ -44,6 +44,7 @@ public class FFmpegs {
 	private String audioChannels = "";
 	private String audioBitRate = "";
 	private String ss, to;
+	private String threads = "";
 	private String output = "";
 
 	private FFmpegs() {
@@ -155,6 +156,13 @@ public class FFmpegs {
 		return this;
 	}
 
+	public FFmpegs threads(int t) {
+		if (t < 1)
+			throw new IllegalArgumentException("threads should be positive");
+		threads = " -threads " + t;
+		return this;
+	}
+
 	public FFmpegs output(File file) {
 		output = " \"" + file.getAbsolutePath() + "\"";
 		return this;
@@ -179,6 +187,7 @@ public class FFmpegs {
 				+ videoFrameRate
 				+ audioOptions
 				+ audioBitRate + audioChannels
+				+ threads
 				+ output;
 	}
 }
