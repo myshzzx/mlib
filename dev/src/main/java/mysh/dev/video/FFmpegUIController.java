@@ -8,13 +8,10 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import java.awt.*;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.ForkJoinPool;
 
 /**
@@ -44,7 +41,6 @@ class FFmpegUIController {
 	          boolean copyAudio, boolean mono, boolean opusKps, int opusKpsValue,
 	          Runnable taskStart, Runnable taskComplete) {
 		ForkJoinPool.commonPool().execute(() -> {
-
 			try {
 				File tempDir = null;
 				if (Strings.isNotBlank(temp)) {
@@ -98,36 +94,44 @@ class FFmpegUIController {
 
 					f.input(srcFile);
 
-					Thread.sleep(2000);
-					double cpuUsageSystem = Oss.getCpuUsageSystem();
-					int threads = (int) Math.max(1, (1 - cpuUsageSystem) * Runtime.getRuntime().availableProcessors());
-
+					double cpuUsage = Oss.getCpuUsageSystem();
 					File tempFile = null;
 					if (tempDir != null) {
 						tempFile = new File(tempDir, System.nanoTime() + "-" + realTarget.getName());
 						process = f.output(tempFile).go();
 					} else
 						process = f.output(realTarget).go();
-					Oss.getAllWinProcesses(true).stream()
-							.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
-							.forEach(p -> {
-								try {
-									Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
-									if (Oss.getOS() == Oss.OS.Windows) {
-										char[] maskChars = new char[threads];
-										Arrays.fill(maskChars, '1');
-										String mask = new String(maskChars);
-										WinAPI.setProcessAffinityMask(p.getPid(), Long.parseLong(mask, 2));
+
+					if (Oss.getOS() == Oss.OS.Windows) {
+						Oss.getAllWinProcesses(true).stream()
+								.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
+								.forEach(p -> {
+									try {
+										Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+
+										int availableProcessors = Runtime.getRuntime().availableProcessors();
+										Random rnd = new Random();
+
+										char[] maskChars = new char[availableProcessors];
+										Arrays.fill(maskChars, '0');
+										for (int i = 0; i < availableProcessors; i++) {
+											if (rnd.nextDouble() > cpuUsage)
+												maskChars[i] = '1';
+										}
+										long mask = Long.parseLong(new String(maskChars), 2);
+										WinAPI.setProcessAffinityMask(p.getPid(), Math.max(1, mask));
+									} catch (Exception e) {
+										log.info("change process resource fail: " + p.getCmdLine(), e);
 									}
-								} catch (IOException e) {
-									log.info("change process resource fail: " + p.getCmdLine(), e);
-								}
-							});
+								});
+					}
 					process.waitFor();
 
 					if (tempFile != null) {
 						Files.move(tempFile.toPath(), realTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
+
+					Thread.sleep(2000);
 				}
 			} catch (InterruptedException e) {
 				log.info("task terminated");
