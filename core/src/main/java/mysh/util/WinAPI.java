@@ -3,6 +3,8 @@ package mysh.util;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.win32.W32APIOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
@@ -13,6 +15,8 @@ import java.util.Objects;
  * @since 2015/8/17
  */
 public interface WinAPI {
+	Logger log = LoggerFactory.getLogger(WinAPI.class);
+
 	User32 user32 = User32.INSTANCE;
 	KernelExt kernel32 = KernelExt.INSTANCE;
 
@@ -34,6 +38,7 @@ public interface WinAPI {
 	 * @param mask exp : 0b11101
 	 */
 	static void setProcessAffinityMask(int pid, long mask) {
+		log.info("set-process-affinity-mask,pid={},mask={}", pid, mask);
 		WinNT.HANDLE processHandle = kernel32.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
 		if (processHandle == null)
 			throw new RuntimeException("process not found. pid=" + pid);
