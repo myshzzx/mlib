@@ -45,6 +45,10 @@ public class Encodings {
 	public static boolean isChinese(char c) {
 		return chineseBlocks.contains(UnicodeBlock.of(c));
 	}
+	
+	public static boolean isChinese(int c) {
+		return chineseBlocks.contains(UnicodeBlock.of(c));
+	}
 
 	public static boolean hasChinese(String str) {
 		if (str == null || str.length() == 0) return false;
