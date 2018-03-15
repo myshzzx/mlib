@@ -18,11 +18,11 @@ import java.lang.annotation.Target;
 public @interface LocalCache {
 
     /**
-     * LRU 超时 (秒).
+     * 写入超时 (秒).
      * 实际设置的时间会带20%(最多10分钟)以内随机增量, 以防止相关的缓存块同时失效.
-     * 如设置超时时间为10分钟, 则实际缓存块的 LRU 超时会被设置为 10~12 分钟内的一个随机值.
+     * 如设置超时时间为10分钟, 则实际缓存块的超时会被设置为 10~12 分钟内的一个随机值.
      */
-    int lruTimeoutSec();
+    int writeTimeoutSec();
 
     /**
      * 缓存块最大尺寸. 默认1(方法无参时可省略)
