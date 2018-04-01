@@ -17,7 +17,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 注意: 初始化之后 get 总能取到值, 但这个值有可能很久未更新.
  * 适用场景: 加载成本高, 访问频繁, 一致性要求低的数据.
  *
- * @author zhangzhixian<hzzhangzhixian@corp.netease.com>
  * @since 2016/8/10
  */
 public class NoDelayCache<O> {
