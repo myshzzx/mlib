@@ -1,58 +1,57 @@
 package mysh.util;
 
-import java.util.Random;
+import java.security.SecureRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * ID generator.
+ * IdGen.
+ * time based, usable from 1970 to 2262.
+ * 1522831285440......
  *
- * @author mysh
- * @since 2016/1/19
+ * @since 2018/04/04
  */
 public class IdGen {
-	private static final Random rnd = new Random();
-
+	private static final SecureRandom secRnd = new SecureRandom();
+	private static final long flag = Math.abs(secRnd.nextInt() % 1000_000);
+	private static final AtomicInteger c;
+	
+	static {
+		c = new AtomicInteger(secRnd.nextInt() >>> 1);
+	}
+	
+	private static int inc() {
+		int inc = c.incrementAndGet();
+		if (inc < 0) {
+			synchronized (c) {
+				if (c.get() < 0) {
+					c.set(0);
+				}
+				return c.incrementAndGet();
+			}
+		} else {
+			return inc;
+		}
+	}
+	
 	/**
-	 * time based id generator.
+	 * 5 seconds test
+	 * conflict/total, rate
+	 * result: 0/4098201, 0.000000
 	 */
 	public static long timeBasedId() {
-		return timeBasedIdAtomic();
+		return System.currentTimeMillis() * 1000_000 + inc() % 1000_000;
 	}
-
-	private static final AtomicInteger c = new AtomicInteger();
-
+	
 	/**
-	 * 5 seconds test
-	 * conflict/total, rate
-	 * 8/10699664, 0.000001
-	 * 13/10994199, 0.000001
-	 * 4/10887793, 0.000000
+	 * cluster version of {@link #timeBasedId()}.
+	 *
+	 * @param scalePower10 scale exponent (1~5). cluster scale = 10^scalePower10
 	 */
-	private static long timeBasedIdAtomic() {
-		return (System.currentTimeMillis() * 100 + c.incrementAndGet() % 100) * 10_000 + System.nanoTime() % 10_000;
+	public static long timeBasedDistId(int scalePower10) {
+		if (scalePower10 < 1 || scalePower10 > 5) {
+			throw new IllegalArgumentException("scalePower10 E [1,5]");
+		}
+		int mask = (int) Math.pow(10, scalePower10);
+		return System.currentTimeMillis() * 1000_000 + (flag % mask) * 1000_000 / mask + inc() % (1000_000 / mask);
 	}
-
-	/**
-	 * 5 seconds test
-	 * conflict/total, rate
-	 * 19821/4603695, 0.004305
-	 * 20705/4606272, 0.004495
-	 * 26743/6320166, 0.004231
-	 */
-	private static long timeBasedIdRnd() {
-		return System.currentTimeMillis() * 1000_000 + rnd.nextInt(1000_000);
-	}
-
-	/**
-	 * 5 seconds test
-	 * conflict/total, rate
-	 * 8266105/11649367, 0.709577
-	 * 8125621/11480971, 0.707750
-	 * 8255322/11677617, 0.706940
-	 */
-	private static long timeBasedIdNano() {
-		return System.currentTimeMillis() * 1000_000 + System.nanoTime() % 1000_000;
-	}
-
-
 }
