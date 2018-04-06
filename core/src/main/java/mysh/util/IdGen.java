@@ -1,6 +1,10 @@
 package mysh.util;
 
+import com.google.common.util.concurrent.RateLimiter;
+
 import java.security.SecureRandom;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -42,16 +46,22 @@ public class IdGen {
 		return System.currentTimeMillis() * 1000_000 + inc() % 1000_000;
 	}
 	
+	private static final Map<Integer, RateLimiter> limiterMap = new ConcurrentHashMap<>();
+	
 	/**
 	 * cluster version of {@link #timeBasedId()}.
 	 *
-	 * @param scalePower10 scale exponent (1~5). cluster scale = 10^scalePower10
+	 * @param scalePower10 scale exponent (1~4). cluster scale = 10^scalePower10
 	 */
 	public static long timeBasedDistId(int scalePower10) {
-		if (scalePower10 < 1 || scalePower10 > 5) {
-			throw new IllegalArgumentException("scalePower10 E [1,5]");
+		if (scalePower10 < 1 || scalePower10 > 4) {
+			throw new IllegalArgumentException("scalePower10 E [1,4]");
 		}
-		int mask = (int) Math.pow(10, scalePower10);
-		return System.currentTimeMillis() * 1000_000 + (flag % mask) * 1000_000 / mask + inc() % (1000_000 / mask);
+		int scale = (int) Math.pow(10, scalePower10);
+		int tail = 1_000_000;
+		if (scalePower10 > 1) {
+			limiterMap.computeIfAbsent(scalePower10, s -> RateLimiter.create(tail / scale * 50)).acquire();
+		}
+		return System.currentTimeMillis() * tail + (flag % scale) * tail / scale + inc() % (tail / scale);
 	}
 }

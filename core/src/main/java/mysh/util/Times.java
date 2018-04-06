@@ -17,7 +17,18 @@ import static java.util.Objects.requireNonNull;
  * @since 2015/1/7 13:30
  */
 public class Times {
-
+	
+	/**
+	 * sleep without InterruptedException throwing, but recover interrupt status
+	 */
+	public static void sleepNoExp(int ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
+	
 	/**
 	 * check time.
 	 *
@@ -27,18 +38,18 @@ public class Times {
 	 */
 	public static boolean isNow(ZoneId zone, int hour, int minute, int second) {
 		long now = nowSec(zone);
-
+		
 		if (second > -1 && now % 60 != second) return false;
 		now /= 60;
 		if (minute > -1 && now % 60 != minute) return false;
 		now /= 60;
 		return hour < 0 || now % 24 == hour;
 	}
-
+	
 	private static long nowSec(ZoneId zone) {
 		return (System.currentTimeMillis() + TimeZone.getTimeZone(zone).getOffset(System.currentTimeMillis())) / 1000;
 	}
-
+	
 	/**
 	 * check local time.
 	 *
@@ -49,35 +60,35 @@ public class Times {
 	public static boolean isNow(int hour, int minute, int second) {
 		return isNow(zoneSysDefault, hour, minute, second);
 	}
-
+	
 	private static boolean isNowBeforeAfter(boolean chkBefore, ZoneId zone, int hour, int minute, int second) {
 		long now = nowSec(zone);
 		now %= 24 * 3600;
-
+		
 		if (hour < 0 || hour > 23) throw new IllegalArgumentException("wrong hour: " + hour);
 		if (minute < 0 || minute > 59) throw new IllegalArgumentException("wrong minute: " + minute);
 		if (second < 0 || second > 59) throw new IllegalArgumentException("wrong second: " + second);
 		long given = hour * 3600 + minute * 60 + second;
-
+		
 		return chkBefore ? now < given : now > given;
 	}
-
+	
 	public static boolean isNowBefore(ZoneId zone, int hour, int minute, int second) {
 		return isNowBeforeAfter(true, zone, hour, minute, second);
 	}
-
+	
 	public static boolean isNowBefore(int hour, int minute, int second) {
 		return isNowBeforeAfter(true, zoneSysDefault, hour, minute, second);
 	}
-
+	
 	public static boolean isNowAfter(ZoneId zone, int hour, int minute, int second) {
 		return isNowBeforeAfter(false, zone, hour, minute, second);
 	}
-
+	
 	public static boolean isNowAfter(int hour, int minute, int second) {
 		return isNowBeforeAfter(false, zoneSysDefault, hour, minute, second);
 	}
-
+	
 	public enum Formats {
 		/**
 		 * yyyy-MM-dd
@@ -99,14 +110,14 @@ public class Times {
 		 * yyyy-MM-dd HH:mm
 		 */
 		DayHourMin(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-
+		
 		private DateTimeFormatter formatter;
-
+		
 		Formats(DateTimeFormatter formatter) {
 			this.formatter = formatter;
 		}
 	}
-
+	
 	private static final ZoneId zoneSysDefault = ZoneId.systemDefault();
 	public static final ZoneId zoneUTC = ZoneId.of("UTC");
 	/**
@@ -149,30 +160,30 @@ public class Times {
 	 * New Zealand Daylight Time, Auckland, Wellington
 	 */
 	public static final ZoneId zoneNZ = ZoneId.of("Pacific/Auckland");
-
+	
 	/**
 	 * @see #format(Object, Object, ZoneId)
 	 */
 	public static String formatNow(Object format) {
 		return format(format, Instant.ofEpochMilli(System.currentTimeMillis()), zoneSysDefault);
 	}
-
+	
 	/**
 	 * @see #format(Object, Object, ZoneId)
 	 */
 	public static String formatNow(Object format, ZoneId zone) {
 		return format(format, Instant.ofEpochMilli(System.currentTimeMillis()), zone);
 	}
-
+	
 	/**
 	 * @see #format(Object, Object, ZoneId)
 	 */
 	public static String format(Object format, Object time) {
 		return format(format, time, zoneSysDefault);
 	}
-
+	
 	private static final ConcurrentHashMap<String, DateTimeFormatter> formatters = new ConcurrentHashMap<>();
-
+	
 	/**
 	 * @param format can be {@link Formats}, {@link DateTimeFormatter}, {@link String}
 	 * @param time   can be {@link Date}, {@link TemporalAccessor}
@@ -182,9 +193,9 @@ public class Times {
 		requireNonNull(time, "need time");
 		requireNonNull(zone, "need zone");
 		DateTimeFormatter formatter = getProperFormatter(format);
-
+		
 		TemporalAccessor formatTime;
-
+		
 		if (time instanceof Date)
 			formatTime = ((Date) time).toInstant().atZone(zone);
 		else if (time instanceof Instant)
@@ -193,10 +204,10 @@ public class Times {
 			formatTime = (TemporalAccessor) time;
 		else
 			throw new IllegalArgumentException("unsupported time type: " + time.getClass());
-
+		
 		return formatter.format(formatTime);
 	}
-
+	
 	private static DateTimeFormatter getProperFormatter(Object format) {
 		requireNonNull(format, "need format");
 		if (format instanceof Formats)
@@ -208,19 +219,19 @@ public class Times {
 		else
 			throw new IllegalArgumentException("unsupported format type: " + format.getClass());
 	}
-
+	
 	public static LocalDate parseDay(Object format, String time) {
 		requireNonNull(time, "need time");
 		DateTimeFormatter formatter = getProperFormatter(format);
 		return LocalDate.parse(time, formatter);
 	}
-
+	
 	public static LocalTime parseTime(Object format, String time) {
 		requireNonNull(time, "need time");
 		DateTimeFormatter formatter = getProperFormatter(format);
 		return LocalTime.parse(time, formatter);
 	}
-
+	
 	public static LocalDateTime parseDayTime(Object format, String time) {
 		requireNonNull(time, "need time");
 		DateTimeFormatter formatter = getProperFormatter(format);

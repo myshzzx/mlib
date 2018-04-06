@@ -30,12 +30,12 @@ public class IdGenTest {
 		while (n-- > 0) {
 			e.execute(() -> {
 				while (true) {
-					long id = IdGen.timeBasedDistId(1);
+					long id = IdGen.timeBasedDistId(3);
 					if (!m.add(id)) {
 						// System.out.println("conflict " + id);
 						conflict.increment();
 					}
-					Thread.yield();
+//					Thread.yield();
 					total.increment();
 				}
 			});
