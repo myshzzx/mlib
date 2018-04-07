@@ -3,6 +3,7 @@ package mysh.cluster;
 import com.google.common.cache.CacheBuilder;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
+import mysh.net.Nets;
 import mysh.util.Exps;
 import mysh.util.FilesUtil;
 import mysh.util.Oss;
@@ -563,7 +564,7 @@ public class ClusterNode {
         List<NetFace> tBcAdds = new ArrayList<>();
 
         // put real networks
-        SockUtil.iterateNetworkIF(nif -> {
+        Nets.iterateNetworkIF(nif -> {
             nif.getInterfaceAddresses().stream()
                     .filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
                     .forEach(addr -> {

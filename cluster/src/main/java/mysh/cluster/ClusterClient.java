@@ -5,6 +5,7 @@ import mysh.cluster.FilesMgr.UpdateType;
 import mysh.cluster.rpc.IFaceHolder;
 import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.collect.Colls;
+import mysh.net.Nets;
 import mysh.util.Exps;
 import mysh.util.Strings;
 import org.slf4j.Logger;
@@ -80,7 +81,7 @@ public final class ClusterClient implements Closeable {
         this.cmdSock.setSendBufferSize(CMD_SOCK_BUF);
         this.cmdSock.setBroadcast(true);
 
-        SockUtil.iterateNetworkIF(nif -> {
+        Nets.iterateNetworkIF(nif -> {
             for (InterfaceAddress addr : nif.getInterfaceAddresses()) {
                 if (addr.getBroadcast() != null && addr.getBroadcast().getAddress().length == 4
                         && bcAdds.add(new NetFace(addr)))

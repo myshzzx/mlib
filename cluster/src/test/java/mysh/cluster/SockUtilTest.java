@@ -1,5 +1,6 @@
 package mysh.cluster;
 
+import mysh.net.Nets;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -23,7 +24,7 @@ public class SockUtilTest {
                 "192.168.58.115",
                 "192.168.8.115"
         };
-        SockUtil.iterateNetworkIF(nif -> {
+        Nets.iterateNetworkIF(nif -> {
             nif.getInterfaceAddresses().forEach(addr -> {
                 Arrays.stream(ips).forEach(ip -> {
                     boolean r = SockUtil.isInTheSameBroadcastDomain(new NetFace(addr), ip, addr.getNetworkPrefixLength());
@@ -36,7 +37,7 @@ public class SockUtilTest {
 
     @Test
     public void iteratTest() throws SocketException {
-        SockUtil.iterateNetworkIF(nif -> {
+        Nets.iterateNetworkIF(nif -> {
             nif.getInterfaceAddresses().stream()
                     .filter(addr -> addr.getBroadcast() != null && addr.getAddress().getAddress().length == 4)
                     .forEach(addr -> {
