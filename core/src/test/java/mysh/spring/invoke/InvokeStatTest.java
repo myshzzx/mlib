@@ -3,23 +3,24 @@ package mysh.spring.invoke;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import javax.annotation.Resource;
-
 /**
- * @author zhangzhixian<hzzhangzhixian@corp.netease.com>
+ * @author zhangzhixian<hzzhangzhixian @ corp.netease.com>
  * @since 2017/2/11
  */
 @Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @Component("InvokeStatTest")
 public class InvokeStatTest {
-
-	@Resource(name = "InvokeStatTest")
+	
+	@Autowired
+	@Qualifier("InvokeStatTest")
 	InvokeStatTest self;
-
+	
 	@Test
 	public void f() throws InterruptedException {
 		int n = 10;
@@ -28,7 +29,7 @@ public class InvokeStatTest {
 			Thread.sleep(500);
 		}
 	}
-
+	
 	@InvokeStat(value = "test1", recParams = true)
 	public void testRun(int p, int q) {
 		int a = 0, n = 1000000000;

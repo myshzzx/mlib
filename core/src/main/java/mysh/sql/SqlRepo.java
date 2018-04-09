@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 
-import javax.annotation.PostConstruct;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -92,7 +91,7 @@ public class SqlRepo {
 		}
 	}
 
-	@PostConstruct
+//	@PostConstruct
 	public void validate() {
 		Objects.requireNonNull(jdbc, "jdbc template should not be null");
 	}

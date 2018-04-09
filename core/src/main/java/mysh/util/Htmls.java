@@ -33,7 +33,9 @@ public class Htmls {
 						.replace("&lt;", "<")
 						.replace("&gt;", ">")
 						.replace("&quot;", "\"")
-						.replace("&apos;", "'");
+						.replace("&apos;", "'")
+						.replace("&ldquo;", "“")
+						.replace("&rdquo;", "”");
 	}
 
 	/**
