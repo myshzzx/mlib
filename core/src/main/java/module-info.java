@@ -49,5 +49,8 @@ module mlib.core {
 	requires java.sql;
 	requires commons.dbcp2;
 	requires annotations;
+	requires reflections;
+	requires spring.expression;
+	requires commons.codec;
 	
 }

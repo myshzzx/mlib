@@ -57,6 +57,13 @@
 						<arg>--add-exports=java.base/sun.security.util=mlib.cluster</arg>
 					</compilerArgs>
 				</configuration>
+				<dependencies>
+					<dependency>
+						<groupId>org.ow2.asm</groupId>
+						<artifactId>asm</artifactId>
+						<version>6.1.1</version>
+					</dependency>
+				</dependencies>
 			</plugin>
 
 			<plugin>
