@@ -1,19 +1,18 @@
-/**
- * Copyright (c) 2005-2012 springside.org.cn
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- */
 package mysh.util;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.function.Function;
 
 /**
  * 关于异常的工具类.
- * 
  */
-public class Exps {
-
+public abstract class Exps {
+	private static final Logger log = LoggerFactory.getLogger(Exps.class);
+	
 	/**
 	 * 将CheckedException转换为UncheckedException.
 	 */
@@ -24,7 +23,7 @@ public class Exps {
 			return new RuntimeException(e);
 		}
 	}
-
+	
 	/**
 	 * 将ErrorStack转化为String.
 	 */
@@ -33,7 +32,7 @@ public class Exps {
 		e.printStackTrace(new PrintWriter(stringWriter));
 		return stringWriter.toString();
 	}
-
+	
 	/**
 	 * 判断异常是否由某些底层的异常(含本层)引起. 是则返回异常, 否返回 null.
 	 */
@@ -50,4 +49,43 @@ public class Exps {
 		}
 		return null;
 	}
+	
+	public interface Executable<E extends Exception> {
+		void run() throws E;
+	}
+	
+	public interface ExecutableConsumer<T, E extends Exception> {
+		void accept(T t) throws E;
+	}
+	
+	/**
+	 * 执行若有异常自动重试.
+	 *
+	 * @param comment    任务备注
+	 * @param retryTimes 重试次数
+	 * @param needRetry  为null则无条件重试
+	 * @param r          任务
+	 * @return 执行抛出的异常
+	 */
+	public static <E extends Exception> E retryOnExp(String comment, int retryTimes,
+	                                                 Function<Exception, Boolean> needRetry, Executable<E> r) {
+		int times = 0;
+		while (true) {
+			try {
+				r.run();
+				return null;
+			} catch (Exception e) {
+				if (times++ < retryTimes
+						&& (needRetry == null || needRetry.apply(e))) {
+					log.info("retry-on-exp,{},{}/{},{}", comment, times, retryTimes, e);
+				} else {
+					log.error("stop-retry,{},{}/{}", comment, times, retryTimes, e);
+					return (E) e;
+				}
+			}
+		}
+	}
 }
+
+
+
