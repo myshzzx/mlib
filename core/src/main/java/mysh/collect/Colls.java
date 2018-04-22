@@ -142,8 +142,4 @@ public abstract class Colls {
 		}
 		return hm;
 	}
-	
 }
-
-
-
