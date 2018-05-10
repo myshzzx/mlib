@@ -1,6 +1,7 @@
 package mysh.util;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
@@ -9,8 +10,9 @@ import java.util.function.Consumer;
  *
  * @since 2018/01/16
  */
-@Slf4j
 public class Try {
+    private static final Logger log = LoggerFactory.getLogger(Try.class);
+    
     public interface ExpRunnable {
         void run() throws Throwable;
     }
