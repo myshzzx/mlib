@@ -32,7 +32,6 @@ import java.util.Base64;
  * spring 导出类, 方便本地测试.
  * 调 SpringExporter.proxySock 创建代理实例.
  *
- * @author 凯泓(zhixian.zzx@alibaba-inc.com)
  * @since 2017/08/04
  */
 // @Component
@@ -75,7 +74,6 @@ public class SpringExporter implements ApplicationContextAware {
             this.methodParamsTypes = methodParamsTypes;
             this.args = args;
         }
-
         @Override
         public String toString() {
             return "Invoke{" +
@@ -184,6 +182,7 @@ public class SpringExporter implements ApplicationContextAware {
         return r;
     }
 
+
     public static <T> T proxySock(Class<T> type) {
         return proxySock("127.0.0.1", SERVER_PORT, type, null);
     }
@@ -210,13 +209,18 @@ public class SpringExporter implements ApplicationContextAware {
                         in = new ObjectInputStream(socket.getInputStream());
                         tt.set(Triple.of(socket, in, out));
                     }
-                    out.writeObject(
-                            new Invoke(type, beanName,
-                                    method.getDeclaringClass(), method.getName(), method.getParameterTypes(),
-                                    args));
-                    out.flush();
-                    Result r = (Result) in.readObject();
-                    return r.getResult();
+                    try {
+                        out.writeObject(
+                                new Invoke(type, beanName,
+                                        method.getDeclaringClass(), method.getName(), method.getParameterTypes(),
+                                        args));
+                        out.flush();
+                        Result r = (Result) in.readObject();
+                        return r.getResult();
+                    } catch (Exception e) {
+                        socket.close();
+                        throw e;
+                    }
                 });
         return (T) enhancer.create();
     }

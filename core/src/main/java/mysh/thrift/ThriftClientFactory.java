@@ -8,7 +8,11 @@ import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.*;
+import org.apache.thrift.transport.TFramedTransport;
+import org.apache.thrift.transport.TSSLTransportFactory;
+import org.apache.thrift.transport.TSocket;
+import org.apache.thrift.transport.TTransport;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,11 +46,13 @@ public class ThriftClientFactory<TI> {
 		private void rebuildClient() throws TTransportException, IOException, NoSuchMethodException,
 				IllegalAccessException, InvocationTargetException, InstantiationException {
 			
-			if (isClosed)
+			if (isClosed) {
 				throw new RuntimeException("thrift client has been closed.");
+			}
 			
-			if (transport != null)
+			if (transport != null) {
 				transport.close();
+			}
 			
 			if (conf.useTLS) {
 				TSSLTransportFactory.TSSLTransportParameters transportParams = new TSSLTransportFactory.TSSLTransportParameters();
@@ -75,8 +81,9 @@ public class ThriftClientFactory<TI> {
 		@Override
 		public void close() {
 			this.isClosed = true;
-			if (transport != null)
+			if (transport != null) {
 				transport.close();
+			}
 		}
 		
 		private volatile long lastInvokeTime = System.currentTimeMillis();
@@ -93,14 +100,16 @@ public class ThriftClientFactory<TI> {
 				return result;
 			} catch (Throwable e) {
 				if (e.getCause() instanceof TException && !e.getCause().getClass().getName().contains("org.apache.thrift")) {
+					// business exp
 					throw e.getCause();
 				} else {
+					// sys exp
 					this.rebuildClient();
 					
 					if (e.getCause() != null) {
 						if (e.getCause().getCause() instanceof SocketException
 								|| "Cannot write to null outputStream".equals(e.getCause().getMessage())
-								) { // connection problem that can be restore, then re-invoke
+						) { // connection problem that can be restore, then re-invoke
 							log.debug("thrift client invoke failed, but has reconnected and prepared for re-invoking", e);
 							return method.invoke(client, args);
 						}
@@ -307,6 +316,7 @@ public class ThriftClientFactory<TI> {
 					try {
 						return tc.invokeThriftClient(method, args);
 					} finally {
+						// sys exp will cause client rebuild, so client is reusable
 						pool.returnObject(tc);
 					}
 				});

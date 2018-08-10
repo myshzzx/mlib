@@ -67,17 +67,17 @@ public abstract class Exps {
 	 * @param r          任务
 	 * @return 执行抛出的异常
 	 */
-	public static <E extends Exception> E retryOnExp(String comment, int retryTimes,
-	                                                 Function<Exception, Boolean> needRetry, Executable<E> r) {
+	public static <E extends Exception> E retryOnExp(
+			String comment, int retryTimes, Function<Exception, Boolean> needRetry, Executable<E> r) {
 		int times = 0;
 		while (true) {
 			try {
 				r.run();
 				return null;
 			} catch (Exception e) {
-				if (times++ < retryTimes
+				if (times++ < Math.max(1, retryTimes)
 						&& (needRetry == null || needRetry.apply(e))) {
-					log.info("retry-on-exp,{},{}/{},{}", comment, times, retryTimes, e);
+					log.info("retry-on-exp,{},{}/{}", comment, times, retryTimes, e);
 				} else {
 					log.error("stop-retry,{},{}/{}", comment, times, retryTimes, e);
 					return (E) e;

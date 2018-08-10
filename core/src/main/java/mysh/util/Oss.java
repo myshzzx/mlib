@@ -9,6 +9,7 @@ import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -410,6 +411,20 @@ public class Oss {
 			}
 		} catch (Exception e) {
 			log.error("terminateProcess error. pid=" + pid + ", force=" + force, e);
+		}
+	}
+	
+	public static void terminateLinuxProcessTree(Process process) {
+		if (process != null) {
+			try {
+				Field fpid = process.getClass().getDeclaredField("pid");
+				fpid.setAccessible(true);
+				int pid = fpid.getInt(process);
+				executeCmd("pkill -TERM -P " + pid, false);
+				terminateProcess(pid, true);
+			} catch (Exception e) {
+				log.error("process-cannot-be-terminated", e);
+			}
 		}
 	}
 
