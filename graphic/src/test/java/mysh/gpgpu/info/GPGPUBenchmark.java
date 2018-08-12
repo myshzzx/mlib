@@ -1,8 +1,8 @@
 package mysh.gpgpu.info;
 
-import com.amd.aparapi.Kernel;
-import com.amd.aparapi.device.Device;
-import com.amd.aparapi.device.OpenCLDevice;
+import com.aparapi.Kernel;
+import com.aparapi.device.Device;
+import com.aparapi.device.OpenCLDevice;
 import mysh.gpgpu.AparapiUtil;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -82,7 +82,7 @@ public class GPGPUBenchmark {
 
 	private static void gpuAparapi() {
 		aparapiTest(AparapiUtil.getPropCLDevice(null, Device.TYPE.GPU));
-		aparapiTest(AparapiUtil.getPropCLDevice("intel", Device.TYPE.GPU));
+		aparapiTest(AparapiUtil.getPropCLDevice("Intel", Device.TYPE.GPU));
 		aparapiTest(AparapiUtil.getPropCLDevice(null, Device.TYPE.CPU));
 	}
 

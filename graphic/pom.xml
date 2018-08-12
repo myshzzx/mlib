@@ -18,18 +18,6 @@
 			<version>1.0.1-SNAPSHOT</version>
 		</dependency>
 
-		<!--for SIFT-->
-		<dependency>
-			<groupId>gov.nist.math</groupId>
-			<artifactId>jama</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.imagescience</groupId>
-			<artifactId>imagescience</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
 		<!--for captcha-->
 		<dependency>
 			<groupId>com.jhlabs</groupId>
@@ -38,7 +26,7 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.amd</groupId>
+			<groupId>com.aparapi</groupId>
 			<artifactId>aparapi</artifactId>
 			<scope>provided</scope>
 		</dependency>

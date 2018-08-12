@@ -8,7 +8,7 @@
 	<version>1.0.1-SNAPSHOT</version>
 	<modules>
 		<module>core</module>
-		<!--<module>graphic</module>-->
+		<module>graphic</module>
 		<module>dev</module>
 		<module>cluster</module>
 	</modules>
@@ -186,17 +186,6 @@
 				<version>2.6.1</version>
 			</dependency>
 
-			<!--for SIFT-->
-			<dependency>
-				<groupId>gov.nist.math</groupId>
-				<artifactId>jama</artifactId>
-				<version>1.0.3</version>
-			</dependency>
-			<dependency>
-				<groupId>org.imagescience</groupId>
-				<artifactId>imagescience</artifactId>
-				<version>2.4.1</version>
-			</dependency>
 
 			<!--for captcha-->
 			<dependency>
@@ -206,9 +195,9 @@
 			</dependency>
 
 			<dependency>
-				<groupId>com.amd</groupId>
+				<groupId>com.aparapi</groupId>
 				<artifactId>aparapi</artifactId>
-				<version>1.0</version>
+				<version>1.9.0</version>
 			</dependency>
 
 		</dependencies>

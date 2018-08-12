@@ -1,9 +1,9 @@
 package mysh.gpgpu.info;
 
-import com.amd.aparapi.Kernel;
-import com.amd.aparapi.Range;
-import com.amd.aparapi.device.Device;
-import com.amd.aparapi.device.OpenCLDevice;
+import com.aparapi.Kernel;
+import com.aparapi.Range;
+import com.aparapi.device.Device;
+import com.aparapi.device.OpenCLDevice;
 import mysh.gpgpu.AparapiUtil;
 import org.junit.Test;
 

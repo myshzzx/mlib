@@ -257,7 +257,7 @@ public class HttpClientAssist implements Closeable {
 		for (Field field : com.google.api.client.http.HttpHeaders.class.getDeclaredFields()) {
 			Key headerKey = field.getAnnotation(Key.class);
 			if (headerKey != null) {
-				httpHeadersListFields.add(headerKey.value());
+				httpHeadersListFields.add(headerKey.value().toLowerCase());
 			}
 		}
 	}
@@ -282,7 +282,7 @@ public class HttpClientAssist implements Closeable {
 			for (Map.Entry<String, ?> he : headers.entrySet()) {
 				String name = he.getKey();
 				Object value = he.getValue();
-				if (httpHeadersListFields.contains(name)) {
+				if (httpHeadersListFields.contains(name.toLowerCase())) {
 					if (value != null) {
 						value = new ArrayList<>();
 						((ArrayList) value).add(he.getValue());

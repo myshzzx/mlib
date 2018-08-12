@@ -20,7 +20,7 @@ module mlib.core {
 	exports mysh.ui;
 	exports mysh.util;
 	exports mysh.net.httpclient;
-	
+
 	requires httpcore;
 	requires spring.jdbc;
 	requires com.google.common;
@@ -52,5 +52,5 @@ module mlib.core {
 	requires reflections;
 	requires spring.expression;
 	requires commons.codec;
-	
+
 }
