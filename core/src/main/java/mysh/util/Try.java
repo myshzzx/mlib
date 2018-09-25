@@ -1,6 +1,8 @@
-package com.taobao.rdc.nextone.task.base.utils;
+package mysh.util;
 
-import lombok.extern.slf4j.Slf4j;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -8,11 +10,11 @@ import java.util.function.Function;
 /**
  * Try
  *
- * @author 凯泓(zhixian.zzx @ alibaba - inc.com)
  * @since 2018/01/16
  */
-@Slf4j
 public class Try {
+    private static final Logger log = LoggerFactory.getLogger(Try.class);
+
     public interface ExpRunnable<E extends Exception> {
         void run() throws E;
     }
