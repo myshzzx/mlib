@@ -242,10 +242,10 @@ public class HttpClientAssist implements Closeable {
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostBytes(
-			String url, @Nullable Map<String, ?> headers,String contentType, @Nullable byte[] buf) throws IOException {
+			String url, @Nullable Map<String, ?> headers, String contentType, @Nullable byte[] buf) throws IOException {
 		ByteArrayContent content = null;
 		if (buf != null) {
-            content = new ByteArrayContent(MoreObjects.firstNonNull(contentType, "application/octet-stream"), buf);
+			content = new ByteArrayContent(MoreObjects.firstNonNull(contentType, "application/octet-stream"), buf);
 		}
 
 		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
@@ -324,7 +324,7 @@ public class HttpClientAssist implements Closeable {
 
 		try (UrlEntity ue = this.access(url, headers)) {
 			File writeFile = new File(file.getPath() + ".~write~");
-            file.getAbsoluteFile().getParentFile().mkdirs();
+			file.getAbsoluteFile().getParentFile().mkdirs();
 			try (OutputStream os = Files.newOutputStream(writeFile.toPath());
 			     InputStream in = ue.rsp.getContent()) {
 				byte[] buf = getDownloadBuf();
