@@ -51,7 +51,8 @@ public class UIs {
 	public static void trayIconPopupMenu(TrayIcon icon, JPopupMenu menu) {
 		icon.addMouseListener(new MouseAdapter() {
 			public void mouseReleased(MouseEvent e) {
-				if (e.isPopupTrigger()) {
+				if (e.isPopupTrigger()
+						|| Oss.getOS() == Oss.OS.Mac && e.getButton() == MouseEvent.BUTTON1) {
 					menu.setLocation(e.getX(), e.getY());
 					menu.setInvoker(menu);
 					menu.setVisible(true);
