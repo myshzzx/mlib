@@ -102,7 +102,7 @@ public class SysTrayNotifier implements Closeable {
 		icon.setToolTip(this.title);
 
 		currentImg = oriTrayImg = icon.getImage();
-		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank.png"));
+		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank16.png"));
 
 		Runnable notifyAction = () -> {
 			Set<Msg> t = this.unHandledMsgs;
