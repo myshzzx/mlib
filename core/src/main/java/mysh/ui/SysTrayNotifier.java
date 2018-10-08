@@ -1,5 +1,6 @@
 package mysh.ui;
 
+import mysh.util.Oss;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -121,13 +122,24 @@ public class SysTrayNotifier implements Closeable {
 		icon.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				switch (e.getButton()) {
-					case MouseEvent.BUTTON1:
-						notifyAction.run();
-						break;
-					case MouseEvent.BUTTON2:
-						cancelAction.run();
-						break;
+				if (Oss.getOS() == Oss.OS.Mac) {
+					switch (e.getButton()) {
+						case MouseEvent.BUTTON3:
+							notifyAction.run();
+							break;
+						case MouseEvent.BUTTON2:
+							cancelAction.run();
+							break;
+					}
+				} else {
+					switch (e.getButton()) {
+						case MouseEvent.BUTTON1:
+							notifyAction.run();
+							break;
+						case MouseEvent.BUTTON2:
+							cancelAction.run();
+							break;
+					}
 				}
 			}
 		});
