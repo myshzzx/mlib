@@ -13,4 +13,5 @@ module mlib.cluster {
 	requires libthrift;
 	requires java.rmi;
 	requires jdk.management;
+	requires commons.codec;
 }

@@ -38,8 +38,8 @@ module mlib.core {
 	requires java.desktop;
 	requires java.management;
 	requires fst;
-	requires jna.platform;
-	requires jna;
+	requires com.sun.jna;
+	requires com.sun.jna.platform;
 	requires jdk.management;
 	requires spring.web;
 	requires servlet.api;

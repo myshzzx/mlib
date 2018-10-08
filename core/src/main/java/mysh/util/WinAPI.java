@@ -1,7 +1,11 @@
 package mysh.util;
 
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.*;
+import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.platform.win32.Kernel32Util;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.win32.W32APIOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +28,13 @@ public interface WinAPI {
 		KernelExt INSTANCE = Native.loadLibrary("kernel32", KernelExt.class, W32APIOptions.DEFAULT_OPTIONS);
 
 		boolean SetProcessAffinityMask(HANDLE hProcess, long dwProcessAffinityMask);
+
+		/** https://docs.microsoft.com/en-us/windows/desktop/api/processthreadsapi/nf-processthreadsapi-suspendthread */
+		int SuspendThread(HANDLE hThread);
+
+		/** https://docs.microsoft.com/en-us/windows/desktop/api/processthreadsapi/nf-processthreadsapi-resumethread */
+		int ResumeThread(HANDLE hThread);
+
 	}
 
 	static String getForeGroundWindowTitle() {
@@ -60,4 +71,24 @@ public interface WinAPI {
 			throw new RuntimeException(msg);
 	}
 
+	/** If the function succeeds, the return value is the thread's previous suspend count; otherwise -1 */
+	static int suspendThread(int tid) {
+		WinNT.HANDLE handle = kernel32.OpenThread(
+				WinNT.THREAD_ALL_ACCESS, false, tid);
+		int r = kernel32.SuspendThread(handle);
+		kernel32.CloseHandle(handle);
+		return r;
+	}
+
+	/**
+	 * If the function succeeds, the return value is the thread's previous suspend count.
+	 * If the function fails, the return value is (DWORD) -1. To get extended error information, call GetLastError.
+	 */
+	static int resumeThread(int tid) {
+		WinNT.HANDLE handle = kernel32.OpenThread(
+				WinNT.THREAD_ALL_ACCESS, false, tid);
+		int r = kernel32.ResumeThread(handle);
+		kernel32.CloseHandle(handle);
+		return r;
+	}
 }
