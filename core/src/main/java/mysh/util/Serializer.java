@@ -144,6 +144,7 @@ public interface Serializer {
             FSTConfiguration c = coder.get();
             if (c == null) {
                 c = FSTConfiguration.createDefaultConfiguration();
+                c.setForceSerializable(true);
                 coder.set(c);
             }
             return c;
