@@ -3,6 +3,7 @@ package mysh.spring;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import mysh.util.Serializer;
+import mysh.util.Strings;
 import org.apache.commons.lang3.tuple.Triple;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -168,7 +169,7 @@ public class SpringExporter implements ApplicationContextAware {
     }
 
     public Result invoke(Invoke iv) throws NoSuchMethodException {
-        Object bean = iv.beanName != null ? ctx.getBean(iv.beanName) : ctx.getBean(iv.type);
+        Object bean = Strings.isNotBlank(iv.beanName) ? ctx.getBean(iv.beanName) : ctx.getBean(iv.type);
         Method method = findMethod(iv.methodClass, iv.methodName, iv.methodParamsTypes);
 
         Result r = new Result();
