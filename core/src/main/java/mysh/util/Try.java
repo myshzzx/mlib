@@ -52,4 +52,26 @@ public class Try {
             }
         };
     }
+    
+    public static <T> T runWithCl(ClassLoader cl, Callable<T> c) throws Exception {
+        Thread thread = Thread.currentThread();
+        ClassLoader currCl = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(cl);
+            return c.call();
+        } finally {
+            thread.setContextClassLoader(currCl);
+        }
+    }
+
+    public static void runWithCl(ClassLoader cl, Runnable c) throws Exception {
+        Thread thread = Thread.currentThread();
+        ClassLoader currCl = thread.getContextClassLoader();
+        try {
+            thread.setContextClassLoader(cl);
+            c.run();
+        } finally {
+            thread.setContextClassLoader(currCl);
+        }
+    }
 }
