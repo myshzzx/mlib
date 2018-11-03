@@ -106,22 +106,6 @@
 				</exclusions>
 			</dependency>
 			<dependency>
-				<groupId>com.google.http-client</groupId>
-				<artifactId>google-http-client</artifactId>
-				<version>1.22.0</version>
-				<exclusions>
-					<exclusion>
-						<groupId>com.google.code.findbugs</groupId>
-						<artifactId>jsr305</artifactId>
-					</exclusion>
-				</exclusions>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.httpcomponents</groupId>
-				<artifactId>httpclient</artifactId>
-				<version>4.5.3</version>
-			</dependency>
-			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-dbcp2</artifactId>
 				<version>2.1</version>
@@ -140,13 +124,22 @@
 			<dependency>
 				<groupId>com.google.guava</groupId>
 				<artifactId>guava</artifactId>
-				<version>23.5-jre</version>
+				<version>27.0-jre</version>
 				<exclusions>
 					<exclusion>
 						<artifactId>jsr305</artifactId>
 						<groupId>com.google.code.findbugs</groupId>
 					</exclusion>
+					<exclusion>
+						<groupId>com.google.guava</groupId>
+						<artifactId>failureaccess</artifactId>
+					</exclusion>
 				</exclusions>
+			</dependency>
+			<dependency>
+				<groupId>com.github.ben-manes.caffeine</groupId>
+				<artifactId>caffeine</artifactId>
+				<version>2.6.2</version>
 			</dependency>
 
 			<dependency>
@@ -208,6 +201,12 @@
 				<groupId>com.aparapi</groupId>
 				<artifactId>aparapi</artifactId>
 				<version>1.9.0</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.squareup.okhttp3</groupId>
+				<artifactId>okhttp</artifactId>
+				<version>3.11.0</version>
 			</dependency>
 
 		</dependencies>

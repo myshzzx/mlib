@@ -21,36 +21,39 @@ module mlib.core {
 	exports mysh.util;
 	exports mysh.net.httpclient;
 
-	requires httpcore;
 	requires spring.jdbc;
-	requires com.google.common;
-	requires slf4j.api;
-	requires google.http.client;
-	requires httpclient;
-	requires commons.pool2;
-	requires libthrift;
-	requires fastjson;
-	requires commons.lang3;
 	requires spring.beans;
 	requires spring.core;
 	requires spring.context;
-	requires aspectjrt;
+	requires spring.expression;
+	requires spring.web;
+
 	requires java.desktop;
 	requires java.management;
-	requires fst;
+	requires java.sql;
 	requires com.sun.jna;
 	requires com.sun.jna.platform;
 	requires jdk.management;
-	requires spring.web;
-	requires servlet.api;
+
 	requires javafx.graphics;
 	requires javafx.web;
 	requires javafx.swing;
-	requires java.sql;
+
+	requires commons.pool2;
+	requires commons.lang3;
 	requires commons.dbcp2;
+	requires commons.codec;
+
+	requires slf4j.api;
+	requires libthrift;
+	requires fastjson;
+	requires aspectjrt;
+	requires fst;
+	requires servlet.api;
 	requires annotations;
 	requires reflections;
-	requires spring.expression;
-	requires commons.codec;
+	requires com.github.benmanes.caffeine;
+	requires okhttp3;
+	requires com.google.common;
 
 }

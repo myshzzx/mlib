@@ -1,6 +1,8 @@
 
 package mysh.net.httpclient;
 
+import okhttp3.CookieJar;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,15 +14,15 @@ import java.util.Map;
 public final class HttpClientConfig implements Cloneable {
 
 	public static final String UA =
-					"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36";
+			"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36";
 
 	// http://user-agent-string.info/list-of-ua/bots
 	public static final String UA_GOOGLE =
-					"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+			"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
 	public static final String UA_BAIDU =
-					"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
+			"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
 	public static final String UA_BING =
-					"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
+			"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
 	HashMap<String, Object> headers;
 
@@ -37,22 +39,25 @@ public final class HttpClientConfig implements Cloneable {
 	/**
 	 * 连接超时. in millisecond
 	 */
-	int connectionTimeout = 5_000;
+	int connectionTimeout = 7_000;
 
 	/**
 	 * 取数据内容超时. in millisecond
 	 */
-	int soTimeout = 7_000;
+	int soTimeout = 10_000;
 
 	/**
-	 * connection pool size
+	 * connection pool idol size
 	 */
-	int maxTotalConnections = 40;
+	int maxIdolConnections = 5;
 
 	/**
 	 * max connections of one route in pool
 	 */
-	int maxConnectionsPerRoute = 10;
+	int connPoolKeepAliveSec = 5 * 60;
+
+	/** this will overwrite user defined <code>Cookie</code> header */
+	CookieJar cookieJar = CookieJar.NO_COOKIES;
 
 	public HttpClientConfig() {
 	}
@@ -79,6 +84,16 @@ public final class HttpClientConfig implements Cloneable {
 	}
 
 	// getter and setter
+
+	/**
+	 * @see #cookieJar
+	 */
+	public HttpClientConfig setCookieJar(CookieJar cookieJar) {
+		if (cookieJar != null) {
+			this.cookieJar = cookieJar;
+		}
+		return this;
+	}
 
 	public boolean isKeepAlive() {
 		return isKeepAlive;
@@ -129,32 +144,32 @@ public final class HttpClientConfig implements Cloneable {
 	}
 
 	/**
-	 * @see #maxTotalConnections
+	 * @see #maxIdolConnections
 	 */
-	public int getMaxTotalConnections() {
-		return maxTotalConnections;
+	public int getMaxIdolConnections() {
+		return maxIdolConnections;
 	}
 
 	/**
-	 * @see #maxTotalConnections
+	 * @see #maxIdolConnections
 	 */
-	public HttpClientConfig setMaxTotalConnections(int maxTotalConnections) {
-		this.maxTotalConnections = maxTotalConnections;
+	public HttpClientConfig setMaxIdolConnections(int maxIdolConnections) {
+		this.maxIdolConnections = maxIdolConnections;
 		return this;
 	}
 
 	/**
-	 * @see #maxConnectionsPerRoute
+	 * @see #connPoolKeepAliveSec
 	 */
-	public int getMaxConnectionsPerRoute() {
-		return maxConnectionsPerRoute;
+	public int getConnPoolKeepAliveSec() {
+		return connPoolKeepAliveSec;
 	}
 
 	/**
-	 * @see #maxConnectionsPerRoute
+	 * @see #connPoolKeepAliveSec
 	 */
-	public HttpClientConfig setMaxConnectionsPerRoute(int maxConnectionsPerRoute) {
-		this.maxConnectionsPerRoute = maxConnectionsPerRoute;
+	public HttpClientConfig setConnPoolKeepAliveSec(int connPoolKeepAliveSec) {
+		this.connPoolKeepAliveSec = connPoolKeepAliveSec;
 		return this;
 	}
 }

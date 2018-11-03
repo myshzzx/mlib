@@ -1,9 +1,8 @@
 package mysh.spring.localcache;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Joiner;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.util.concurrent.ExecutionError;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -24,7 +23,9 @@ import org.springframework.util.StringUtils;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -37,13 +38,13 @@ import java.util.concurrent.atomic.AtomicReference;
 @Component
 public class LocalCacheAspect {
 	private static final Logger log = LoggerFactory.getLogger(LocalCacheAspect.class);
-	
+
 	@Pointcut("@annotation(LocalCache)")
 	public void local() {
 	}
-	
+
 	private static final Joiner keyJoiner = Joiner.on('\u0000');
-	
+
 	@Around("local()")
 	public Object getLocalCache(final ProceedingJoinPoint pjp) throws Throwable {
 		MethodSignature signature = (MethodSignature) pjp.getSignature();
@@ -51,9 +52,9 @@ public class LocalCacheAspect {
 		Object[] args = pjp.getArgs();
 		LocalCache conf = method.getAnnotation(LocalCache.class);
 		Cache<Object, AtomicReference<?>> cache = getCache(method, conf);
-		
+
 		if (conf.isMultiKey()) { // multiple keys
-//            MultiKeyInvokeWrap keyInfo = parseMultiKey(conf.keyExp(), pjp.getTarget(), signature.getMethod(), args);
+			//            MultiKeyInvokeWrap keyInfo = parseMultiKey(conf.keyExp(), pjp.getTarget(), signature.getMethod(), args);
 			return null;
 		} else { // single key
 			Object key;
@@ -62,28 +63,25 @@ public class LocalCacheAspect {
 				key = genKey(args);
 			} else
 				key = parseSingleKey(conf.keyExp(), method, args);
-			
+
 			try {
-				AtomicReference<?> resultWrapper = cache.get(key, new Callable<AtomicReference<?>>() {
-					@Override
-					public AtomicReference<?> call() throws Exception {
-						try {
-							return new AtomicReference<>(pjp.proceed());
-						} catch (Throwable t) {
-							if (t instanceof Exception)
-								throw (Exception) t;
-							else
-								throw new Exception(t);
-						}
+				AtomicReference<?> resultWrapper = cache.get(key, k -> {
+					try {
+						return new AtomicReference<>(pjp.proceed());
+					} catch (Throwable t) {
+						if (t instanceof UncheckedExecutionException)
+							throw (RuntimeException) t;
+						else
+							throw new RuntimeException(t);
 					}
 				});
 				return resultWrapper.get();
-			} catch (ExecutionException | UncheckedExecutionException | ExecutionError e) {
+			} catch (UncheckedExecutionException e) {
 				throw e.getCause();
 			}
 		}
 	}
-	
+
 	/**
 	 * 自动生成key.<br/>
 	 * 规则:<br/>
@@ -103,7 +101,7 @@ public class LocalCacheAspect {
 			key = keyJoiner.join(args);
 		return key;
 	}
-	
+
 	/**
 	 * spEL parser
 	 */
@@ -116,7 +114,7 @@ public class LocalCacheAspect {
 	 * method param name discover
 	 */
 	private static final DefaultParameterNameDiscoverer nameDiscoverer = new DefaultParameterNameDiscoverer();
-	
+
 	/**
 	 * 计算单一 key
 	 */
@@ -127,20 +125,20 @@ public class LocalCacheAspect {
 			exp = spelParser.parseExpression(key);
 			exps.put(key, exp);
 		}
-		
+
 		// prepare spEL context
 		EvaluationContext ctx = new StandardEvaluationContext();
 		String[] paramNames = nameDiscoverer.getParameterNames(method);
 		for (int i = 0; i < paramNames.length; i++) {
 			ctx.setVariable(paramNames[i], args[i]);
 		}
-		
+
 		return exp.getValue(ctx);
 	}
-	
+
 	private final Map<Method, Cache<Object, AtomicReference<?>>> cacheMap = new ConcurrentHashMap<>();
 	private static final Random rnd = new Random();
-	
+
 	/**
 	 * 以目标方法为 key 取缓存块.
 	 * 缓存块超时时间带上 20% 以内随机增量, 以避免相关的缓存数据同时失效.
@@ -158,10 +156,9 @@ public class LocalCacheAspect {
 					int timeoutMilli = timeout > 50 * 60 ?
 							timeout * 1000 + rnd.nextInt(600 * 1000)
 							: (int) (timeout * 1000 * (1 + rnd.nextDouble() / 5));
-					cache = CacheBuilder.newBuilder()
+					cache = Caffeine.newBuilder()
 							.expireAfterWrite(timeoutMilli, TimeUnit.MILLISECONDS)
 							.maximumSize(conf.maxSize())
-							.concurrencyLevel(conf.concurrencyLevel())
 							.build();
 					cacheMap.put(method, cache);
 					log.info("using-local-cache: timeout={}, maxSize={}, method={},",

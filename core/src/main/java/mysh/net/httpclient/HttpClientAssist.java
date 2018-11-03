@@ -1,31 +1,46 @@
 package mysh.net.httpclient;
 
-import com.google.api.client.http.*;
-import com.google.api.client.http.apache.ApacheHttpTransport;
-import com.google.api.client.util.Key;
-import com.google.api.client.util.Maps;
-import com.google.common.base.MoreObjects;
+import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
+import mysh.collect.Colls;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
-import org.apache.http.conn.params.ConnManagerParams;
-import org.apache.http.conn.params.ConnPerRouteBean;
-import org.apache.http.params.HttpConnectionParams;
-import org.apache.http.params.HttpParams;
+import okhttp3.Call;
+import okhttp3.ConnectionPool;
+import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.*;
-import java.lang.reflect.Field;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.*;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -37,54 +52,27 @@ import java.util.function.Function;
 public class HttpClientAssist implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(HttpClientAssist.class);
 	private static final HttpClientConfig defaultHcc = new HttpClientConfig();
+	private HttpClientConfig hcc;
+	private OkHttpClient client;
 
 	public HttpClientAssist() {
 		this(null, null);
 	}
 
-	public HttpClientAssist(HttpClientConfig hcc) {
+	public HttpClientAssist(@Nullable HttpClientConfig hcc) {
 		this(hcc, null);
 	}
 
-	private final HttpRequestFactory reqFactory;
-	private final HttpTransport httpTransport;
-
 	public HttpClientAssist(@Nullable HttpClientConfig conf, @Nullable ProxySelector proxySelector) {
-		HttpClientConfig hcc = conf == null ? defaultHcc : conf.clone();
+		hcc = conf == null ? defaultHcc : conf.clone();
 
-		//    httpTransport = new NetHttpTransport.Builder()
-		//                .setConnectionFactory(url -> {
-		//                   Proxy proxy = hcc.proxy;
-		//                   if (proxyPicker != null)
-		//                      proxy = proxyPicker.pick();
-		//                   HttpURLConnection conn = (HttpURLConnection) (proxy == null ? url.openConnection()
-		// : url.openConnection(proxy));
-		//                   return conn;
-		//                }).build();
-		ApacheHttpTransport.Builder apacheBuilder = new ApacheHttpTransport.Builder().setProxySelector(proxySelector);
-		HttpParams httpParams = apacheBuilder.getHttpParams();
-		HttpConnectionParams.setSoTimeout(httpParams, hcc.soTimeout);
-		HttpConnectionParams.setConnectionTimeout(httpParams, hcc.connectionTimeout);
-		ConnManagerParams.setMaxTotalConnections(httpParams, hcc.maxTotalConnections);
-		ConnManagerParams.setMaxConnectionsPerRoute(httpParams, new ConnPerRouteBean(hcc.maxConnectionsPerRoute));
-
-		httpTransport = apacheBuilder.build();
-
-		reqFactory = httpTransport.createRequestFactory(req -> {
-			req.setConnectTimeout(hcc.connectionTimeout)
-					.setReadTimeout(hcc.soTimeout)
-					.setSuppressUserAgentSuffix(true)
-					.setThrowExceptionOnExecuteError(false)
-			;
-
-			if (hcc.headers != null) {
-				req.getHeaders().putAll(hcc.headers);
-			}
-			req.getHeaders()
-					.setUserAgent(hcc.userAgent)
-					.put(HttpHeaders.CONNECTION, hcc.isKeepAlive ? "keep-alive" : "close")
-			;
-		});
+		client = new OkHttpClient.Builder()
+				.connectTimeout(hcc.connectionTimeout, TimeUnit.MILLISECONDS)
+				.readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
+				.connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
+				.proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
+				.cookieJar(hcc.cookieJar)
+				.build();
 	}
 
 	/**
@@ -136,8 +124,13 @@ public class HttpClientAssist implements Closeable {
 			url = usb.toString();
 		}
 
-		HttpRequest req = reqFactory.buildGetRequest(new GenericUrl(url));
-		return access(req, headers);
+		Request.Builder rb = new Request.Builder().url(url);
+		if (hcc.headers != null) {
+			for (Map.Entry<String, ?> e : hcc.headers.entrySet()) {
+				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+			}
+		}
+		return access(rb, headers);
 	}
 
 	/**
@@ -167,42 +160,23 @@ public class HttpClientAssist implements Closeable {
 	public UrlEntity accessPostMultipartForm(
 			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
 			@Nullable Charset enc) throws IOException {
-		MultipartContent content = null;
-		if (params != null && params.size() > 0) {
-			content = new MultipartContent().setMediaType(
-					new HttpMediaType("multipart/form-data")
-							.setParameter("boundary", "__END_OF_PART__"));
+		Request.Builder rb = new Request.Builder().url(url);
+		if (Colls.isNotEmpty(params)) {
+			MultipartBody.Builder mb = new MultipartBody.Builder();
+			for (Map.Entry<String, ?> e : params.entrySet()) {
+				String name = e.getKey();
+				Object value = e.getValue();
 
-			if (enc == null) {
-				enc = Charset.defaultCharset();
-			}
-			for (Map.Entry<String, ?> entry : params.entrySet()) {
-				String key = entry.getKey();
-				Object value = entry.getValue();
-
-				MultipartContent.Part part;
 				if (value instanceof File) {
 					File file = (File) value;
-					FileContent fileContent = new FileContent(null, file);
-					part = new MultipartContent.Part(fileContent);
-					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
-							"Content-Disposition",
-							String.format("form-data; name=\"%s\"; filename=\"%s\"", key, file.getName())));
+					mb.addFormDataPart(name, file.getName(), RequestBody.create(null, file));
 				} else {
-					if (value == null) {
-						value = "";
-					}
-					part = new MultipartContent.Part(
-							new ByteArrayContent(null, String.valueOf(value).getBytes(enc)));
-					part.setHeaders(new com.google.api.client.http.HttpHeaders().set(
-							"Content-Disposition", String.format("form-data; name=\"%s\"", key)));
+					mb.addFormDataPart(name, String.valueOf(value));
 				}
-				content.addPart(part);
 			}
+			rb.post(mb.build());
 		}
-
-		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
-		return access(req, headers);
+		return access(rb, headers);
 	}
 
 	/**
@@ -226,10 +200,15 @@ public class HttpClientAssist implements Closeable {
 	public UrlEntity accessPostUrlEncodedForm(
 			String url, @Nullable Map<String, ?> headers, @Nullable Map<String, ?> params,
 			@Nullable Charset enc) throws IOException {
-		UrlEncodedContent content = new UrlEncodedContent(params);
-		content.getMediaType().setCharsetParameter(enc == null ? Charset.defaultCharset() : enc);
-		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
-		return access(req, headers);
+		Request.Builder rb = new Request.Builder().url(url);
+		if (Colls.isNotEmpty(params)) {
+			FormBody.Builder fb = new FormBody.Builder(enc);
+			for (Map.Entry<String, ?> e : params.entrySet()) {
+				fb.add(e.getKey(), String.valueOf(e.getValue()));
+			}
+			rb.post(fb.build());
+		}
+		return access(rb, headers);
 	}
 
 	/**
@@ -243,24 +222,14 @@ public class HttpClientAssist implements Closeable {
 	 */
 	public UrlEntity accessPostBytes(
 			String url, @Nullable Map<String, ?> headers, String contentType, @Nullable byte[] buf) throws IOException {
-		ByteArrayContent content = null;
+		Request.Builder rb = new Request.Builder().url(url);
 		if (buf != null) {
-			content = new ByteArrayContent(MoreObjects.firstNonNull(contentType, "application/octet-stream"), buf);
+			rb.post(RequestBody.create(
+					MediaType.get(ObjectUtils.firstNonNull(contentType, "application/octet-stream")),
+					buf));
 		}
+		return access(rb, headers);
 
-		HttpRequest req = reqFactory.buildPostRequest(new GenericUrl(url), content);
-		return access(req, headers);
-	}
-
-	public static final Set<String> httpHeadersListFields = new HashSet<>();
-
-	static {
-		for (Field field : com.google.api.client.http.HttpHeaders.class.getDeclaredFields()) {
-			Key headerKey = field.getAnnotation(Key.class);
-			if (headerKey != null) {
-				httpHeadersListFields.add(headerKey.value().toLowerCase());
-			}
-		}
 	}
 
 	/**
@@ -271,36 +240,35 @@ public class HttpClientAssist implements Closeable {
 	 * @param headers request headers, can be null. use header name in {@link com.google.common.net.HttpHeaders}
 	 * @throws IOException 连接异常.
 	 */
-
-	private UrlEntity access(HttpRequest req, Map<String, ?> headers) throws IOException {
+	private UrlEntity access(Request.Builder rb, Map<String, ?> headers) throws IOException {
 		// 响应中断
 		if (Thread.currentThread().isInterrupted()) {
-			throw new InterruptedIOException("access interrupted: " + req.getUrl().build());
+			throw new InterruptedIOException("access interrupted: " + rb.build());
 		}
 
-		if (headers != null) {
-			com.google.api.client.http.HttpHeaders reqHeaders = req.getHeaders();
-			for (Map.Entry<String, ?> he : headers.entrySet()) {
-				String name = he.getKey();
-				Object value = he.getValue();
-				if (httpHeadersListFields.contains(name.toLowerCase())) {
-					if (value != null) {
-						value = new ArrayList<>();
-						((ArrayList) value).add(he.getValue());
-					}
-				}
-				reqHeaders.put(name, value);
+		if (Colls.isNotEmpty(hcc.headers)) {
+			for (Map.Entry<String, Object> e : hcc.headers.entrySet()) {
+				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
 			}
 		}
 
-		return new UrlEntity(req);
+		if (Colls.isNotEmpty(headers)) {
+			for (Map.Entry<String, ?> e : headers.entrySet()) {
+				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+			}
+		}
+
+		rb.addHeader("Connection", hcc.isKeepAlive ? "Keep-Alive" : "close");
+		rb.addHeader("User-Agent", hcc.userAgent);
+
+		return new UrlEntity(rb);
 	}
 
 	@Override
 	public void close() {
 		try {
-			httpTransport.shutdown();
-		} catch (IOException e) {
+			client.connectionPool().evictAll();
+		} catch (Exception e) {
 			log.debug("hca close error", e);
 		}
 	}
@@ -323,10 +291,13 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		try (UrlEntity ue = this.access(url, headers)) {
+			if (ue.rsp.body() == null) {
+				return false;
+			}
 			File writeFile = new File(file.getPath() + ".~write~");
 			file.getAbsoluteFile().getParentFile().mkdirs();
 			try (OutputStream os = Files.newOutputStream(writeFile.toPath());
-			     InputStream in = ue.rsp.getContent()) {
+			     InputStream in = ue.rsp.body().byteStream()) {
 				byte[] buf = getDownloadBuf();
 
 				Thread thread = Thread.currentThread();
@@ -478,28 +449,30 @@ public class HttpClientAssist implements Closeable {
 	@ThreadSafe
 	public final class UrlEntity implements Closeable {
 
-		private final HttpRequest req;
+		private final Request req;
 		private final String reqUrl;
-		private final HttpResponse rsp;
+		private final Call call;
+		private final Response rsp;
 		private String currentUrl;
-		private String contentType;
+		private MediaType contentType;
 		private byte[] entityBuf;
 		private String entityStr;
 		private Charset entityEncoding;
 
-		public UrlEntity(HttpRequest req) throws IOException {
-			this.req = req;
-			// can't lazy init, because it changes after req.execute()
-			this.reqUrl = req.getUrl().build();
+		public UrlEntity(Request.Builder rb) throws IOException {
+			req = rb.build();
+			// can't lazy init, because it changes after rb.execute()
+			reqUrl = req.url().toString();
 
-			rsp = req.execute();
+			call = client.newCall(req);
+			rsp = call.execute();
 
-			int statusCode = rsp.getStatusCode();
+			int statusCode = rsp.code();
 			if (statusCode >= 400) {
 				log.warn("access unsuccessful, status={}, msg={}, url={}",
-						statusCode, rsp.getStatusMessage(), this.reqUrl);
+						statusCode, rsp.message(), this.reqUrl);
 			}
-			this.contentType = rsp.getContentType();
+			contentType = rsp.body().contentType();
 		}
 
 		/**
@@ -508,8 +481,8 @@ public class HttpClientAssist implements Closeable {
 		@Override
 		public void close() {
 			try {
-				//          rsp.ignore();
-				rsp.disconnect();
+				call.cancel();
+				rsp.close();
 			} catch (Exception e) {
 				log.debug("close connection error. " + e);
 			}
@@ -526,7 +499,7 @@ public class HttpClientAssist implements Closeable {
 		 * @return response protocol version. e.g. https
 		 */
 		public String getProtocol() {
-			return this.req.getUrl().getScheme();
+			return rsp.request().url().scheme();
 		}
 
 		/**
@@ -534,7 +507,7 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public String getCurrentURL() {
 			if (this.currentUrl == null) {
-				this.currentUrl = req.getUrl().build();
+				this.currentUrl = rsp.request().url().toString();
 			}
 
 			return this.currentUrl;
@@ -544,7 +517,7 @@ public class HttpClientAssist implements Closeable {
 		 * get response status.
 		 */
 		public int getStatusCode() {
-			return rsp.getStatusCode();
+			return rsp.code();
 		}
 
 		/**
@@ -552,21 +525,21 @@ public class HttpClientAssist implements Closeable {
 		 * see {@link #isContentType(String)}
 		 */
 		public boolean isText() {
-			return contentType == null || contentType.contains("text");
+			return contentType == null || Objects.equals(contentType.type(), "text");
 		}
 
 		/**
 		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
 		 */
 		public boolean isHtml() {
-			return contentType != null && contentType.contains("html");
+			return contentType != null && Objects.equals(contentType.subtype(), "html");
 		}
 
 		/**
 		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
 		 */
 		public boolean isImage() {
-			return contentType != null && contentType.contains("image");
+			return contentType != null && Objects.equals(contentType.type(), "image");
 		}
 
 		/**
@@ -575,15 +548,16 @@ public class HttpClientAssist implements Closeable {
 		 * So use this ONLY if file extension judgement can not work.
 		 */
 		public boolean isContentType(String type) {
-			return contentType != null && contentType.contains(type);
+			return contentType != null && (
+					contentType.type().contains(type) || contentType.subtype().contains(type)
+			);
 		}
 
 		/**
 		 * content length in byte size. return -1 if length not given (response header).
 		 */
 		public long getContentLength() {
-			Long len = rsp.getHeaders().getContentLength();
-			return len == null ? -1 : len;
+			return rsp.body().contentLength();
 		}
 
 		/**
@@ -604,14 +578,10 @@ public class HttpClientAssist implements Closeable {
 			downloadEntity2Buf();
 
 			if (this.entityEncoding == null) {
+
 				Charset enc = null;
 				if (contentType != null) {
-					String c = contentType.toUpperCase();
-					if (c.contains("UTF-8")) {
-						enc = Encodings.UTF_8;
-					} else if (c.contains("GBK")) {
-						enc = Encodings.GBK;
-					}
+					enc = contentType.charset();
 				}
 				if (enc == null) {
 					enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
@@ -633,7 +603,7 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
-				InputStream is = rsp.getContent();
+				InputStream is = rsp.body().byteStream();
 				Thread thread = Thread.currentThread();
 
 				ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -686,7 +656,7 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		public String getCookies() {
-			return req.getResponseHeaders().getCookie();
+			return ObjectUtils.firstNonNull(rsp.header("Cookie"), rsp.header("cookie"));
 		}
 
 		@Override
@@ -708,7 +678,7 @@ public class HttpClientAssist implements Closeable {
 
 			File writableFile = FilesUtil.getWritableFile(file);
 			try (OutputStream out = Files.newOutputStream(writableFile.toPath())) {
-				InputStream is = rsp.getContent();
+				InputStream is = rsp.body().byteStream();
 				Thread thread = Thread.currentThread();
 
 				byte[] buf = getDownloadBuf();

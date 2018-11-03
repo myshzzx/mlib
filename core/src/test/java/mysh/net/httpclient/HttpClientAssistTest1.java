@@ -5,6 +5,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -14,11 +16,11 @@ import static org.junit.Assert.assertEquals;
  * @author Mysh
  * @since 13-10-6 上午11:47
  */
-@Ignore
+// @Ignore
 public class HttpClientAssistTest1 {
 	HttpClientAssist hca = new HttpClientAssist();
 
-	@Test
+	@Test(expected = SocketTimeoutException.class)
 	public void timeout() throws IOException {
 		HttpClientConfig hcc = new HttpClientConfig();
 		hcc.setConnectionTimeout(20);
@@ -61,21 +63,18 @@ public class HttpClientAssistTest1 {
 	@Test
 	public void content() throws Exception {
 		HttpClientConfig conf = new HttpClientConfig();
-//		conf.setKeepAlive(false);
+		//		conf.setKeepAlive(false);
 		HttpClientAssist hca = new HttpClientAssist(conf);
 
 		HttpClientAssist.UrlEntity b = hca.access("http://ec4.images-amazon.com/images/I/41y4f-S4vpL._AC_SS150_.jpg");
 		HttpClientAssist.UrlEntity z = hca.access("http://z.cn");
 		HttpClientAssist.UrlEntity z2 = hca.access("http://z.cn");
 
-		String zs2 = z2.getEntityStr();
-		String zs = z.getEntityStr();
-		String bs = b.getEntityStr();
-
-		System.out.println();
+		System.out.println(b.isImage());
 	}
 
 	@Test
+	@Ignore
 	public void multiOps() throws IOException, InterruptedException {
 		while (true) {
 			try (HttpClientAssist.UrlEntity z = hca.access("http://baidu.com/")) {
@@ -86,14 +85,13 @@ public class HttpClientAssistTest1 {
 		}
 	}
 
-	@Test
+	@Test(expected = ConnectException.class)
 	public void entityReadTest() throws IOException, InterruptedException {
 		try (HttpClientAssist.UrlEntity bigFile =
-						     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
+				     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
 			System.out.println(bigFile.getContentLength());
 		}
 	}
-
 
 	@Test
 	public void post() throws IOException {
@@ -111,7 +109,7 @@ public class HttpClientAssistTest1 {
 	public void urlTest2() throws IOException, InterruptedException {
 		try (HttpClientAssist.UrlEntity ue = hca.access("http://codemacro.com/2014/10/12/diamond/")) {
 			Pattern srcValueExp =
-							Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
+					Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 			System.out.println(ue.getEntityStr());
 			System.out.println("==================");
 			Matcher srcValueMatcher = srcValueExp.matcher(ue.getEntityStr());

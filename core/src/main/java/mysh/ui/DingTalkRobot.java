@@ -2,7 +2,6 @@ package mysh.ui;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.google.api.client.json.Json;
 import com.google.common.base.Charsets;
 import mysh.collect.Colls;
 import mysh.net.httpclient.HttpClientAssist;
@@ -53,7 +52,8 @@ public class DingTalkRobot {
     }
 
     private void sendMsg(String json) {
-        try (HttpClientAssist.UrlEntity ue = hca.accessPostBytes(webhook, null, Json.MEDIA_TYPE, json.getBytes(Charsets.UTF_8))) {
+        try (HttpClientAssist.UrlEntity ue = hca.accessPostBytes(
+                webhook, null, "application/json", json.getBytes(Charsets.UTF_8))) {
             String rj = ue.getEntityStr();
             if (ue.getStatusCode() != 200) {
                 throw new RuntimeException("sendMsg-httperr-:" + ue.getStatusCode() + ":" + rj);
