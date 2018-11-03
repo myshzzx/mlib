@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -40,8 +39,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 /**
  * HTTP 客户端组件.
@@ -278,41 +277,16 @@ public class HttpClientAssist implements Closeable {
 	 *
 	 * @param url       数据文件地址
 	 * @param headers   请求头, 可为 null
-	 * @param overwrite 是否覆盖原有文件
-	 * @return 文件是否被下载写入
+	 * @param overwrite overwrite exist file or rename new file
+	 * @return write successfully or not
 	 * @throws IOException IO异常
 	 */
 	public boolean saveToFile(
-			String url, Map<String, ?> headers, File file, boolean overwrite
-	) throws IOException {
-
-		if (!overwrite && file.exists()) {
-			return false;
-		}
-
+			String url, Map<String, ?> headers, File file, boolean overwrite, @Nullable Callable<Boolean> stopChk
+	) throws Exception {
 		try (UrlEntity ue = this.access(url, headers)) {
-			if (ue.rsp.body() == null) {
-				return false;
-			}
-			File writeFile = new File(file.getPath() + ".~write~");
-			file.getAbsoluteFile().getParentFile().mkdirs();
-			try (OutputStream os = Files.newOutputStream(writeFile.toPath());
-			     InputStream in = ue.rsp.body().byteStream()) {
-				byte[] buf = getDownloadBuf();
-
-				Thread thread = Thread.currentThread();
-				int readLen;
-				while (!thread.isInterrupted() && (readLen = in.read(buf)) > -1) {
-					os.write(buf, 0, readLen);
-				}
-				if (thread.isInterrupted()) {
-					throw new InterruptedIOException("download interrupted: " + url);
-				}
-			}
-			file.delete();
-			writeFile.renameTo(file);
+			return ue.downloadDirectlyToFile(file, overwrite, stopChk);
 		}
-		return true;
 	}
 
 	/**
@@ -603,19 +577,7 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
-				InputStream is = rsp.body().byteStream();
-				Thread thread = Thread.currentThread();
-
-				ByteArrayOutputStream os = new ByteArrayOutputStream();
-				byte[] buf = getDownloadBuf();
-				int rl;
-				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
-					os.write(buf, 0, rl);
-				}
-				if (thread.isInterrupted()) {
-					throw new InterruptedIOException("download interrupted: " + reqUrl);
-				}
-				entityBuf = os.toByteArray();
+				entityBuf = rsp.body().bytes();
 				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 			}
 		}
@@ -667,32 +629,38 @@ public class HttpClientAssist implements Closeable {
 		/**
 		 * download resource directly to file, without cache to entityBuf.
 		 *
-		 * @param file    file will not be overwritten, if this file exists, a new file will be created.
-		 * @param stopChk check stop download or not.
-		 * @throws IOException
+		 * @param file      file will not be overwritten, if this file exists, a new file will be created.
+		 * @param stopChk   check stop download or not.
+		 * @param overwrite overwrite exist file or rename new file
+		 * @return write successfully or not
 		 */
-		public synchronized void downloadDirectlyToFile(File file, Function<?, Boolean> stopChk) throws IOException {
-			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(null))) {
-				return;
+		public synchronized boolean downloadDirectlyToFile(
+				File file, boolean overwrite, @Nullable Callable<Boolean> stopChk) throws Exception {
+			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.call())) {
+				return false;
 			}
 
-			File writableFile = FilesUtil.getWritableFile(file);
-			try (OutputStream out = Files.newOutputStream(writableFile.toPath())) {
-				InputStream is = rsp.body().byteStream();
+			File writableFile = overwrite ? file : FilesUtil.getWritableFile(file);
+			File writeFile = new File(writableFile.getPath() + ".~write~");
+			try (OutputStream out = Files.newOutputStream(writeFile.toPath());
+			     InputStream is = rsp.body().byteStream()) {
 				Thread thread = Thread.currentThread();
 
 				byte[] buf = getDownloadBuf();
 				int rl;
 				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
 					out.write(buf, 0, rl);
-					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(null))) {
-						break;
+					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.call())) {
+						return false;
 					}
 				}
 				if (thread.isInterrupted()) {
 					throw new InterruptedIOException("download interrupted: " + reqUrl);
 				}
 			}
+			writableFile.delete();
+			writeFile.renameTo(writableFile);
+			return true;
 		}
 	}
 }

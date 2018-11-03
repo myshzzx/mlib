@@ -4,7 +4,6 @@ import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import mysh.util.Htmls;
 import mysh.util.Range;
-import org.apache.http.client.ClientProtocolException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +12,26 @@ import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.net.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.net.MalformedURLException;
+import java.net.ProxySelector;
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -84,10 +100,10 @@ public class Crawler<CTX extends UrlContext> {
 	               int ratePerMin, int threadPoolSize) throws Exception {
 		this(seed, new UrlClassifierConf.Factory<CTX>() {
 			UrlClassifierConf ucc = new UrlClassifierConf(
-							seed.getClass().getSimpleName() + "-default",
-							threadPoolSize,
-							Range.within(1, Integer.MAX_VALUE, ratePerMin),
-							new HttpClientAssist(hcc, proxySelector)
+					seed.getClass().getSimpleName() + "-default",
+					threadPoolSize,
+					Range.within(1, Integer.MAX_VALUE, ratePerMin),
+					new HttpClientAssist(hcc, proxySelector)
 			).setBlockChecker(new DefaultBlockChecker());
 
 			@Override
@@ -137,17 +153,17 @@ public class Crawler<CTX extends UrlContext> {
 						StringBuilder ucStatus = new StringBuilder("crawler current status: " + name);
 						AtomicBoolean crawlerRunning = new AtomicBoolean(false);
 						classifiers.values().stream()
-										.forEach(uc -> {
-											ucStatus.append("\n{Classifier:");
-											ucStatus.append(uc.name);
-											ucStatus.append(", queueSize=");
-											ucStatus.append(uc.wq.size());
-											ucStatus.append(", actCount=");
-											ucStatus.append(uc.exec.getActiveCount());
-											ucStatus.append("}");
-											if (uc.wq.size() > 0 || uc.exec.getActiveCount() > 0)
-												crawlerRunning.set(true);
-										});
+								.forEach(uc -> {
+									ucStatus.append("\n{Classifier:");
+									ucStatus.append(uc.name);
+									ucStatus.append(", queueSize=");
+									ucStatus.append(uc.wq.size());
+									ucStatus.append(", actCount=");
+									ucStatus.append(uc.exec.getActiveCount());
+									ucStatus.append("}");
+									if (uc.wq.size() > 0 || uc.exec.getActiveCount() > 0)
+										crawlerRunning.set(true);
+								});
 						ucStatus.append("\nunhandled.size=");
 						ucStatus.append(unhandledTasks.size());
 						log.debug(ucStatus.toString());
@@ -275,8 +291,8 @@ public class Crawler<CTX extends UrlContext> {
 
 	static boolean isNetworkIssue(Throwable t) {
 		return t instanceof InterruptedIOException
-						|| t instanceof SocketException
-						|| t instanceof UnknownHostException;
+				|| t instanceof SocketException
+				|| t instanceof UnknownHostException;
 	}
 
 	private void storeUnhandledTask(String url, CTX ctx, Throwable t) {
@@ -286,9 +302,9 @@ public class Crawler<CTX extends UrlContext> {
 	}
 
 	private static final Pattern httpExp =
-					Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
+			Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
 	private static final Pattern srcValueExp =
-					Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
+			Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 
 	private class Worker extends UrlCtxHolder<CTX> implements Runnable {
 		private static final long serialVersionUID = 4173253887553156741L;
@@ -324,8 +340,8 @@ public class Crawler<CTX extends UrlContext> {
 
 					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
 						seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
-										.filter(h -> seed.accept(h.url, h.ctx))
-										.forEach(h -> classify(h.url, h.ctx));
+								.filter(h -> seed.accept(h.url, h.ctx))
+								.forEach(h -> classify(h.url, h.ctx));
 					}
 				}
 			} catch (InterruptedIOException | SocketException ex) {
@@ -396,20 +412,20 @@ public class Crawler<CTX extends UrlContext> {
 
 			String entityEncoding = ue.getEntityEncoding().name();
 			return urls.stream()
-							.filter(url -> url.length() > 0)
-							.map(url ->
-											Htmls.urlDecode(url
-															.replace("&amp;", "&")
-															.replace("&lt;", "<")
-															.replace("&gt;", ">")
-															.replace("&quot;", "\""), entityEncoding));
+					.filter(url -> url.length() > 0)
+					.map(url ->
+							Htmls.urlDecode(url
+									.replace("&amp;", "&")
+									.replace("&lt;", "<")
+									.replace("&gt;", ">")
+									.replace("&quot;", "\""), entityEncoding));
 		}
 
 		private boolean isMalformedUrl(Exception ex) {
 			return ex.getCause() instanceof URISyntaxException
-							|| ex instanceof ClientProtocolException
-							|| ex instanceof MalformedURLException
-							;
+					|| ex instanceof MalformedURLException
+					|| ex instanceof IllegalArgumentException
+					;
 		}
 	}
 
@@ -479,15 +495,15 @@ public class Crawler<CTX extends UrlContext> {
 			this.blockChecker = conf.blockChecker;
 
 			exec = new ThreadPoolExecutor(conf.threadPoolSize, conf.threadPoolSize, 15L, TimeUnit.SECONDS, wq,
-							r -> {
-								Thread t = new Thread(r, this.name + "-UrlClassifier-T-" + classifierThreadCount.incrementAndGet());
-								t.setDaemon(true);
-								return t;
-							},
-							(work, executor) -> {
-								Worker w = (Worker) work;
-								storeUnhandledTask(w.url, w.ctx, null);
-							}
+					r -> {
+						Thread t = new Thread(r, this.name + "-UrlClassifier-T-" + classifierThreadCount.incrementAndGet());
+						t.setDaemon(true);
+						return t;
+					},
+					(work, executor) -> {
+						Worker w = (Worker) work;
+						storeUnhandledTask(w.url, w.ctx, null);
+					}
 			);
 			exec.allowCoreThreadTimeOut(true);
 		}
@@ -508,7 +524,7 @@ public class Crawler<CTX extends UrlContext> {
 		 */
 		int getRatePerMinute() {
 			return milliSecStep == 0 ? Integer.MAX_VALUE :
-							Range.within(1, UrlClassifierConf.maxAccRatePM, 60_000 / milliSecStep);
+					Range.within(1, UrlClassifierConf.maxAccRatePM, 60_000 / milliSecStep);
 		}
 
 		void setThreadPoolSize(int size) {
@@ -526,10 +542,10 @@ public class Crawler<CTX extends UrlContext> {
 		void stop() {
 			hca.close();
 			exec.shutdownNow().stream()
-							.forEach(r -> {
-								Worker work = (Worker) r;
-								storeUnhandledTask(work.url, work.ctx, null);
-							});
+					.forEach(r -> {
+						Worker work = (Worker) r;
+						storeUnhandledTask(work.url, work.ctx, null);
+					});
 		}
 
 		/**
@@ -717,7 +733,7 @@ public class Crawler<CTX extends UrlContext> {
 				lastSpeedDown = now;
 				cuCrawler.setRatePerMinute((int) (accPerMinute * 0.66));
 				log.info("{} speed down to APM:{}, networkIssues:{}, blocks:{}, total:{}",
-								cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
+						cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 				return true;
 
 			} else if (isFinalPeriod && networkIssues == 0 && blocks == 0) { // speed up in final period
@@ -728,7 +744,7 @@ public class Crawler<CTX extends UrlContext> {
 					if (accPerMinute < lastWorkAccPerMinute) {
 						cuCrawler.setRatePerMinute(Math.max(5, lastWorkAccPerMinute));
 						log.info("{} speed back to APM:{}, networkIssues:{}, blocks:{}, total:{}",
-										cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
+								cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 					}
 
 				} else {
@@ -736,7 +752,7 @@ public class Crawler<CTX extends UrlContext> {
 					lastWorkAccPerMinute = accPerMinute;
 					cuCrawler.setRatePerMinute((int) (accPerMinute * (1.1 + rand.nextDouble() * 0.4)));
 					log.info("{} speed up to APM:{}, networkIssues:{}, blocks:{}, total:{}",
-									cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
+							cuCrawler.name, cuCrawler.getRatePerMinute(), networkIssues, blocks, total);
 				}
 			}
 

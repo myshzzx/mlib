@@ -3,8 +3,8 @@ package mysh.crawler2.repo;
 import mysh.collect.Pair;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
+import mysh.util.Asserts;
 import mysh.util.FilesUtil;
-import org.apache.http.util.Asserts;
 
 import java.io.File;
 import java.io.IOException;

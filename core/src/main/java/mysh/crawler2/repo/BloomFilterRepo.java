@@ -5,9 +5,9 @@ import com.google.common.hash.Funnels;
 import mysh.collect.Pair;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
+import mysh.util.Asserts;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
-import org.apache.http.util.Asserts;
 
 import java.io.File;
 import java.io.IOException;
