@@ -1,7 +1,5 @@
 package mysh.spring.localcache;
 
-import com.google.common.cache.CacheBuilder;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -53,12 +51,4 @@ public @interface LocalCache {
      * 是否批量 key. 默认 false.
      */
     boolean isMultiKey() default false;
-
-    /**
-     * 并发级别. 默认 4.
-     * 用于控制并发更新操作的线程数, 类似 concurrentHashMap(1.6版本) segment 数量.
-     *
-     * @see CacheBuilder#concurrencyLevel(int)
-     */
-    int concurrencyLevel() default 4;
 }

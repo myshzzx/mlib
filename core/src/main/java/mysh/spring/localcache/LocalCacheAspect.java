@@ -151,7 +151,6 @@ public class LocalCacheAspect {
 				if (cache == null) {
 					Assert.isTrue(conf.writeTimeoutSec() > 0, "本地缓存超时时间要大于0, " + method);
 					Assert.isTrue(conf.maxSize() > 0, "本地缓存最大尺寸要大于0, " + method);
-					Assert.isTrue(conf.concurrencyLevel() > 0, "本地缓存并发级别要大于0, " + method);
 					int timeout = conf.writeTimeoutSec();
 					int timeoutMilli = timeout > 50 * 60 ?
 							timeout * 1000 + rnd.nextInt(600 * 1000)

@@ -1,7 +1,7 @@
 package mysh.sql;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import mysh.codegen.CodeUtil;
 import mysh.codegen.DynamicSql;
 
@@ -10,7 +10,15 @@ import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -37,14 +45,22 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		if (cond.conds != null) {
 			for (Object[] op : cond.conds) {
 				switch ((SqlCondition.Op) op[0]) {
-					case bi: bi((String) op[1], (String) op[2], (String) op[3], op[4]); break;
-					case between: betweenExp((Boolean) op[1], (String) op[2], (String) op[3], op[4], (String) op[5], op[6]); break;
-					case nil: nullExp((Boolean) op[1], (String) op[2]); break;
-					case in: inExp((Boolean) op[1], (String) op[2], (Object[]) op[3]); break;
-					case order: orderByExp((Boolean) op[1], (String) op[2]); break;
-					case group: groupBy((String) op[1]); break;
-					case page: page((Integer) op[1], (Integer) op[2]); break;
-					default: throw new UnsupportedOperationException("undefined op: " + op[0]);
+					case bi:
+						bi((String) op[1], (String) op[2], (String) op[3], op[4]); break;
+					case between:
+						betweenExp((Boolean) op[1], (String) op[2], (String) op[3], op[4], (String) op[5], op[6]); break;
+					case nil:
+						nullExp((Boolean) op[1], (String) op[2]); break;
+					case in:
+						inExp((Boolean) op[1], (String) op[2], (Object[]) op[3]); break;
+					case order:
+						orderByExp((Boolean) op[1], (String) op[2]); break;
+					case group:
+						groupBy((String) op[1]); break;
+					case page:
+						page((Integer) op[1], (Integer) op[2]); break;
+					default:
+						throw new UnsupportedOperationException("undefined op: " + op[0]);
 				}
 			}
 		}
@@ -115,8 +131,8 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		for (Map.Entry<String, Field> fe : modelFields.entrySet()) {
 			Field field = fe.getValue();
 			if ((field.getModifiers() & Modifier.FINAL) > 0
-							|| (field.getModifiers() & Modifier.STATIC) > 0
-							) continue;
+					|| (field.getModifiers() & Modifier.STATIC) > 0
+			) continue;
 
 			Class<?> fieldType = field.getType();
 			if (isBasicType(fieldType)) {
@@ -137,9 +153,9 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	 */
 	private boolean isBasicType(Class<?> type) {
 		return Number.class.isAssignableFrom(type)
-						|| String.class.isAssignableFrom(type)
-						|| Date.class.isAssignableFrom(type)
-						|| type.isPrimitive();
+				|| String.class.isAssignableFrom(type)
+				|| Date.class.isAssignableFrom(type)
+				|| type.isPrimitive();
 	}
 
 	private void setFieldWithProperType(Object model, Field field, Object value) throws IllegalAccessException {
@@ -198,10 +214,10 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		// 初始化缓存
 		for (CacheLevel cl : CacheLevel.values()) {
 			caches.put(cl,
-							CacheBuilder.newBuilder()
-											.maximumSize(1024)
-											.expireAfterWrite(cl.seconds, TimeUnit.SECONDS)
-											.<CacheKey, List<Map<String, Object>>>build()
+					Caffeine.newBuilder()
+							.maximumSize(1024)
+							.expireAfterWrite(cl.seconds, TimeUnit.SECONDS)
+							.build()
 			);
 		}
 	}
@@ -274,11 +290,11 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		if (this.cacheLevel != null) {
 			final String finalSql = sql;
 			result = caches.get(this.cacheLevel)
-							.get(new CacheKey(sql, param, ks), () -> {
-								List<Map<String, Object>> r = jdbc.queryForList(finalSql, param);
-								r = SqlHelper.this.handleResult(r, ks);
-								return r;
-							});
+					.get(new CacheKey(sql, param, ks), ck -> {
+						List<Map<String, Object>> r = jdbc.queryForList(finalSql, param);
+						r = SqlHelper.this.handleResult(r, ks);
+						return r;
+					});
 		} else {
 			result = jdbc.queryForList(sql, param);
 			result = handleResult(result, ks);
@@ -292,7 +308,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 			int noLast = pageNo * pageSize;
 
 			return "SELECT * FROM (SELECT ROWNUM R_, S_.* FROM ("
-							+ sql + " ) S_ WHERE ROWNUM <= " + noLast + " ) WHERE R_ > " + noFirst;
+					+ sql + " ) S_ WHERE ROWNUM <= " + noLast + " ) WHERE R_ > " + noFirst;
 		} else {
 			int noFirst = (pageNo - 1) * pageSize;
 			return sql + " limit " + noFirst + "," + pageSize;
@@ -376,7 +392,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	// ========== create below =============
 	public static SqlHelper create(NamedParamQuery jdbc, String querySql) {
 		return new SqlHelper(jdbc,
-						new StringBuilder(Objects.requireNonNull(querySql, "query sql can't be null")), null);
+				new StringBuilder(Objects.requireNonNull(querySql, "query sql can't be null")), null);
 	}
 
 	public SqlHelper(NamedParamQuery jdbc, StringBuilder cond, Map<String, Object> paramMap) {
