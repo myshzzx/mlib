@@ -117,8 +117,12 @@ public class UIs {
 	 * @throws UnsupportedFlavorException - if the requested DataFlavor is not available
 	 * @throws IOException                - if the data in the requested DataFlavor can not be retrieved
 	 */
-	public static String getSysClipboard() throws IOException, UnsupportedFlavorException {
-		return (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+	public static String getSysClipboard() {
+		try {
+			return (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+		} catch (Exception e){
+			throw new RuntimeException(e);
+		}
 	}
 
 	/**
