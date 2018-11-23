@@ -54,7 +54,7 @@ public final class UrlClassifierConf {
 	/**
 	 * classifier adjuster will be used automatically, if you don't want it, call this.
 	 */
-	public UrlClassifierConf dontUseAdjuster() {
+	public UrlClassifierConf doNotUseAdjuster() {
 		this.useAdjuster = false;
 		return this;
 	}

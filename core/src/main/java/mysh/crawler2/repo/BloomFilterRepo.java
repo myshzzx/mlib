@@ -9,6 +9,7 @@ import mysh.util.Asserts;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.File;
 import java.io.IOException;
 import java.util.Queue;
@@ -19,6 +20,7 @@ import java.util.Queue;
  * @author mysh
  * @since 2016/8/13
  */
+@ThreadSafe
 public class BloomFilterRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	private final File file;
 	private BloomFilter<String> urls;

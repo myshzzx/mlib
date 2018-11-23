@@ -6,6 +6,7 @@ import mysh.crawler2.UrlCtxHolder;
 import mysh.util.Asserts;
 import mysh.util.FilesUtil;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author mysh
  * @since 2016/8/13
  */
+@ThreadSafe
 public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	private final File file;
 	private Set<String> urls;

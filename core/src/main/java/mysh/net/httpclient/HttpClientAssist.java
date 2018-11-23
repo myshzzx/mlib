@@ -279,13 +279,30 @@ public class HttpClientAssist implements Closeable {
 	 * @param headers   请求头, 可为 null
 	 * @param overwrite overwrite exist file or rename new file
 	 * @return write successfully or not
-	 * @throws IOException IO异常
+	 * @throws Exception IO异常
 	 */
-	public boolean saveToFile(
-			String url, Map<String, ?> headers, File file, boolean overwrite, @Nullable Callable<Boolean> stopChk
+	public boolean saveDirectlyToFile(
+			String url, @Nullable Map<String, ?> headers, File file, boolean overwrite, @Nullable Callable<Boolean> stopChk
 	) throws Exception {
 		try (UrlEntity ue = this.access(url, headers)) {
 			return ue.downloadDirectlyToFile(file, overwrite, stopChk);
+		}
+	}
+
+	/**
+	 * download resource to memory then save to file.
+	 *
+	 * @param url       数据文件地址
+	 * @param headers   请求头, 可为 null
+	 * @param overwrite overwrite exist file or rename new file
+	 * @return whether file is overwritten
+	 * @throws Exception IO异常
+	 */
+	public boolean saveToFile(
+			String url, @Nullable Map<String, ?> headers, File file, boolean overwrite
+	) throws IOException {
+		try (UrlEntity ue = this.access(url, headers)) {
+			return ue.saveToFile(file, overwrite);
 		}
 	}
 
@@ -605,6 +622,8 @@ public class HttpClientAssist implements Closeable {
 			}
 
 			downloadEntity2Buf();
+			if (!file.getParentFile().exists())
+				file.getParentFile().mkdirs();
 			FilesUtil.writeFile(file, entityBuf);
 			return true;
 		}
@@ -642,6 +661,8 @@ public class HttpClientAssist implements Closeable {
 
 			File writableFile = overwrite ? file : FilesUtil.getWritableFile(file);
 			File writeFile = new File(writableFile.getPath() + ".~write~");
+			if (!file.getParentFile().exists())
+				file.getParentFile().mkdirs();
 			try (OutputStream out = Files.newOutputStream(writeFile.toPath());
 			     InputStream is = rsp.body().byteStream()) {
 				Thread thread = Thread.currentThread();
