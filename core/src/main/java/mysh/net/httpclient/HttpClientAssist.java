@@ -6,6 +6,7 @@ import mysh.collect.Colls;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
+import okhttp3.Cache;
 import okhttp3.Call;
 import okhttp3.ConnectionPool;
 import okhttp3.FormBody;
@@ -266,6 +267,9 @@ public class HttpClientAssist implements Closeable {
 	@Override
 	public void close() {
 		try {
+			Cache cache = client.cache();
+			if (cache != null)
+				cache.delete();
 			client.connectionPool().evictAll();
 		} catch (Exception e) {
 			log.debug("hca close error", e);
