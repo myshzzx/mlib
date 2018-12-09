@@ -2,13 +2,21 @@ package mysh.util;
 
 import org.apache.commons.codec.binary.Base64;
 
+import javax.annotation.Nullable;
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.AlgorithmParameters;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.NoSuchAlgorithmException;
 import java.security.spec.KeySpec;
 
 /**
@@ -103,9 +111,31 @@ public class AESes {
 	 * @throws Exception
 	 */
 	private static SecretKey genSecretKey(char[] password, byte[] salt, int keySize) throws Exception {
-		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA512");
 		KeySpec spec = new PBEKeySpec(password, salt, 65536, keySize);
 		return new SecretKeySpec(factory.generateSecret(spec).getEncoded(), "AES");
 	}
 
+	public static byte[] encrypt(byte[] content, byte[] key, @Nullable String algorithm, @Nullable byte[] iv)
+			throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+		return doAES(content, key, Cipher.ENCRYPT_MODE, algorithm, iv);
+	}
+
+	public static byte[] decrypt(byte[] content, byte[] key, @Nullable String algorithm, @Nullable byte[] iv)
+			throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+		return doAES(content, key, Cipher.DECRYPT_MODE, algorithm, iv);
+	}
+
+	private static byte[] doAES(byte[] content, byte[] key, int opMode, @Nullable String algorithm, @Nullable byte[] iv)
+			throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+		String algo = Strings.firstNonBlank(algorithm, "AES");
+		Key secretKey = new SecretKeySpec(key, "AES");
+		Cipher cipher = Cipher.getInstance(algo);
+		if (iv == null) {
+			cipher.init(opMode, secretKey);
+		} else {
+			cipher.init(opMode, secretKey, new IvParameterSpec(iv));
+		}
+		return cipher.doFinal(content);
+	}
 }
