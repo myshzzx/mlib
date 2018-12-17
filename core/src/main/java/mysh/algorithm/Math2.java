@@ -76,7 +76,7 @@ public class Math2 {
 		} else {
 			genPrime(factorLimit, get);
 			BlockingQueue<Integer> p = new ArrayBlockingQueue<>(
-							(int) (factorLimit / Math.log(factorLimit) * 1.2));
+					(int) (factorLimit / Math.log(factorLimit) * 1.2));
 			for (int i = 3; i <= factorLimit; i += 2) {
 				if (!get[i]) p.offer(i);
 			}
@@ -284,14 +284,17 @@ public class Math2 {
 	 * @return 十进制数.
 	 */
 	public static long numSysN2Dec(int n, int... nn) {
-		if (n < 2 || nn == null) throw new IllegalArgumentException();
+		if (n < 2 || nn == null)
+			throw new IllegalArgumentException(n + ":" + Arrays.toString(nn));
 		long fac = 1;
 		long dec = 0;
 		long t;
 		for (int i = nn.length - 1; i > -1; i--) {
-			if (nn[i] >= n || nn[i] < 0) throw new IllegalArgumentException();
+			if (nn[i] >= n || nn[i] < 0)
+				throw new IllegalArgumentException(n + ":" + Arrays.toString(nn));
 			t = nn[i] * fac;
-			if (dec > Long.MAX_VALUE - t) throw new RuntimeException("calculation overflow");
+			if (dec > Long.MAX_VALUE - t)
+				throw new RuntimeException("calculation overflow");
 			dec += t;
 			fac *= n;
 		}
@@ -476,7 +479,7 @@ public class Math2 {
 
 			if (a == null || a.length < end || start < 0 || start >= end) {
 				throw new IllegalArgumentException("a=" + Arrays.toString(a)
-								+ ", start=" + start + ", end=" + end);
+						+ ", start=" + start + ", end=" + end);
 			}
 
 			this.a = a;
@@ -484,7 +487,7 @@ public class Math2 {
 			this.end = end;
 			this.handler = handler;
 			this.result = handler != null ?
-							null : new int[Math2.factorial(end - start)][end - start];
+					null : new int[Math2.factorial(end - start)][end - start];
 
 			this.perm(start, end);
 		}
@@ -494,7 +497,7 @@ public class Math2 {
 			if (m == n) {
 				if (result != null)
 					System.arraycopy(this.a, this.start, this.result[this.resultIndex++],
-									0, this.end - this.start);
+							0, this.end - this.start);
 				else {
 					int[] r = new int[this.end - this.start];
 					System.arraycopy(this.a, this.start, r, 0, this.end - this.start);
@@ -567,7 +570,7 @@ public class Math2 {
 				this.a[index] = index;
 
 			this.result = handler != null ?
-							null : new int[Math2.countCombination(this.n, this.i)][this.i];
+					null : new int[Math2.countCombination(this.n, this.i)][this.i];
 
 			this.comb(0, new int[this.i], this.i);
 		}
@@ -577,8 +580,8 @@ public class Math2 {
 			if (remain == 0) {
 				if (result != null)
 					System.arraycopy(tmp, 0,
-									this.result[this.resultCount++], 0,
-									this.i);
+							this.result[this.resultCount++], 0,
+							this.i);
 				else {
 					int[] r = new int[this.i];
 					System.arraycopy(tmp, 0, r, 0, this.i);
@@ -646,20 +649,20 @@ public class Math2 {
 		return valid;
 	}
 
-    public static double cutFloor(double v, double floor) {
-        return v > floor ? v : floor;
-    }
+	public static double cutFloor(double v, double floor) {
+		return v > floor ? v : floor;
+	}
 
-    public static double cutCeil(double v, double ceil) {
-        return v < ceil ? v : ceil;
-    }
+	public static double cutCeil(double v, double ceil) {
+		return v < ceil ? v : ceil;
+	}
 
 	public static byte[] hexStringToByteArray(String s) {
 		int len = s.length();
 		byte[] data = new byte[len / 2];
 		for (int i = 0; i < len; i += 2) {
 			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-					+ Character.digit(s.charAt(i+1), 16));
+					+ Character.digit(s.charAt(i + 1), 16));
 		}
 		return data;
 	}
