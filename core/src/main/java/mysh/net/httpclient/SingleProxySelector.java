@@ -44,4 +44,9 @@ public class SingleProxySelector extends ProxySelector {
 		return new SingleProxySelector(new Proxy(
 				Proxy.Type.HTTP, new InetSocketAddress(host, port)));
 	}
+
+	public static ProxySelector ofSocksProxy(String host, int port) {
+		return new SingleProxySelector(new Proxy(
+				Proxy.Type.SOCKS, new InetSocketAddress(host, port)));
+	}
 }
