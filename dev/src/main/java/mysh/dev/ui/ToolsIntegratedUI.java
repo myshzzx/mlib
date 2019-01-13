@@ -5,10 +5,12 @@
  */
 package mysh.dev.ui;
 
+import javafx.application.Platform;
+import javafx.embed.swing.JFXPanel;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import mysh.dev.codegen.ui.BeanPropCopy2;
-import mysh.dev.codegen.ui.FieldGetSet;
-import mysh.dev.codegen.ui.NameConvert;
-import mysh.dev.encoding.Encoding;
 import mysh.dev.filesearch.FileSearchFrame;
 import mysh.dev.regexp.RegExpTestFrame;
 import mysh.dev.tcpportscanner.TcpPortScannerUI;
@@ -46,24 +48,25 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		} catch (IOException ex) {
 		}
 		initComponents();
+	}
 
-
-//		BeanPropCopy beanPropCopy = new BeanPropCopy();
-//		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
+	private void initCards() {
+		//		BeanPropCopy beanPropCopy = new BeanPropCopy();
+		//		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
 		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
-		this.tabPane.add("属性复制2", beanPropCopy2.getContentPane());
+		this.tabPane.add("属性复制", beanPropCopy2.getContentPane());
 		frames.add(beanPropCopy2);
 
-		FieldGetSet fieldGetSet = new FieldGetSet();
-		this.tabPane.add("GetSet生成", fieldGetSet);
+		// FieldGetSet fieldGetSet = new FieldGetSet();
+		// this.tabPane.add("GetSet生成", fieldGetSet);
 
-		NameConvert nameConvert = new NameConvert();
-		this.tabPane.add("命名转换", nameConvert.getContentPane());
-		frames.add(nameConvert);
+		// NameConvert nameConvert = new NameConvert();
+		// this.tabPane.add("命名转换", nameConvert.getContentPane());
+		// frames.add(nameConvert);
 
-		Encoding encoding = new Encoding();
-		this.tabPane.add("编码转换", encoding.getContentPane());
-		frames.add(encoding);
+		// Encoding encoding = new Encoding();
+		// this.tabPane.add("编码转换", encoding.getContentPane());
+		// frames.add(encoding);
 
 		FileSearchFrame fileSearchFrame = new FileSearchFrame();
 		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
@@ -81,21 +84,38 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
 		frames.add(ffmpegUI);
 
-//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
-//        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
-//
-//        this.tabPane.addChangeListener(new ChangeListener() {
-//            private AtomicBoolean cljStartFlag = new AtomicBoolean(false);
-//
-//            @Override
-//            public void stateChanged(ChangeEvent e) {
-//                if (tabPane.getSelectedComponent() == cljItpPane
-//                        && cljStartFlag.compareAndSet(false, true)) {
-//                    cljIptFrame.startCljThread();
-//                    System.out.println(cljIptFrame.getTitle());
-//                }
-//            }
-//        });
+		loadFxml("counter", "mysh/dev/utils/Counter.fxml");
+		loadFxml("Settings", "mysh/dev/ui/Settings.fxml");
+
+		//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
+		//        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
+		//
+		//        this.tabPane.addChangeListener(new ChangeListener() {
+		//            private AtomicBoolean cljStartFlag = new AtomicBoolean(false);
+		//
+		//            @Override
+		//            public void stateChanged(ChangeEvent e) {
+		//                if (tabPane.getSelectedComponent() == cljItpPane
+		//                        && cljStartFlag.compareAndSet(false, true)) {
+		//                    cljIptFrame.startCljThread();
+		//                    System.out.println(cljIptFrame.getTitle());
+		//                }
+		//            }
+		//        });
+	}
+
+	private void loadFxml(String title, String fxmlPath) {
+		Platform.runLater(() -> {
+			try {
+				Parent node = FXMLLoader.load(getClass().getClassLoader().getResource(fxmlPath));
+				Scene scene = new Scene(node);
+				JFXPanel jfxPanel = new JFXPanel();
+				jfxPanel.setScene(scene);
+				this.tabPane.add(title, jfxPanel);
+			} catch (Exception e) {
+				log.error("load {} error", title, e);
+			}
+		});
 	}
 
 	/**
@@ -116,12 +136,12 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
 		getContentPane().setLayout(layout);
 		layout.setHorizontalGroup(
-						layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 432, Short.MAX_VALUE)
+				layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+						.addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 432, Short.MAX_VALUE)
 		);
 		layout.setVerticalGroup(
-						layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-										.addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 326, Short.MAX_VALUE)
+				layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+						.addComponent(tabPane, javax.swing.GroupLayout.DEFAULT_SIZE, 326, Short.MAX_VALUE)
 		);
 
 		pack();
@@ -131,11 +151,12 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 	 * @param args the command line arguments
 	 */
 	public static void main(String args[]) {
-	      /* Set the Nimbus look and feel */
+		Platform.startup(() -> {});
+		/* Set the Nimbus look and feel */
 		//<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-		    /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
-         */
+		/* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+		 * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
+		 */
 		try {
 			for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
 				if ("Nimbus".equals(info.getName())) {
@@ -154,9 +175,10 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		}
 		//</editor-fold>
 		UIs.resetFont(null);
-        /* Create and display the form */
+		/* Create and display the form */
 		java.awt.EventQueue.invokeLater(() -> {
 			frame = new ToolsIntegratedUI();
+			frame.initCards();
 			frame.addWindowListener(new WindowAdapter() {
 				@Override
 				public void windowClosed(WindowEvent e) {
@@ -169,7 +191,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		});
 	}
 
-	private static ToolsIntegratedUI frame;
+	  static ToolsIntegratedUI frame;
 
 	public static void shutdown() throws IOException {
 		try {
@@ -180,7 +202,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		}
 	}
 
-	private static void exitApp()   {
+	private static void exitApp() {
 		for (JFrame jFrame : frames) {
 			jFrame.dispose();
 		}
