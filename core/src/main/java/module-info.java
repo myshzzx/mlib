@@ -20,6 +20,7 @@ module mlib.core {
 	exports mysh.ui;
 	exports mysh.util;
 	exports mysh.net.httpclient;
+	exports mysh.tulskiy.keymaster.common;
 
 	requires spring.jdbc;
 	requires spring.beans;
@@ -49,11 +50,10 @@ module mlib.core {
 	requires fastjson;
 	requires aspectjrt;
 	requires fst;
-	requires servlet.api;
+	requires javax.servlet.api;
 	requires annotations;
 	requires reflections;
 	requires com.github.benmanes.caffeine;
 	requires okhttp3;
 	requires com.google.common;
-
 }
