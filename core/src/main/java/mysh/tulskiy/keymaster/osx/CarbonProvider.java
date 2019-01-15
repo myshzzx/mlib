@@ -99,7 +99,8 @@ public class CarbonProvider extends Provider {
                     }
                 }
             }
-        });
+        }, "keymaster-handler");
+        thread.setDaemon(true);
 
         thread.start();
     }

@@ -94,7 +94,8 @@ public class WindowsProvider extends Provider {
             }
         };
 
-        thread = new Thread(runnable);
+        thread = new Thread(runnable, "keymaster-handler");
+        thread.setDaemon(true);
         thread.start();
     }
 

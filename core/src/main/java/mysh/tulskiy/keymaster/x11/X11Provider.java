@@ -140,7 +140,8 @@ public class X11Provider extends Provider {
             }
         };
 
-        thread = new Thread(runnable);
+        thread = new Thread(runnable, "keymaster-handler");
+        thread.setDaemon(true);
         thread.start();
     }
 

@@ -28,6 +28,10 @@ public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 		return new UrlCtxHolder<>(url);
 	}
 
+	public static <CTX extends UrlContext> UrlCtxHolder<CTX> of(String url, CTX ctx) {
+		return new UrlCtxHolder<>(url, ctx);
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
