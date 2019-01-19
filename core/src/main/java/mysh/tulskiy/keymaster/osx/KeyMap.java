@@ -22,11 +22,7 @@ import java.awt.event.InputEvent;
 import java.util.HashMap;
 import java.util.Map;
 
-import static mysh.tulskiy.keymaster.osx.Carbon.*;
-import static mysh.tulskiy.keymaster.osx.Carbon.cmdKey;
-import static mysh.tulskiy.keymaster.osx.Carbon.controlKey;
-import static mysh.tulskiy.keymaster.osx.Carbon.optionKey;
-import static mysh.tulskiy.keymaster.osx.Carbon.shiftKey;
+import static com.sun.jna.platform.mac.Carbon.*;
 import static java.awt.event.KeyEvent.*;
 
 /**
