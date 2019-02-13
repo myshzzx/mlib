@@ -9,7 +9,7 @@
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>mlib-graphic</artifactId>
+	<artifactId>mlib-media</artifactId>
 
 	<dependencies>
 		<dependency>
@@ -31,5 +31,10 @@
 			<scope>provided</scope>
 		</dependency>
 
+        <dependency>
+            <groupId>org.openimaj</groupId>
+            <artifactId>image-processing</artifactId>
+	        <scope>provided</scope>
+        </dependency>
 	</dependencies>
 </project>

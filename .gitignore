@@ -1,11 +1,3 @@
-/.idea
-/target
-/mlib.iml
-/core/target
-/core/mlib-core.iml
-/dev/mlib-dev.iml
-/dev/target
-/graphic/target
-/graphic/mlib-graphic.iml
-/cluster/mlib-cluster.iml
-/cluster/target
+.idea
+target
+*.iml
