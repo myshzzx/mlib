@@ -95,16 +95,16 @@ public class SerializationPerformance {
 		times = 1_000_000;
 		Tick tick = Tick.tick(ti.getClass().getSimpleName());
 		ti.s(o, times);
-		tick.nipAndPrint("s");
+		System.out.println(tick.nip());
 
 		System.gc();
 		Thread.sleep(3000);
 
 		tick.reset();
 		ti.ds(o, times);
-		tick.nipAndPrint("ds");
+		System.out.println(tick.nip());
 
-		tick.printNipsTotal();
+		System.out.println(tick.nipsTotal());
 	}
 
 	private static class Java implements TI {

@@ -50,14 +50,14 @@ public class ReflectionTest {
 		t.v = 0;
 		while (n-- > 0)
 			t.f1();
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 
 		tick.reset();
 		n = INVOKE_TIMES;
 		t.v = 0;
 		while (n-- > 0)
 			t.f1();
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 	}
 
 	@Test
@@ -70,14 +70,14 @@ public class ReflectionTest {
 		t.v = 0;
 		while (n-- > 0)
 			t.f2();
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 
 		tick.reset();
 		n = INVOKE_TIMES;
 		t.v = 0;
 		while (n-- > 0)
 			t.f2();
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 	}
 
 	@Test
@@ -111,13 +111,13 @@ public class ReflectionTest {
 		t.v = 0;
 		while (n-- > 0)
 			f.invoke(t);
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 
 		tick.reset();
 		n = INVOKE_TIMES;
 		t.v = 0;
 		while (n-- > 0)
 			f.invoke(t);
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 	}
 }

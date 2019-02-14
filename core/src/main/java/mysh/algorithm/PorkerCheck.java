@@ -22,7 +22,7 @@ public class PorkerCheck {
 		}
 
 		System.out.println();
-		tick.nipAndPrint();
+		System.out.println(tick.nip());
 		System.out.println(c);
 	}
 

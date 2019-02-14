@@ -59,26 +59,26 @@ public class CaptchaTest {
 		tick.reset();
 		while (n-- > 0)
 			bi = captcha.renderWord("faiej");
-		tick.nipAndPrint("renderWord");
+		System.out.println("renderWord " +tick.nip());
 
 		n = count;
 		tick.reset();
 		while (n-- > 0)
 			captcha.makeNoise(bi, .1f, .1f, .9f, .9f);
-		tick.nipAndPrint("makeNoise");
+		System.out.println("makeNoise " +tick.nip());
 
 		n = count;
 		tick.reset();
 		while (n-- > 0)
 			captcha.getDistortedImage(bi);
-		tick.nipAndPrint("getDistortedImage");
+		System.out.println("getDistortedImage " +tick.nip());
 
 		n = count;
 		tick.reset();
 		while (n-- > 0)
 			captcha.addBackground(bi);
-		tick.nipAndPrint("addBackground");
+		System.out.println("addBackground " +tick.nip());
 
-		tick.printNipsTotal();
+		System.out.println(tick.nipsTotal());
 	}
 }
