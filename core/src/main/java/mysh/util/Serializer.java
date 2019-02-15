@@ -168,8 +168,9 @@ public interface Serializer {
                 fo.writeObject(obj);
                 byte[] buf = fo.getCopyOfWrittenBuffer();
 
-                if (fo.getBuffer().length > BUF_LIMIT)
+                if (fo.getBuffer().length > BUF_LIMIT) {
                     fo.resetForReUse(getProperBuf());
+                }
                 return buf;
             } catch (IOException e) {
                 throw Exps.unchecked(e);
@@ -191,8 +192,9 @@ public interface Serializer {
                 fo.writeObject(obj);
                 fo.flush();
 
-                if (fo.getBuffer().length > BUF_LIMIT)
+                if (fo.getBuffer().length > BUF_LIMIT) {
                     fo.resetForReUse(getProperBuf());
+                }
                 c.getObjectOutput(emptyOut);
             } catch (IOException e) {
                 throw Exps.unchecked(e);
@@ -208,8 +210,9 @@ public interface Serializer {
                         c.getObjectInput(b, length) : c.getObjectInputCopyFrom(b, offset, length);
                 T obj = (T) fi.readObject();
 
-                if (length > BUF_LIMIT)
+                if (length > BUF_LIMIT) {
                     fi.resetForReuseUseArray(getProperBuf());
+                }
                 return obj;
             } catch (Exception e) {
                 throw Exps.unchecked(e);
@@ -226,8 +229,9 @@ public interface Serializer {
                 FSTObjectInput fi = c.getObjectInput(is);
                 T obj = (T) fi.readObject();
 
-                if (fi.getCodec().getBuffer().length > BUF_LIMIT)
+                if (fi.getCodec().getBuffer().length > BUF_LIMIT) {
                     fi.resetForReuseUseArray(getProperBuf());
+                }
                 c.getObjectInput(emptyIn);
                 return obj;
             } catch (Exception e) {
