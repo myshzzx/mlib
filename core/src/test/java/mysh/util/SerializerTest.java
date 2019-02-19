@@ -78,14 +78,14 @@ public class SerializerTest {
 		Serializable[] os = new Serializable[]{"mysh zzx", 1, 'c', new T(234)};
 
 		for (Serializable o : os) {
-			Serializer.buildIn.serialize(o, out);
+			Serializer.BUILD_IN.serialize(o, out);
 		}
 
 		byte[] buf = out.toByteArray();
 		InputStream in = new ByteArrayInputStream(buf);
 
 		for (Object o : os) {
-			Object obj = Serializer.buildIn.deserialize(in);
+			Object obj = Serializer.BUILD_IN.deserialize(in);
 			Assert.assertEquals(o, obj);
 		}
 	}
@@ -124,12 +124,12 @@ public class SerializerTest {
 		OutputStream out = new ByteArrayOutputStream();
 
 		int[] bigObj = new int[25_000_000];
-//		Serializer.fst.serialize(bigObj, out);
+//		Serializer.FST.serialize(bigObj, out);
 
-		byte[] buf = Serializer.fst.serialize(bigObj);
-		Serializer.fst.deserialize(new ByteArrayInputStream(buf));
-		Serializable obj = Serializer.fst.deserialize(buf);
-//		buf = Serializer.fst.serialize(bigObj);
+		byte[] buf = Serializer.FST.serialize(bigObj);
+		Serializer.FST.deserialize(new ByteArrayInputStream(buf));
+		Serializable obj = Serializer.FST.deserialize(buf);
+//		buf = Serializer.FST.serialize(bigObj);
 
 		buf = null;
 		bigObj = null;
@@ -151,7 +151,7 @@ public class SerializerTest {
 		}
 
 		int n = 30;
-		Serializer s = Serializer.fst;
+		Serializer s = Serializer.FST;
 		byte[] b; ByteArrayOutputStream buf;
 		Serializable ds1; long[] ds2;
 		while (n-- > 0) {

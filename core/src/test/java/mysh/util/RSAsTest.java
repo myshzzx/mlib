@@ -28,7 +28,7 @@ public class RSAsTest {
 	@Before
 	public void init() throws IOException, NoSuchAlgorithmException, BadPaddingException, NoSuchPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
 		KPair kp = genKeyPair(1034);
-		kPairByte = Serializer.buildIn.serialize(kp);
+		kPairByte = Serializer.BUILD_IN.serialize(kp);
 
 		assertEquals(kp.getRSAPubKey().getModulus(), trans(kp.getPubKey()).getModulus());
 		assertEquals(kp.getRSAPubKey().getPublicExponent(), trans(kp.getPubKey()).getPublicExponent());
@@ -43,7 +43,7 @@ public class RSAsTest {
 	}
 
 	private KPair getKPair() throws IOException, ClassNotFoundException {
-		return Serializer.buildIn.deserialize(kPairByte, null);
+		return Serializer.BUILD_IN.deserialize(kPairByte, null);
 	}
 
 	@Test

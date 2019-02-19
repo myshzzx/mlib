@@ -68,7 +68,7 @@ public interface Serializer {
     /**
      * java build-in serializer.
      */
-    Serializer buildIn = new Serializer() {
+    Serializer BUILD_IN = new Serializer() {
 
         public byte[] serialize(Serializable obj) {
             ByteArrayOutputStream arrOut = new ByteArrayOutputStream();
@@ -136,7 +136,7 @@ public interface Serializer {
      * fast-serialization.
      * 由于不同版本序列化数据无法兼容, 故需要长时间保存的序列化数据不可使用此序列化器, 以免 fst 版本升级后无法处理旧数据.
      */
-    Serializer fst = new Serializer() {
+    Serializer FST = new Serializer() {
         private ThreadLocal<FSTConfiguration> coder = new ThreadLocal<>();
         private ThreadLocal<byte[]> properBuf = new ThreadLocal<>();
 
