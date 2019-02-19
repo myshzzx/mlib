@@ -5,7 +5,15 @@ import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -187,16 +195,8 @@ public interface Serializer {
         @Override
         public void serialize(Serializable obj, OutputStream out) {
             try {
-                FSTConfiguration c = getCoder();
-                FSTObjectOutput fo = c.getObjectOutput(out);
-                fo.writeObject(obj);
-                fo.flush();
-
-                if (fo.getBuffer().length > BUF_LIMIT) {
-                    fo.resetForReUse(getProperBuf());
-                }
-                c.getObjectOutput(emptyOut);
-            } catch (IOException e) {
+                BUILD_IN.serialize(serialize(obj), out);
+            } catch (Exception e) {
                 throw Exps.unchecked(e);
             }
         }
@@ -219,21 +219,13 @@ public interface Serializer {
             }
         }
 
-        ByteArrayInputStream emptyIn = new ByteArrayInputStream(new byte[0]);
-
         @SuppressWarnings("unchecked")
         public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
             FSTConfiguration c = getCoder();
             c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
             try {
-                FSTObjectInput fi = c.getObjectInput(is);
-                T obj = (T) fi.readObject();
-
-                if (fi.getCodec().getBuffer().length > BUF_LIMIT) {
-                    fi.resetForReuseUseArray(getProperBuf());
-                }
-                c.getObjectInput(emptyIn);
-                return obj;
+                byte[] buf = BUILD_IN.deserialize(is);
+                return (T) deserialize(buf, cl);
             } catch (Exception e) {
                 throw Exps.unchecked(e);
             }
