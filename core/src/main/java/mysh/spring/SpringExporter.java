@@ -2,6 +2,7 @@ package mysh.spring;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import mysh.util.Exps;
 import mysh.util.Serializer;
 import mysh.util.Strings;
 import okhttp3.OkHttpClient;
@@ -143,7 +144,7 @@ public class SpringExporter implements ApplicationContextAware {
                                 SERIALIZER.serialize(r, out);
                             }
                         } catch (Throwable e) {
-                            if (!(e instanceof IOException)) {
+                            if (Exps.isCausedBy(e, IOException.class) == null) {
                                 log.error("SpringExporter-invoke-error", e);
                             }
                         } finally {
