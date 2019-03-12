@@ -95,7 +95,7 @@ public class SpringExporter implements ApplicationContextAware {
 
         void setResult(Object result) {
             try {
-                value = SERIALIZER.serialize((Serializable) result);
+                value = SERIALIZER.serialize(result);
             } catch (Exception e) {
                 setJsonResult(result);
             }

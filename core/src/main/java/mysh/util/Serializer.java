@@ -13,7 +13,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.Objects;
 
 /**
@@ -29,19 +28,19 @@ public interface Serializer {
     /**
      * serialize object to byte array.
      */
-    byte[] serialize(Serializable obj);
+    byte[] serialize(Object obj);
 
-    byte[] serialize(Serializable obj, int bufSize);
+    byte[] serialize(Object obj, int bufSize);
 
     /**
      * serialize object to output stream.
      */
-    void serialize(Serializable obj, OutputStream out);
+    void serialize(Object obj, OutputStream out);
 
     /**
      * deserialize obj from buf using default class loader.
      */
-    default <T extends Serializable> T deserialize(byte[] buf) {
+    default <T> T deserialize(byte[] buf) {
         return deserialize(buf, 0, buf.length, null);
     }
 
@@ -50,7 +49,7 @@ public interface Serializer {
      *
      * @param cl nullable
      */
-    default <T extends Serializable> T deserialize(byte[] buf, @Nullable ClassLoader cl) {
+    default <T> T deserialize(byte[] buf, @Nullable ClassLoader cl) {
         return deserialize(buf, 0, buf.length, cl);
     }
 
@@ -59,39 +58,39 @@ public interface Serializer {
      *
      * @param cl nullable
      */
-    <T extends Serializable> T deserialize(byte[] buf, int offset, int length, @Nullable ClassLoader cl);
+    <T> T deserialize(byte[] buf, int offset, int length, @Nullable ClassLoader cl);
 
     /**
      * deserialize obj from input stream.
      *
      * @param cl nullable
      */
-    <T extends Serializable> T deserialize(InputStream is, ClassLoader cl);
+    <T> T deserialize(InputStream is, ClassLoader cl);
 
     /**
      * deserialize obj from input stream.
      */
-    <T extends Serializable> T deserialize(InputStream is);
+    <T> T deserialize(InputStream is);
 
     /**
      * java build-in serializer.
      */
     Serializer BUILD_IN = new Serializer() {
 
-        public byte[] serialize(Serializable obj) {
+        public byte[] serialize(Object obj) {
             ByteArrayOutputStream arrOut = new ByteArrayOutputStream();
             serialize(obj, arrOut);
             return arrOut.toByteArray();
         }
 
         @Override
-        public byte[] serialize(Serializable obj, int bufSize) {
+        public byte[] serialize(Object obj, int bufSize) {
             ByteArrayOutputStream arrOut = new ByteArrayOutputStream(bufSize);
             serialize(obj, arrOut);
             return arrOut.toByteArray();
         }
 
-        public void serialize(Serializable obj, OutputStream out) {
+        public void serialize(Object obj, OutputStream out) {
             try {
                 ObjectOutputStream oos = new ObjectOutputStream(out);
                 oos.writeObject(obj);
@@ -101,7 +100,7 @@ public interface Serializer {
             }
         }
 
-        public <T extends Serializable> T deserialize(byte[] buf, int offset, int length, ClassLoader cl) {
+        public <T> T deserialize(byte[] buf, int offset, int length, ClassLoader cl) {
             Objects.requireNonNull(buf);
 
             ByteArrayInputStream bis = new ByteArrayInputStream(buf, offset, length);
@@ -109,7 +108,7 @@ public interface Serializer {
         }
 
         @SuppressWarnings("unchecked")
-        public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+        public <T> T deserialize(InputStream is, ClassLoader cl) {
             try {
                 CustObjIS in = new CustObjIS(is, cl);
                 return (T) in.readObject();
@@ -118,7 +117,7 @@ public interface Serializer {
             }
         }
 
-        public <T extends Serializable> T deserialize(InputStream is) {
+        public <T> T deserialize(InputStream is) {
             return deserialize(is, null);
         }
     };
@@ -170,7 +169,7 @@ public interface Serializer {
         int BUF_LIMIT = 500_000;
 
         @Override
-        public byte[] serialize(Serializable obj) {
+        public byte[] serialize(Object obj) {
             try {
                 FSTObjectOutput fo = getCoder().getObjectOutput();
                 fo.writeObject(obj);
@@ -186,14 +185,14 @@ public interface Serializer {
         }
 
         @Override
-        public byte[] serialize(Serializable obj, int bufSize) {
+        public byte[] serialize(Object obj, int bufSize) {
             return serialize(obj);
         }
 
         final ByteArrayOutputStream emptyOut = new ByteArrayOutputStream();
 
         @Override
-        public void serialize(Serializable obj, OutputStream out) {
+        public void serialize(Object obj, OutputStream out) {
             try {
                 BUILD_IN.serialize(serialize(obj), out);
             } catch (Exception e) {
@@ -202,7 +201,7 @@ public interface Serializer {
         }
 
         @SuppressWarnings("unchecked")
-        public <T extends Serializable> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
+        public <T> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
             try {
                 FSTConfiguration c = getCoder();
                 c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
@@ -220,7 +219,7 @@ public interface Serializer {
         }
 
         @SuppressWarnings("unchecked")
-        public <T extends Serializable> T deserialize(InputStream is, ClassLoader cl) {
+        public <T> T deserialize(InputStream is, ClassLoader cl) {
             FSTConfiguration c = getCoder();
             c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
             try {
@@ -231,7 +230,7 @@ public interface Serializer {
             }
         }
 
-        public <T extends Serializable> T deserialize(InputStream is) {
+        public <T> T deserialize(InputStream is) {
             return deserialize(is, null);
         }
     };
