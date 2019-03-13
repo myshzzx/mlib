@@ -88,7 +88,7 @@ public class FilesUtil {
             MappedByteBuffer fileMap = fileChannel.map(FileChannel.MapMode.READ_WRITE, 0, file.length());
             byte[] buf = new byte[(int) file.length()];
             fileMap.get(buf);
-            T obj = Serializer.buildIn.deserialize(buf, null);
+            T obj = Serializer.BUILD_IN.deserialize(buf, null);
             log.debug("load object from file: " + file);
             return obj;
         } finally {
@@ -287,7 +287,7 @@ public class FilesUtil {
         file.getAbsoluteFile().getParentFile().mkdirs();
         File writeFile = getWriteFile(file);
         try (FileOutputStream out = new FileOutputStream(writeFile)) {
-            Compresses.compress("d", new ByteArrayInputStream(Serializer.buildIn.serialize(obj)),
+            Compresses.compress("d", new ByteArrayInputStream(Serializer.BUILD_IN.serialize(obj)),
                     Long.MAX_VALUE, out, 100_000);
         }
         file.delete();
@@ -308,7 +308,7 @@ public class FilesUtil {
         try (FileOutputStream out = new FileOutputStream(writeFile)) {
             AtomicReference<RunnableFuture<Object>> r = new AtomicReference<>();
             try (OutputStream dataOut = Compresses.getCompressOutputStream("d", out, 1000_000, r)) {
-                Serializer.buildIn.serialize((Serializable) obj, dataOut);
+                Serializer.BUILD_IN.serialize((Serializable) obj, dataOut);
             }
             r.get().get();
         }
@@ -325,7 +325,7 @@ public class FilesUtil {
     public static <T extends Serializable> T decompressFile(File file) throws IOException {
         AtomicReference<T> result = new AtomicReference<>();
         try (FileInputStream in = new FileInputStream(file)) {
-            Compresses.deCompress((entry, ein) -> result.set(Serializer.buildIn.deserialize(ein)), in);
+            Compresses.deCompress((entry, ein) -> result.set(Serializer.BUILD_IN.deserialize(ein)), in);
             return result.get();
         }
     }
@@ -347,7 +347,7 @@ public class FilesUtil {
                 } catch (IOException e) {
                     log.error("read-file-error", e);
                 }
-                T o = Serializer.buildIn.deserialize(out.toByteArray());
+                T o = Serializer.BUILD_IN.deserialize(out.toByteArray());
                 result.set(o);
             }, in);
         }

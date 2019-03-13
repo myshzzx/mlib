@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
  */
 public class TestController {
 	private static final Logger log = LoggerFactory.getLogger(TestController.class);
-	public static Serializer SERIALIZER = Serializer.buildIn;
+	public static Serializer SERIALIZER = Serializer.BUILD_IN;
 
 	@Autowired
 	private SpringExporter springExporter;

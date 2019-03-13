@@ -27,7 +27,7 @@ import java.util.Map;
 public class RpcUtil {
     private static final Logger log = LoggerFactory.getLogger(RpcUtil.class);
     public static final int THRIFT_MAX_FRAME_SIZE = 100_000_000;
-    public static final Serializer s = Serializer.fst;
+    public static final Serializer s = Serializer.FST;
 
     public static void startTServer(TServer s) {
         Thread t = new Thread("thrift-server-holder") {

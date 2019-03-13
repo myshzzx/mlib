@@ -70,15 +70,15 @@ public class SerializationPerformance {
 		tt.name = "test";
 
 		// common test
-		byte[] bb = Serializer.fst.serialize(tt);
-		TC ftt = Serializer.fst.deserialize(bb);
+		byte[] bb = Serializer.FST.serialize(tt);
+		TC ftt = Serializer.FST.deserialize(bb);
 		Assert.assertEquals(tt.name, ftt.name);
 
 		// lambda test
 		String msg = "ok";
 		Serializable r = (Runnable & Serializable) () -> System.out.println(msg);
-		bb = Serializer.fst.serialize(r);
-		Runnable ft = Serializer.fst.deserialize(bb);
+		bb = Serializer.FST.serialize(r);
+		Runnable ft = Serializer.FST.deserialize(bb);
 		ft.run();
 		System.out.println(Base64.getEncoder().encodeToString(bb));
 	}
@@ -111,12 +111,12 @@ public class SerializationPerformance {
 
 		public void s(Serializable o, int times) throws Exception {
 			while (times-- > 0)
-				tb = Serializer.buildIn.serialize(o);
+				tb = Serializer.BUILD_IN.serialize(o);
 		}
 
 		public void ds(Serializable o, int times) throws Exception {
 			while (times-- > 0)
-				o = Serializer.buildIn.deserialize(tb);
+				o = Serializer.BUILD_IN.deserialize(tb);
 		}
 
 	}
