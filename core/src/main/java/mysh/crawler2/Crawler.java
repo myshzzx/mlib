@@ -68,14 +68,6 @@ public class Crawler<CTX extends UrlContext> {
 	private final Queue<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
 
 	/**
-	 * create a crawler with seed and http-client config.
-	 * speed auto adjusting is enabled by default.
-	 */
-	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc) throws Exception {
-		this(seed, hcc, Integer.MAX_VALUE, 5);
-	}
-
-	/**
 	 * create a crawler with seed , http-client config and maximum access rate per minute.
 	 * speed auto adjusting is enabled by default.
 	 */
