@@ -256,12 +256,12 @@ public class SpringExporter implements ApplicationContextAware {
         return (T) enhancer.create();
     }
 
-    public static String serveHttp(SpringExporter springExporter, HttpServletRequest req, HttpServletResponse rsp) {
+    public String serveHttp(HttpServletRequest req, HttpServletResponse rsp) {
         try {
             String ivStr = req.getHeader("invoke");
             SpringExporter.Invoke iv = SpringExporter.SERIALIZER.deserialize(Base64.getDecoder().decode(ivStr));
             log.info("serveHttp-invoke-iv,iv={},tid={}", iv, Thread.currentThread().getId());
-            SpringExporter.Result r = springExporter.invoke(iv);
+            SpringExporter.Result r = this.invoke(iv);
             String result = Base64.getEncoder().encodeToString(SpringExporter.SERIALIZER.serialize(r));
             rsp.setHeader("r", result);
             return "done";
