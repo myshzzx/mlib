@@ -1,7 +1,6 @@
 package mysh.spring;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import mysh.util.Exps;
 import mysh.util.Serializer;
 import mysh.util.Strings;
@@ -17,6 +16,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.Nullable;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -243,12 +244,30 @@ public class SpringExporter implements ApplicationContextAware {
                         }
                     }
                     try (Response rsp = client.newCall(rb.build()).execute()) {
-                        JSONObject rj = JSON.parseObject(rsp.body().string(), JSONObject.class);
-                        Result r = SERIALIZER.deserialize(Base64.getDecoder().decode(rj.getString("response")));
-                        return r.getResult();
+                        String result = rsp.header("r");
+                        if (Strings.isBlank(result)) {
+                            throw new RuntimeException("check server log for exp info");
+                        } else {
+                            Result r = SERIALIZER.deserialize(Base64.getDecoder().decode(result));
+                            return r.getResult();
+                        }
                     }
                 });
         return (T) enhancer.create();
     }
-}
 
+    public static String serveHttp(SpringExporter springExporter, HttpServletRequest req, HttpServletResponse rsp) {
+        try {
+            String ivStr = req.getHeader("invoke");
+            SpringExporter.Invoke iv = SpringExporter.SERIALIZER.deserialize(Base64.getDecoder().decode(ivStr));
+            log.info("serveHttp-invoke-iv,iv={},tid={}", iv, Thread.currentThread().getId());
+            SpringExporter.Result r = springExporter.invoke(iv);
+            String result = Base64.getEncoder().encodeToString(SpringExporter.SERIALIZER.serialize(r));
+            rsp.setHeader("r", result);
+            return "done";
+        } catch (Exception e) {
+            log.error("serveHttp-invoke-err", e);
+            return "exp";
+        }
+    }
+}
