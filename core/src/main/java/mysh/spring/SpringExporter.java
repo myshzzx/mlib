@@ -17,7 +17,6 @@ import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.Nullable;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -256,18 +255,16 @@ public class SpringExporter implements ApplicationContextAware {
         return (T) enhancer.create();
     }
 
-    public String serveHttp(HttpServletRequest req, HttpServletResponse rsp) {
+    public String serveHttp(HttpServletRequest req) {
         try {
             String ivStr = req.getHeader("invoke");
             SpringExporter.Invoke iv = SpringExporter.SERIALIZER.deserialize(Base64.getDecoder().decode(ivStr));
             log.info("serveHttp-invoke-iv,iv={},tid={}", iv, Thread.currentThread().getId());
             SpringExporter.Result r = this.invoke(iv);
-            String result = Base64.getEncoder().encodeToString(SpringExporter.SERIALIZER.serialize(r));
-            rsp.setHeader("r", result);
-            return "done";
+            return Base64.getEncoder().encodeToString(SpringExporter.SERIALIZER.serialize(r));
         } catch (Exception e) {
             log.error("serveHttp-invoke-err", e);
-            return "exp";
+            return "";
         }
     }
 }
