@@ -171,7 +171,7 @@ public class SpringExporter implements ApplicationContextAware {
             r.setResult(value);
         } catch (Throwable t) {
             r.t = t;
-            log.error("{}-invoke-error,invoke={}", SpringExporter.class.getName(), JSON.toJSONString(iv), t);
+            log.error("SpringExporter-invoke-error,invoke={}", JSON.toJSONString(iv), t);
         }
         return r;
     }
@@ -243,7 +243,7 @@ public class SpringExporter implements ApplicationContextAware {
                         }
                     }
                     try (Response rsp = client.newCall(rb.build()).execute()) {
-                        String result = rsp.header("r");
+                        String result = rsp.body().string();
                         if (Strings.isBlank(result)) {
                             throw new RuntimeException("check server log for exp info");
                         } else {
