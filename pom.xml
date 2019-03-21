@@ -263,6 +263,9 @@
 				<version>1.18.4.0</version>
 			</plugin>
 
+			<plugin>
+				<artifactId>maven-dependency-plugin</artifactId>
+			</plugin>
 		</plugins>
 	</build>
 
