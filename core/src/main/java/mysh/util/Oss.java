@@ -133,7 +133,17 @@ public class Oss {
 	 * @param inheritIO inherit current process IO, then child process will output to current process.
 	 */
 	public static Process executeCmd(String cmd, boolean inheritIO) throws IOException {
-		log.debug("executeCmd: {}", cmd);
+		return executeCmd(cmd, inheritIO, true);
+	}
+
+	/**
+	 * execute a cmd without waiting for termination.
+	 *
+	 * @param inheritIO inherit current process IO, then child process will output to current process.
+	 */
+	public static Process executeCmd(String cmd, boolean inheritIO, boolean printLog) throws IOException {
+		if (printLog)
+			log.debug("executeCmd: {}", cmd);
 
 		StringTokenizer st = new StringTokenizer(cmd);
 		String[] cmdArray = new String[st.countTokens()];
@@ -254,7 +264,7 @@ public class Oss {
 		String wmicGetProcs = "wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize";
 		if (fetchCmdLine)
 			wmicGetProcs += ",CommandLine";
-		Process p = executeCmd(wmicGetProcs, false);
+		Process p = executeCmd(wmicGetProcs, false, false);
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
 			String header = reader.readLine();
 			String[] cols = header.split("\\s+");
