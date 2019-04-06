@@ -38,6 +38,7 @@ public class FFmpegs {
 	private String overwrite = "";
 	private String hardwareAccelerate = "";
 	private String input = "";
+	private String streams = " -map 0:v -map 0:a -map 0:s? -c:s copy";
 	private String videoOptions = " -c:v copy";
 	private String videoFrameRate = "";
 	private String audioOptions = " -c:a copy";
@@ -160,7 +161,7 @@ public class FFmpegs {
 	public FFmpegs threads(int t) {
 		if (t < 1)
 			throw new IllegalArgumentException("threads should be positive");
-//		threads = " -threads " + t;
+		//		threads = " -threads " + t;
 		return this;
 	}
 
@@ -184,6 +185,7 @@ public class FFmpegs {
 				+ input
 				+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
 				+ (Strings.isNotBlank(to) ? " -to " + to : "")
+				+ streams
 				+ videoOptions
 				+ videoFrameRate
 				+ audioOptions
