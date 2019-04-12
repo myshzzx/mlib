@@ -115,4 +115,29 @@
 		</dependency>
 	</dependencies>
 
+	<profiles>
+		<profile>
+			<id>build_AppContainer</id>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-assembly-plugin</artifactId>
+						<version>3.1.0</version>
+						<configuration>
+							<finalName>AppContainer</finalName>
+							<archive>
+								<manifest>
+									<mainClass>mysh.appcontainer.AppContainer</mainClass>
+								</manifest>
+							</archive>
+							<descriptorRefs>
+								<descriptorRef>jar-with-dependencies</descriptorRef>
+							</descriptorRefs>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
