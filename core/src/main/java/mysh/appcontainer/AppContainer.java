@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * NOTICE that, the META-INF/MANIFEST.MF should be inside jar files and declares the main class,
  * so the AppContainer can start the app.
  * <p></p>
- *
+ * <p>
  * usage example:  echo "c:/xxx.jar" param1 param2 | nc localhost 12345
  */
 public class AppContainer {
@@ -65,7 +65,7 @@ public class AppContainer {
 
 		consoleHelper.startMonitor();
 		singleAcLoader = useSingleClassLoader ?
-						new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
+				new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
 
 		Socket accept;
 		while ((accept = sock.accept()) != null) {
@@ -110,7 +110,7 @@ public class AppContainer {
 				urls.add(new URL("jar:file:///" + file + "!/"));
 			}
 			AcLoader cl = new AcLoader(urls.toArray(new URL[urls.size()]),
-							AppContainer.class.getClassLoader().getParent());
+					AppContainer.class.getClassLoader().getParent());
 
 			// look for main class name
 			String mainClass = null, line;
@@ -131,9 +131,7 @@ public class AppContainer {
 
 			if (singleAcLoader != null) {
 				cl.close();
-				synchronized (singleAcLoader) {
-					singleAcLoader.addURLs(urls);
-				}
+				singleAcLoader.addURLs(urls);
 				cl = singleAcLoader;
 			}
 			AcLoader appLoader = cl;
@@ -149,15 +147,15 @@ public class AppContainer {
 
 					long id = appCount.incrementAndGet();
 					apps.put(id, new AppInfo(appLoader, id, cmd,
-									() -> {
-										try {
-											shutdownMethod.setAccessible(true);
-											shutdownMethod.invoke(clazz);
-											appLoader.close();
-										} catch (Exception e) {
-											log.error("shutdown " + clazz.getName() + " error", e);
-										}
-									}));
+							() -> {
+								try {
+									shutdownMethod.setAccessible(true);
+									shutdownMethod.invoke(clazz);
+									appLoader.close();
+								} catch (Exception e) {
+									log.error("shutdown " + clazz.getName() + " error", e);
+								}
+							}));
 					params.remove(0);
 					mainMethod.invoke(clazz, new Object[]{params.toArray(new String[params.size()])});
 				} else {
@@ -188,8 +186,8 @@ public class AppContainer {
 									acLoaders.add((AcLoader) cl);
 							}
 							apps.values().stream()
-											.filter(appInfo -> !acLoaders.contains(appInfo.cl))
-											.forEach(appInfo -> apps.remove(appInfo.id));
+									.filter(appInfo -> !acLoaders.contains(appInfo.cl))
+									.forEach(appInfo -> apps.remove(appInfo.id));
 						} catch (InterruptedException e) {
 							return;
 						} catch (Exception e) {
@@ -269,8 +267,17 @@ public class AppContainer {
 			super(urls, parent);
 		}
 
-		public void addURLs(ArrayList<URL> urls) {
-			urls.stream().forEach(this::addURL);
+		public synchronized void addURLs(ArrayList<URL> urls) {
+			URL[] oldUrls = getURLs();
+			CHECK:
+			for (URL url : new HashSet<>(urls)) {
+				for (URL oldUrl : oldUrls) {
+					if (Objects.equals(url, oldUrl)) {
+						continue CHECK;
+					}
+				}
+				this.addURL(url);
+			}
 		}
 
 		@Override

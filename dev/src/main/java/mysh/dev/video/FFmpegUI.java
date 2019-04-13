@@ -5,6 +5,7 @@
  */
 package mysh.dev.video;
 
+import javax.swing.*;
 import javax.swing.text.JTextComponent;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
@@ -65,13 +66,19 @@ public class FFmpegUI extends javax.swing.JFrame {
                         List files = (List) (tr.getTransferData(DataFlavor.javaFileListFlavor));
                         for (Object fo : files) {
                             File f = (File) fo;
-                            jText.setText(jText.getText() + f.getAbsolutePath() + '\n');
+                            if(jText instanceof JTextField)
+                                jText.setText(f.getAbsolutePath());
+                            else
+                                jText.setText(jText.getText() + f.getAbsolutePath() + '\n');
                         }
                         dtde.dropComplete(true);
                     } else if (dtde.isDataFlavorSupported(DataFlavor.stringFlavor)) {
                         dtde.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
                         String text = (String) tr.getTransferData(DataFlavor.stringFlavor);
-                        jText.setText(jText.getText() + text + '\n');
+                        if(jText instanceof JTextField)
+                            jText.setText(text);
+                        else
+                            jText.setText(jText.getText() + text + '\n');
                     } else {
                         dtde.rejectDrop();
                     }
