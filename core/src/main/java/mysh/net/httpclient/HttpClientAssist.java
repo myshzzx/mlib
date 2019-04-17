@@ -398,14 +398,16 @@ public class HttpClientAssist implements Closeable {
 	}
 
 	/**
-	 * parse headers string in lines
+	 * parse headers string in lines.
+     * ignore <code>accept-encoding</code> to avoid unusual data (e.g. gzip) return
 	 */
 	public static Map<String, String> parseHeaders(String headerStr) {
 		if (Strings.isNotBlank(headerStr)) {
 			Map<String, String> hm = Maps.newHashMap();
 			for (String line : headerStr.split("[\\r\\n]+")) {
 				String[] header = line.split(": *", 2);
-				hm.put(header[0], header[1]);
+                if (!header[0].equalsIgnoreCase("accept-encoding"))
+					hm.put(header[0], header[1]);
 			}
 			return hm;
 		} else {
