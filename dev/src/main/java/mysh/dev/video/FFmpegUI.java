@@ -194,9 +194,10 @@ public class FFmpegUI extends javax.swing.JFrame {
         hwAccelChk.setSelected(true);
         hwAccelChk.setText("hw accelerate");
 
+        monoChk.setSelected(true);
         monoChk.setText("mono");
 
-        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(24, 0, 51, 1));
+        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(26, 0, 51, 1));
         crfSpinner.setToolTipText("0:lossless, 51:worst");
 
         jLabel1.setText("h265-crf =");
