@@ -2,9 +2,13 @@
 
 <?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
 
-<AnchorPane prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mysh.dev.ui.Settings">
+<AnchorPane prefHeight="418.0" prefWidth="676.0" xmlns="http://javafx.com/javafx/8.0.172-ea" xmlns:fx="http://javafx.com/fxml/1" fx:controller="mysh.dev.ui.Settings">
    <children>
-      <CheckBox fx:id="alwaysOnTopChk" layoutX="24.0" layoutY="32.0" mnemonicParsing="false" onAction="#alwaysOnTop" text="Always On Top" />
+      <CheckBox fx:id="alwaysOnTopChk" layoutX="24.0" layoutY="32.0" mnemonicParsing="false" onAction="#alwaysOnTop" text="Always On Top">
+         <font>
+            <Font name="PingFang SC Medium" size="24.0" />
+         </font></CheckBox>
    </children>
 </AnchorPane>
