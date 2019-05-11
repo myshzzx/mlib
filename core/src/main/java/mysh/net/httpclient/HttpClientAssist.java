@@ -1,5 +1,6 @@
 package mysh.net.httpclient;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
@@ -21,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.Closeable;
 import java.io.File;
@@ -399,14 +401,14 @@ public class HttpClientAssist implements Closeable {
 
 	/**
 	 * parse headers string in lines.
-     * ignore <code>accept-encoding</code> to avoid unusual data (e.g. gzip) return
+	 * ignore <code>accept-encoding</code> to avoid unusual data (e.g. gzip) return
 	 */
 	public static Map<String, String> parseHeaders(String headerStr) {
 		if (Strings.isNotBlank(headerStr)) {
 			Map<String, String> hm = Maps.newHashMap();
 			for (String line : headerStr.split("[\\r\\n]+")) {
 				String[] header = line.split(": *", 2);
-                if (!header[0].equalsIgnoreCase("accept-encoding"))
+				if (!header[0].equalsIgnoreCase("accept-encoding"))
 					hm.put(header[0], header[1]);
 			}
 			return hm;
@@ -443,7 +445,7 @@ public class HttpClientAssist implements Closeable {
 		return buf;
 	}
 
-	@ThreadSafe
+	@NotThreadSafe
 	public final class UrlEntity implements Closeable {
 
 		private final Request req;
@@ -522,7 +524,14 @@ public class HttpClientAssist implements Closeable {
 		 * see {@link #isContentType(String)}
 		 */
 		public boolean isText() {
-			return contentType == null || Objects.equals(contentType.type(), "text");
+			return contentType == null || Objects.equals(contentType.type(), "text") || isJson();
+		}
+
+		/**
+		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
+		 */
+		public boolean isJson() {
+			return isContentType("json");
 		}
 
 		/**
@@ -546,7 +555,7 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public boolean isContentType(String type) {
 			return contentType != null && (
-					contentType.type().contains(type) || contentType.subtype().contains(type)
+					contentType.type().equalsIgnoreCase(type) || contentType.subtype().equalsIgnoreCase(type)
 			);
 		}
 
@@ -567,6 +576,8 @@ public class HttpClientAssist implements Closeable {
 
 			downloadEntityAndParseEncoding();
 			entityStr = new String(entityBuf, entityEncoding);
+			if (isJson())
+				entityStr = JSON.parse(entityStr).toString();
 
 			return entityStr;
 		}

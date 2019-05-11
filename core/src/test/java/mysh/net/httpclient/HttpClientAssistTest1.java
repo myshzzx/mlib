@@ -122,11 +122,13 @@ public class HttpClientAssistTest1 {
 	@Test
 	public void testGetShortURL() throws Exception {
 		assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a"));
+		assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/\\//a"));
 		assertEquals("http://dfso.com/a/", HttpClientAssist.getShortURL("http://dfso.com//./a/"));
 		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//a/../b"));
 		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//./a/../b"));
 		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com/\\./a/../b"));
 		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com\\./a/../b"));
 		assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b"));
+		assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../b"));
 	}
 }
