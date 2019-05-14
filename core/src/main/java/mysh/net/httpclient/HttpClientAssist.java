@@ -664,6 +664,7 @@ public class HttpClientAssist implements Closeable {
 
 		/**
 		 * download resource directly to file, without cache to entityBuf.
+		 * WARNING: after downloading the content directly to file, the ue content can't be read again.
 		 *
 		 * @param file      file will not be overwritten, if this file exists, a new file will be created.
 		 * @param stopChk   check stop download or not.
