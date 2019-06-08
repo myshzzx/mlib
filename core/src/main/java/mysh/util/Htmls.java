@@ -1,6 +1,7 @@
 package mysh.util;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+
+import org.apache.commons.text.StringEscapeUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -22,22 +23,22 @@ public class Htmls {
 		if (end < 0) return "";
 		return StringEscapeUtils.unescapeHtml4(html.substring(from + 7, end));
 	}
-
+	
 	/**
 	 * unescape xml
 	 */
 	public static String unEscapeXml(String xml) {
 		return xml
-						.replace("&nbsp;", " ")
-						.replace("&amp;", "&")
-						.replace("&lt;", "<")
-						.replace("&gt;", ">")
-						.replace("&quot;", "\"")
-						.replace("&apos;", "'")
-						.replace("&ldquo;", "“")
-						.replace("&rdquo;", "”");
+				       .replace("&nbsp;", " ")
+				       .replace("&amp;", "&")
+				       .replace("&lt;", "<")
+				       .replace("&gt;", ">")
+				       .replace("&quot;", "\"")
+				       .replace("&apos;", "'")
+				       .replace("&ldquo;", "“")
+				       .replace("&rdquo;", "”");
 	}
-
+	
 	/**
 	 * encode urls to str like "%2C1200&"
 	 */
@@ -48,7 +49,7 @@ public class Htmls {
 			throw Exps.unchecked(e);
 		}
 	}
-
+	
 	/**
 	 * decode urls like "%2C1200&"
 	 */

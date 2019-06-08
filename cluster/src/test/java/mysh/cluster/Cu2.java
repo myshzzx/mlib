@@ -18,7 +18,7 @@ public class Cu2 extends IClusterUser<String, String, String, String> {
     public String procSubTask(String subTask, int timeout) throws InterruptedException {
         try {
             System.out.println(Thread.currentThread().getContextClassLoader());
-            final Object cu2x = Class.forName("mysh.cluster.Cu2X").newInstance();
+            final Object cu2x = Class.forName("mysh.cluster.Cu2X").getConstructor().newInstance();
             System.out.println(cu2x.getClass().getClassLoader());
             return subTask + cu2x;
         } catch (Exception e) {

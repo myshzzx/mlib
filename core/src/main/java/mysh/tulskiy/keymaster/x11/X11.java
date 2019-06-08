@@ -34,7 +34,7 @@ import java.util.List;
  */
 @SuppressWarnings({"UnusedDeclaration"})
 public interface X11 extends Library {
-    public static X11 Lib = (X11) Native.loadLibrary("X11", X11.class);
+    public static X11 Lib = Native.load("X11", X11.class);
 
     public static final int GrabModeAsync = 1;
     public static final int KeyPress = 2;

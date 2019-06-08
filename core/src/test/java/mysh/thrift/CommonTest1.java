@@ -52,8 +52,6 @@ public class CommonTest1 {
 			}
 
 //			transport.close();
-		} catch (TTransportException e) {
-			e.printStackTrace();
 		} catch (TException e) {
 			e.printStackTrace();
 		}

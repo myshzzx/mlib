@@ -4,6 +4,7 @@ import com.alibaba.fastjson.annotation.JSONField;
 import mysh.codegen.CodeUtil;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,16 +35,17 @@ public abstract class FlatObjectAssembler<F> {
 	protected String getFlatKey(Field f) {
 		JSONField jsonAnno = f.getAnnotation(JSONField.class);
 		return jsonAnno != null ?
-				jsonAnno.name() :
-				CodeUtil.camel2underline(f.getName()).toLowerCase();
+				       jsonAnno.name() :
+				       CodeUtil.camel2underline(f.getName()).toLowerCase();
 	}
 	
-	public <T> T convert(F f, Class<T> type) throws InstantiationException, IllegalAccessException {
+	public <T> T convert(F f, Class<T> type)
+			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
 		if (f == null) {
 			return null;
 		}
 		Map<String, FieldWriter> typeFields = getTypeFields(type);
-		T m = type.newInstance();
+		T m = type.getConstructor().newInstance();
 		flatAssemble(f, m, typeFields);
 		return m;
 	}
@@ -54,15 +56,15 @@ public abstract class FlatObjectAssembler<F> {
 	 * @param typeFields include fields defined in recurring super classes,
 	 *                   which can be primitive type or complex type.
 	 */
-	private void flatAssemble(F f, Object model,
-	                          Map<String, FieldWriter> typeFields) throws IllegalAccessException, InstantiationException {
+	private void flatAssemble(F f, Object model, Map<String, FieldWriter> typeFields)
+			throws IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
 		for (String key : flatKeys(f)) {
 			FieldWriter fw = typeFields.get(key);
 			if (fw != null) {
 				if (fw.isWritable()) {
 					fw.writeField(f, model);
 				} else {
-					Object mf = fw.f.getType().newInstance();
+					Object mf = fw.f.getType().getConstructor().newInstance();
 					fw.f.set(model, mf);
 					flatAssemble(f, mf, getTypeFields(fw.f.getType()));
 				}
@@ -119,7 +121,7 @@ public abstract class FlatObjectAssembler<F> {
 				Field[] dfs = t.getDeclaredFields();
 				for (Field df : dfs) {
 					if ((df.getModifiers() & Modifier.FINAL) > 0
-							|| (df.getModifiers() & Modifier.STATIC) > 0) {
+							    || (df.getModifiers() & Modifier.STATIC) > 0) {
 						continue;
 					}
 					df.setAccessible(true);

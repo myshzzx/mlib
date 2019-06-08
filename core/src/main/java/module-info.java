@@ -41,14 +41,15 @@ module mlib.core {
 	requires javafx.swing;
 
 	requires commons.pool2;
-	requires commons.lang3;
 	requires commons.dbcp2;
-	requires commons.codec;
+	requires org.apache.commons.text;
+	requires org.apache.commons.lang3;
+	requires org.apache.commons.codec;
 
 	requires slf4j.api;
 	requires libthrift;
 	requires fastjson;
-	requires aspectjrt;
+	requires org.aspectj.runtime;
 	requires fst;
 	requires javax.servlet.api;
 	requires annotations;

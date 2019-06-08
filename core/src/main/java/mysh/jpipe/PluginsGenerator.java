@@ -29,7 +29,7 @@ public class PluginsGenerator {
 			for (String pluginFactoryClassName : pluginFactoryClassNames) {
 				if (pluginFactoryClassName != null && pluginFactoryClassName.trim().length() > 0) {
 					try {
-						pluginFactories.add((PluginFactory) Class.forName(pluginFactoryClassName).newInstance());
+						pluginFactories.add((PluginFactory) Class.forName(pluginFactoryClassName).getConstructor().newInstance());
 					} catch (Exception e) {
 						log.error("加载插件失败: " + pluginFactoryClassName, e);
 					}

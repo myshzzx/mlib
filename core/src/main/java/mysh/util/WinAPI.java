@@ -25,7 +25,7 @@ public interface WinAPI {
 	KernelExt kernel32 = KernelExt.INSTANCE;
 
 	interface KernelExt extends Kernel32 {
-		KernelExt INSTANCE = Native.loadLibrary("kernel32", KernelExt.class, W32APIOptions.DEFAULT_OPTIONS);
+		KernelExt INSTANCE = Native.load("kernel32", KernelExt.class, W32APIOptions.DEFAULT_OPTIONS);
 
 		boolean SetProcessAffinityMask(HANDLE hProcess, long dwProcessAffinityMask);
 

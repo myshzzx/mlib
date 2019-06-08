@@ -2,6 +2,7 @@ package mysh.gpgpu.info;
 
 import com.aparapi.device.Device;
 import com.aparapi.device.OpenCLDevice;
+import com.aparapi.internal.kernel.KernelManager;
 import com.aparapi.internal.opencl.OpenCLPlatform;
 
 import java.util.List;
@@ -41,7 +42,7 @@ public class AparapiDevInfo {
 			platformc++;
 		}
 
-		Device bestDevice = OpenCLDevice.best();
+		Device bestDevice = KernelManager.instance().bestDevice();
 		if (bestDevice == null) {
 			System.out.println("OpenCLDevice.best() returned null!");
 		} else {

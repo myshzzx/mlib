@@ -31,7 +31,7 @@ public class POJOParamResolver implements HandlerMethodArgumentResolver {
 		mysh.spring.mvc.controller.POJOResolve anno = param.getParameterAnnotation(mysh.spring.mvc.controller.POJOResolve.class);
 		String paramPrefix = (anno.value() == null || anno.value().isEmpty() ? param.getParameterName() : anno.value());
 
-		Object obj = param.getParameterType().newInstance();
+		Object obj = param.getParameterType().getConstructor().newInstance();
 
 		String[] paramPath;
 		for (Map.Entry<String, String[]> e : req.getParameterMap().entrySet()) {
@@ -81,7 +81,7 @@ public class POJOParamResolver implements HandlerMethodArgumentResolver {
 							paramValue = new ArrayList(tColl);
 						}
 					} else { // 不是接口属性
-						paramValue = type.newInstance();
+						paramValue = type.getConstructor().newInstance();
 						((Collection<String>) paramValue).addAll(tColl);
 					}
 				} else { // 不是集合属性
@@ -111,7 +111,7 @@ public class POJOParamResolver implements HandlerMethodArgumentResolver {
 			// 是时间值
 			if (Date.class.isAssignableFrom(type)) {
 				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.CHINA);
-				paramValue = type.newInstance();
+				paramValue = type.getConstructor().newInstance();
 				((Date) paramValue).setTime(dateFormat.parse(tValue).getTime());
 			}
 
@@ -122,7 +122,7 @@ public class POJOParamResolver implements HandlerMethodArgumentResolver {
 		} else {
 			Object param = readMethod.invoke(obj);
 			if (param == null) {
-				param = type.newInstance();
+				param = type.getConstructor().newInstance();
 				writeMethod.invoke(obj, param);
 			}
 			this.setProperty(path, i + 1, param, value);

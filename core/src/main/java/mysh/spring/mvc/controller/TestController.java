@@ -132,7 +132,7 @@ public class TestController {
 			Class<?> cc = cl.loadClass(name);
 			Method execute = cc.getDeclaredMethod(executeMethod);
 			execute.setAccessible(true);
-			Object co = cc.newInstance();
+			Object co = cc.getConstructor().newInstance();
 
 			if (execute.getReturnType() == Void.class) {
 				AtomicLong ntid = new AtomicLong();

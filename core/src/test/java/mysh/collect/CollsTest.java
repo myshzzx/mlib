@@ -20,7 +20,7 @@ public class CollsTest {
 
 	@Test
 	public void map() {
-		Map<Object, Object> m0 = ofHashMap(null);
+		Map<Object, Object> m0 = ofHashMap();
 		assertNotNull(m0);
 
 		Map<Object, Object> m1 = ofHashMap();
@@ -32,7 +32,7 @@ public class CollsTest {
 
 	@Test
 	public void list() {
-		Set<Object> s0 = ofHashSet(null);
+		Set<Object> s0 = ofHashSet();
 		assertNotNull(s0);
 		assertEquals(0,s0.size());
 

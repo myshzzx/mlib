@@ -2,6 +2,7 @@ package mysh.gpgpu;
 
 import com.aparapi.device.Device;
 import com.aparapi.device.OpenCLDevice;
+import com.aparapi.internal.kernel.KernelManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,8 +50,8 @@ public class AparapiUtil {
 				}
 			}
 		}
-
-		OpenCLDevice best = (OpenCLDevice) OpenCLDevice.best();
+		
+		OpenCLDevice best = (OpenCLDevice) KernelManager.instance().bestDevice();
 		if (best != null)
 			log.info("use default OpenCL platform: " + best.getOpenCLPlatform().getName());
 
