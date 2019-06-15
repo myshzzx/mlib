@@ -1,6 +1,8 @@
 
 package mysh.net.httpclient;
 
+import com.google.common.net.HttpHeaders;
+import mysh.collect.Colls;
 import okhttp3.CookieJar;
 
 import java.util.HashMap;
@@ -14,17 +16,15 @@ import java.util.Map;
 public final class HttpClientConfig implements Cloneable {
 
 	public static final String UA =
-			"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36";
+			"Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.90 Safari/537.36";
 
 	// http://user-agent-string.info/list-of-ua/bots
 	public static final String UA_GOOGLE =
 			"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
-	public static final String UA_BAIDU =
-			"Mozilla/5.0 (compatible; Baiduspider/2.0; +http://www.baidu.com/search/spider.html)";
 	public static final String UA_BING =
 			"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
-	HashMap<String, Object> headers;
+	Map<String, Object> headers = Colls.ofHashMap(HttpHeaders.ACCEPT, "*/*");
 
 	/**
 	 * Connection: keep-alive/close
@@ -56,7 +56,9 @@ public final class HttpClientConfig implements Cloneable {
 	 */
 	int connPoolKeepAliveSec = 5 * 60;
 
-	/** this will overwrite user defined <code>Cookie</code> header */
+	/**
+	 * this will overwrite user defined <code>Cookie</code> header
+	 */
 	CookieJar cookieJar = CookieJar.NO_COOKIES;
 
 	public HttpClientConfig() {
@@ -76,7 +78,7 @@ public final class HttpClientConfig implements Cloneable {
 		try {
 			c = (HttpClientConfig) super.clone();
 			if (c.headers != null)
-				c.headers = (HashMap<String, Object>) c.headers.clone();
+				c.headers = (Map<String, Object>) ((HashMap) c.headers).clone();
 		} catch (CloneNotSupportedException shouldNotHappen) {
 			throw new InternalError(shouldNotHappen);
 		}

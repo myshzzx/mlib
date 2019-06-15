@@ -127,11 +127,6 @@ public class HttpClientAssist implements Closeable {
 		}
 
 		Request.Builder rb = new Request.Builder().url(url);
-		if (hcc.headers != null) {
-			for (Map.Entry<String, ?> e : hcc.headers.entrySet()) {
-				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
-			}
-		}
 		return access(rb, headers);
 	}
 
@@ -248,20 +243,26 @@ public class HttpClientAssist implements Closeable {
 			throw new InterruptedIOException("access interrupted: " + rb.build());
 		}
 
-		if (Colls.isNotEmpty(hcc.headers)) {
-			for (Map.Entry<String, Object> e : hcc.headers.entrySet()) {
-				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+		if (Colls.isNotEmpty(hcc.headers) || Colls.isNotEmpty(headers)) {
+			if (Colls.isEmpty(hcc.headers))
+				for (Map.Entry<String, ?> e : headers.entrySet()) {
+					rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+				}
+			else if (Colls.isEmpty(headers))
+				for (Map.Entry<String, Object> e : hcc.headers.entrySet()) {
+					rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+				}
+			else {
+				Map<String, Object> hm = new HashMap<>(hcc.headers);
+				hm.putAll(headers);
+				for (Map.Entry<String, Object> e : hm.entrySet()) {
+					rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
+				}
 			}
 		}
 
-		if (Colls.isNotEmpty(headers)) {
-			for (Map.Entry<String, ?> e : headers.entrySet()) {
-				rb.addHeader(e.getKey(), String.valueOf(e.getValue()));
-			}
-		}
-
-		rb.addHeader("Connection", hcc.isKeepAlive ? "Keep-Alive" : "close");
-		rb.addHeader("User-Agent", hcc.userAgent);
+		rb.addHeader(HttpHeaders.CONNECTION, hcc.isKeepAlive ? "Keep-Alive" : "close");
+		rb.addHeader(HttpHeaders.USER_AGENT, hcc.userAgent);
 
 		return new UrlEntity(rb);
 	}
