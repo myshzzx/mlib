@@ -4,19 +4,11 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
+import mysh.util.Bytes;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
-import okhttp3.Cache;
-import okhttp3.Call;
-import okhttp3.ConnectionPool;
-import okhttp3.FormBody;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
+import okhttp3.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,26 +16,17 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * HTTP 客户端组件.
@@ -440,6 +423,8 @@ public class HttpClientAssist implements Closeable {
 	private static final int DOWNLOAD_BUF_LEN = 100_000;
 	private static final ThreadLocal<byte[]> threadDownloadBuf = new ThreadLocal<>();
 
+	private static final Pattern charsetExp = Pattern.compile("charset=[\"']?([\\w\\-]+)");
+
 	private static byte[] getDownloadBuf() {
 		byte[] buf = threadDownloadBuf.get();
 		if (buf == null) {
@@ -601,6 +586,28 @@ public class HttpClientAssist implements Closeable {
 				Charset enc = null;
 				if (contentType != null) {
 					enc = contentType.charset();
+				}
+				if (enc == null) {
+					int i = 0;
+					byte[] metaBuf = "<meta ".getBytes();
+					byte[] closeBuf = ">".getBytes();
+					while (i < entityBuf.length) {
+						int bi = Bytes.findBytesIndex(entityBuf, i, metaBuf);
+						if (bi > 0) {
+							int ei = Bytes.findBytesIndex(entityBuf, bi + metaBuf.length, closeBuf);
+							if (ei > 0) {
+								i = ei + 1;
+								String meta = new String(entityBuf, bi, ei - bi);
+								Matcher m = charsetExp.matcher(meta);
+								if (m.find()) {
+									enc = Charset.forName(m.group(1));
+									break;
+								}
+							} else
+								break;
+						} else
+							break;
+					}
 				}
 				if (enc == null) {
 					enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
