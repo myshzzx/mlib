@@ -9,9 +9,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * SingleProxySelector
- *
  * @author mysh
+ * @see ProxySelectors
  * @since 2016/2/20
  */
 public class SingleProxySelector extends ProxySelector {
@@ -36,17 +35,4 @@ public class SingleProxySelector extends ProxySelector {
 			log.error("proxy {} broken when access {}", proxy, uri, ioe);
 	}
 
-	public static ProxySelector of(Proxy proxy) {
-		return new SingleProxySelector(proxy);
-	}
-
-	public static ProxySelector ofHttpProxy(String host, int port) {
-		return new SingleProxySelector(new Proxy(
-				Proxy.Type.HTTP, new InetSocketAddress(host, port)));
-	}
-
-	public static ProxySelector ofSocksProxy(String host, int port) {
-		return new SingleProxySelector(new Proxy(
-				Proxy.Type.SOCKS, new InetSocketAddress(host, port)));
-	}
 }

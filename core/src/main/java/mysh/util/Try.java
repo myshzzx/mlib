@@ -16,20 +16,20 @@ import java.util.function.Function;
 public class Try {
 	private static final Logger log = LoggerFactory.getLogger(Try.class);
 
-	public interface ExpRunnable<E extends Exception> {
-		void run() throws E;
+	public interface ExpRunnable  {
+		void run() throws Exception;
 	}
 
 	public interface ExpCallable<T> {
-		T call() throws Throwable;
+		T call() throws Exception;
 	}
 
 	public interface ExpFunction<P, T> {
-		T invoke(P p) throws Throwable;
+		T invoke(P p) throws Exception;
 	}
 
 	public interface ExpConsumer<T> {
-		void accept(T t) throws Throwable;
+		void accept(T t) throws Exception;
 	}
 
 	public static <T> Consumer<T> ofIgnoreExpConsumer(ExpConsumer<T> c) {

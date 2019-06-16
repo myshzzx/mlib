@@ -20,7 +20,7 @@ public class ProxyTest {
 //		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("115.160.137.178", 8088));
 		Proxy proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("192.99.54.41", 3128));
 
-		HttpClientAssist hca = new HttpClientAssist(null, SingleProxySelector.of(proxy));
+		HttpClientAssist hca = new HttpClientAssist(null, ProxySelectors.single(proxy));
 
 		String plainUrl = "http://img1.cache.netease.com/cnews/css13/img/logo_ent.png";
 		String sslUrl = "https://ss0.bdstatic.com/5aV1bjqh_Q23odCf/static/superman/img/blank_56a92bd4.png";

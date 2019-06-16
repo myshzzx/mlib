@@ -68,13 +68,15 @@ public class HttpClientAssist implements Closeable {
 	public HttpClientAssist(@Nullable HttpClientConfig conf, @Nullable ProxySelector proxySelector) {
 		hcc = conf == null ? defaultHcc : conf.clone();
 
-		client = new OkHttpClient.Builder()
+		final OkHttpClient.Builder builder = new OkHttpClient.Builder()
 				.connectTimeout(hcc.connectionTimeout, TimeUnit.MILLISECONDS)
 				.readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
 				.connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
 				.proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
-				.cookieJar(hcc.cookieJar)
-				.build();
+				.cookieJar(hcc.cookieJar);
+		if (hcc.eventListener != null)
+			builder.eventListener(hcc.eventListener);
+		client = builder.build();
 	}
 
 	/**
@@ -458,21 +460,27 @@ public class HttpClientAssist implements Closeable {
 		private byte[] entityBuf;
 		private String entityStr;
 		private Charset entityEncoding;
+		private boolean closed;
 
 		public UrlEntity(Request.Builder rb) throws IOException {
-			req = rb.build();
-			// can't lazy init, because it changes after rb.execute()
-			reqUrl = req.url().toString();
+			try {
+				req = rb.build();
+				// can't lazy init, because it changes after rb.execute()
+				reqUrl = req.url().toString();
 
-			call = client.newCall(req);
-			rsp = call.execute();
+				call = client.newCall(req);
+				rsp = call.execute();
 
-			int statusCode = rsp.code();
-			if (statusCode >= 400) {
-				log.warn("access unsuccessful, status={}, msg={}, url={}",
-						statusCode, rsp.message(), this.reqUrl);
+				int statusCode = rsp.code();
+				if (statusCode >= 400) {
+					log.warn("access unsuccessful, status={}, msg={}, url={}",
+							statusCode, rsp.message(), this.reqUrl);
+				}
+				contentType = rsp.body().contentType();
+			} catch (IOException e) {
+				this.close();
+				throw e;
 			}
-			contentType = rsp.body().contentType();
 		}
 
 		/**
@@ -480,7 +488,9 @@ public class HttpClientAssist implements Closeable {
 		 */
 		@Override
 		public void close() {
+			if (closed) return;
 			try {
+				closed = true;
 				call.cancel();
 				rsp.close();
 			} catch (Exception e) {

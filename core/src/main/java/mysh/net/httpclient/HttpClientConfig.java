@@ -4,6 +4,7 @@ package mysh.net.httpclient;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
 import okhttp3.CookieJar;
+import okhttp3.EventListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +61,8 @@ public final class HttpClientConfig implements Cloneable {
 	 * this will overwrite user defined <code>Cookie</code> header
 	 */
 	CookieJar cookieJar = CookieJar.NO_COOKIES;
+
+	EventListener eventListener;
 
 	public HttpClientConfig() {
 	}
@@ -172,6 +175,21 @@ public final class HttpClientConfig implements Cloneable {
 	 */
 	public HttpClientConfig setConnPoolKeepAliveSec(int connPoolKeepAliveSec) {
 		this.connPoolKeepAliveSec = connPoolKeepAliveSec;
+		return this;
+	}
+
+	/**
+	 * @see #eventListener
+	 */
+	public EventListener getEventListener() {
+		return eventListener;
+	}
+
+	/**
+	 * @see #eventListener
+	 */
+	public HttpClientConfig setEventListener(EventListener eventListener) {
+		this.eventListener = eventListener;
 		return this;
 	}
 }
