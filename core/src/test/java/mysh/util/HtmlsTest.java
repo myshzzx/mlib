@@ -1,6 +1,10 @@
 package mysh.util;
 
+import mysh.collect.Colls;
+import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Map;
 
 /**
  * HtmlsTest
@@ -11,11 +15,17 @@ import org.junit.Test;
 public class HtmlsTest {
 	@Test
 	public void urlDecode() throws Exception {
-		System.out.println(Htmls.urlDecode("%2C1200&","gbk"));
+		System.out.println(Htmls.urlDecode("%2C1200&", "gbk"));
 	}
+	
 	@Test
 	public void urlEncode() throws Exception {
-		System.out.println(Htmls.urlEncode(",1200&","gbk"));
+		System.out.println(Htmls.urlEncode(",1200&", "gbk"));
 	}
-
+	
+	@Test
+	public void parseQuery() {
+		Map<String, String> params = Htmls.parseQuery("k1=v1&k2=v2%20v2&k3=v3%26%20v3");
+		Assert.assertEquals(Colls.ofHashMap("k1", "v1", "k2", "v2 v2", "k3", "v3& v3"), params);
+	}
 }

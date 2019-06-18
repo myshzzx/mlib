@@ -6,6 +6,10 @@ import org.apache.commons.text.StringEscapeUtils;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * html utils.
@@ -59,5 +63,16 @@ public class Htmls {
 		} catch (UnsupportedEncodingException e) {
 			throw Exps.unchecked(e);
 		}
+	}
+	
+	private static final Pattern paramsExp = Pattern.compile("(\\S+?)=(\\S+)");
+	
+	public static Map<String, String> parseQuery(String rawQuery) {
+		Map<String, String> params = new HashMap<>();
+		Matcher matcher = paramsExp.matcher(rawQuery.replace('&', ' '));
+		while (matcher.find()) {
+			params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), "UTF-8"));
+		}
+		return params;
 	}
 }
