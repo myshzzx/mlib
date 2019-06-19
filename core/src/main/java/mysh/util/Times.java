@@ -109,7 +109,12 @@ public class Times {
 		/**
 		 * yyyy-MM-dd HH:mm
 		 */
-		DayHourMin(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+		DayHourMin(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")),
+		
+		/**
+		 * Tue, 3 Jun 2008 11:05:30 GMT
+		 */
+		ISO(DateTimeFormatter.RFC_1123_DATE_TIME);
 		
 		private DateTimeFormatter formatter;
 		
