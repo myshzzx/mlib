@@ -266,11 +266,6 @@
 
 			<dependency>
 				<groupId>org.apache.lucene</groupId>
-				<artifactId>lucene-core</artifactId>
-				<version>8.1.1</version>
-			</dependency>
-			<dependency>
-				<groupId>org.apache.lucene</groupId>
 				<artifactId>lucene-queryparser</artifactId>
 				<version>8.1.1</version>
 			</dependency>
