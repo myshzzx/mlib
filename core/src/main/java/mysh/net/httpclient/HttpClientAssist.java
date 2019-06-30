@@ -4,7 +4,6 @@ import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
-import mysh.util.Bytes;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
@@ -25,8 +24,6 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * HTTP 客户端组件.
@@ -52,11 +49,11 @@ public class HttpClientAssist implements Closeable {
 		hcc = conf == null ? defaultHcc : conf.clone();
 		
 		final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-				                                     .connectTimeout(hcc.connectionTimeout, TimeUnit.MILLISECONDS)
-				                                     .readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
-				                                     .connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
-				                                     .proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
-				                                     .cookieJar(hcc.cookieJar);
+				.connectTimeout(hcc.connectionTimeout, TimeUnit.MILLISECONDS)
+				.readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
+				.connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
+				.proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
+				.cookieJar(hcc.cookieJar);
 		if (hcc.eventListener != null)
 			builder.eventListener(hcc.eventListener);
 		client = builder.build();
@@ -328,8 +325,8 @@ public class HttpClientAssist implements Closeable {
 		if (uri.getHost() != null) {
 			url.append(uri.getHost());
 			if (uri.getPort() != -1
-					    && !("http".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 80)
-					    && !("https".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 443)) {
+					&& !("http".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 80)
+					&& !("https".equalsIgnoreCase(uri.getScheme()) && uri.getPort() == 443)) {
 				url.append(":");
 				url.append(uri.getPort());
 			}
@@ -422,8 +419,6 @@ public class HttpClientAssist implements Closeable {
 	private static final byte[] EMPTY_BUF = new byte[0];
 	private static final int DOWNLOAD_BUF_LEN = 100_000;
 	private static final ThreadLocal<byte[]> threadDownloadBuf = new ThreadLocal<>();
-	
-	private static final Pattern charsetExp = Pattern.compile("charset=[\"']?([\\w\\-]+)");
 	
 	private static byte[] getDownloadBuf() {
 		byte[] buf = threadDownloadBuf.get();
@@ -590,26 +585,7 @@ public class HttpClientAssist implements Closeable {
 					enc = contentType.charset();
 				}
 				if (enc == null) {
-					int i = 0;
-					byte[] metaBuf = "<meta ".getBytes();
-					byte[] closeBuf = ">".getBytes();
-					while (i < entityBuf.length) {
-						int bi = Bytes.findBytesIndex(entityBuf, i, metaBuf);
-						if (bi > 0) {
-							int ei = Bytes.findBytesIndex(entityBuf, bi + metaBuf.length, closeBuf);
-							if (ei > 0) {
-								i = ei + 1;
-								String meta = new String(entityBuf, bi, ei - bi);
-								Matcher m = charsetExp.matcher(meta);
-								if (m.find()) {
-									enc = Charset.forName(m.group(1));
-									break;
-								}
-							} else
-								break;
-						} else
-							break;
-					}
+					enc = Encodings.findHtmlEncoding(entityBuf);
 				}
 				if (enc == null) {
 					enc = Encodings.isUTF8Bytes(entityBuf) ? Encodings.UTF_8 : Encodings.GBK;
