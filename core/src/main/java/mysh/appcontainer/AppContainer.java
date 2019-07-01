@@ -57,16 +57,24 @@ public class AppContainer {
 	private final AtomicLong appCount = new AtomicLong(1);
 	private final Map<Long, AppInfo> apps = new ConcurrentHashMap<>();
 	private final ConsoleHelper consoleHelper = new ConsoleHelper();
-
+	
 	private final AcLoader singleAcLoader;
-
+	
 	public AppContainer(int serverPort, boolean useSingleClassLoader) throws IOException {
 		ServerSocket sock = new ServerSocket(serverPort);
-
+		
 		consoleHelper.startMonitor();
 		singleAcLoader = useSingleClassLoader ?
-				new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
-
+				                 new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
+		
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+			apps.values().forEach(i -> i.shutdown.run());
+			try {
+				sock.close();
+			} catch (IOException e) {
+			}
+		}));
+		
 		Socket accept;
 		while ((accept = sock.accept()) != null) {
 			Socket sockAcc = accept;
@@ -77,16 +85,14 @@ public class AppContainer {
 				}
 			}.start();
 		}
-
-		sock.close();
 	}
-
+	
 	private void handleReq(Socket accept) {
 		try (Socket sock = accept;
 		     BufferedReader r = new BufferedReader(new InputStreamReader(sock.getInputStream()))) {
 			if (!sock.getRemoteSocketAddress().toString().contains("127.0.0.1"))
 				return;
-
+			
 			String cmd = r.readLine();
 			if ("c".equals(cmd)) {
 				consoleHelper.goConsole(r, new PrintWriter(sock.getOutputStream()));
@@ -99,19 +105,19 @@ public class AppContainer {
 				log.error("execute cmd error.", e);
 		}
 	}
-
+	
 	private void handleCmd(String cmd) throws IOException {
 		if (cmd != null && cmd.length() > 0) {
 			List<String> params = Oss.parseCmdLine(cmd);
 			String[] files = params.get(0).split(fileSep);
-
+			
 			ArrayList<URL> urls = new ArrayList<>();
 			for (String file : files) {
 				urls.add(new URL("jar:file:///" + file + "!/"));
 			}
 			AcLoader cl = new AcLoader(urls.toArray(new URL[urls.size()]),
 					AppContainer.class.getClassLoader().getParent());
-
+			
 			// look for main class name
 			String mainClass = null, line;
 			Enumeration<URL> manifests = cl.getResources("META-INF/MANIFEST.MF");
@@ -128,7 +134,7 @@ public class AppContainer {
 				} catch (Exception e) {
 				}
 			}
-
+			
 			if (singleAcLoader != null) {
 				cl.close();
 				singleAcLoader.addURLs(urls);
@@ -136,7 +142,7 @@ public class AppContainer {
 			}
 			AcLoader appLoader = cl;
 			Thread.currentThread().setContextClassLoader(appLoader);
-
+			
 			try {
 				if (mainClass != null) {
 					Class<?> clazz = Class.forName(mainClass, true, appLoader);
@@ -144,7 +150,7 @@ public class AppContainer {
 					Method shutdownMethod = clazz.getMethod("shutdown");
 					if (0 == (shutdownMethod.getModifiers() & Modifier.STATIC))
 						throw new Exception("shutdown method should be static");
-
+					
 					long id = appCount.incrementAndGet();
 					apps.put(id, new AppInfo(appLoader, id, cmd,
 							() -> {
@@ -169,7 +175,7 @@ public class AppContainer {
 			}
 		}
 	}
-
+	
 	private class ConsoleHelper {
 		private void startMonitor() {
 			Thread t = new Thread("AppContainer-Monitor") {
@@ -186,8 +192,8 @@ public class AppContainer {
 									acLoaders.add((AcLoader) cl);
 							}
 							apps.values().stream()
-									.filter(appInfo -> !acLoaders.contains(appInfo.cl))
-									.forEach(appInfo -> apps.remove(appInfo.id));
+							    .filter(appInfo -> !acLoaders.contains(appInfo.cl))
+							    .forEach(appInfo -> apps.remove(appInfo.id));
 						} catch (InterruptedException e) {
 							return;
 						} catch (Exception e) {
@@ -199,7 +205,7 @@ public class AppContainer {
 			t.setDaemon(true);
 			t.start();
 		}
-
+		
 		private void goConsole(BufferedReader reader, PrintWriter writer) throws Exception {
 			writer.println("welcome to AppContainer console.");
 			writer.println("available cmds:");
@@ -208,7 +214,7 @@ public class AppContainer {
 			writer.println("r [id] \t- restart app by id");
 			writer.println();
 			writer.flush();
-
+			
 			String line;
 			while ((line = reader.readLine()) != null) {
 				line = line.trim();
@@ -231,13 +237,13 @@ public class AppContainer {
 				writer.flush();
 			}
 		}
-
+		
 		private void consoleList(PrintWriter writer) {
 			for (AppInfo appInfo : apps.values()) {
 				writer.println(appInfo);
 			}
 		}
-
+		
 		private AppInfo consoleKill(PrintWriter writer, List<String> params) throws InterruptedException, IOException {
 			long id = Long.parseLong(params.get(1));
 			AppInfo appInfo = apps.get(id);
@@ -251,7 +257,7 @@ public class AppContainer {
 			}
 			return appInfo;
 		}
-
+		
 		private void consoleRestart(PrintWriter writer, List<String> params) throws IOException, InterruptedException {
 			AppInfo appInfo = consoleKill(writer, params);
 			if (appInfo != null) {
@@ -260,13 +266,13 @@ public class AppContainer {
 			}
 		}
 	}
-
+	
 	private class AcLoader extends URLClassLoader {
-
+		
 		public AcLoader(URL[] urls, ClassLoader parent) {
 			super(urls, parent);
 		}
-
+		
 		public synchronized void addURLs(ArrayList<URL> urls) {
 			URL[] oldUrls = getURLs();
 			CHECK:
@@ -279,27 +285,27 @@ public class AppContainer {
 				this.addURL(url);
 			}
 		}
-
+		
 		@Override
 		public void close() throws IOException {
 			if (this != singleAcLoader)
 				super.close();
 		}
-
+		
 		public void forceClose() throws IOException {
 			super.close();
 		}
 	}
-
+	
 	private static class AppInfo {
 		private static DateTimeFormatter df = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss");
-
+		
 		AcLoader cl;
 		long id;
 		LocalDateTime startTime;
 		String cmd;
 		Runnable shutdown;
-
+		
 		public AppInfo(AcLoader cl, long id, String cmd, Runnable shutdown) {
 			this.cl = cl;
 			this.id = id;
@@ -307,13 +313,13 @@ public class AppContainer {
 			this.cmd = cmd;
 			this.shutdown = shutdown;
 		}
-
+		
 		@Override
 		public String toString() {
 			return id + "\t" + df.format(startTime) + "\t" + cmd;
 		}
 	}
-
+	
 	public static void main(String[] args) throws IOException {
 		try {
 			new AppContainer(Integer.parseInt(args[0]), Boolean.valueOf(args[1]));
