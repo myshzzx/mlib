@@ -15,6 +15,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -68,10 +71,13 @@ public class AppContainer {
 				                 new AcLoader(new URL[0], AppContainer.class.getClassLoader().getParent()) : null;
 		
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			apps.values().forEach(i -> i.shutdown.run());
+			ExecutorService exec = Executors.newCachedThreadPool();
+			apps.values().forEach(i -> exec.execute(() -> i.shutdown.run()));
+			exec.shutdown();
 			try {
+				exec.awaitTermination(1, TimeUnit.MINUTES);
 				sock.close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 			}
 		}));
 		
