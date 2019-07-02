@@ -20,6 +20,7 @@ public class Htmls {
 	private static final Map<String, String> mimeTypes;
 	
 	public static final String MIME_TEXT = "text/plain";
+	public static final String MIME_HTML = "text/html";
 	public static final String MIME_STREAM = "application/octet-stream";
 	
 	static {
