@@ -1,9 +1,8 @@
 package mysh.cluster;
 
 import mysh.util.Exps;
+import org.apache.thrift.annotation.Nullable;
 
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
 import java.io.File;
 import java.io.FilePermission;
 import java.io.Serializable;
@@ -169,11 +168,11 @@ public abstract class IClusterUser<T, ST, SR, R> implements Serializable {
     }
 
     /**
-     * user created threads.
+     * user created threads. GuardedBy(this)
      */
-    @GuardedBy("this")
     private transient Queue<Thread> userThreads;
-    @GuardedBy("this")
+    
+    /** GuardedBy(this) */
     private transient AtomicInteger userThreadCount;
 
     /**

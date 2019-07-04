@@ -11,7 +11,6 @@ import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -69,9 +68,9 @@ public final class ClusterClient implements Closeable {
      *
      * @param pCmdPort         cluster master node cmd port.
      * @param relays           cmd relays, can be null
-     * @param masterCandidates if client can't receive master's or relay's cmd, but you know some nodes may be masters
+     * @param masterCandidates can be null. if client can't receive master's or relay's cmd, but you know some nodes may be masters
      */
-    public ClusterClient(int pCmdPort, @Nullable List<String> relays, @Nullable List<String> masterCandidates) throws SocketException {
+    public ClusterClient(int pCmdPort, List<String> relays, List<String> masterCandidates) throws SocketException {
         this.cmdPort = pCmdPort;
         if (masterCandidates != null)
             masterCandidates.stream().filter(Strings::isNotBlank).forEach(mc -> this.masterCandidates.add(mc.trim()));

@@ -7,7 +7,6 @@
 module mlib.cluster {
 	requires mlib.core;
 	requires slf4j.api;
-	requires annotations;
 	requires java.management;
 	requires com.google.common;
 	requires libthrift;
