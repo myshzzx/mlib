@@ -26,6 +26,7 @@ public class HttpClientAssistTest1 {
 	
 	@Test
 	public void demo() throws IOException {
+		// create a header map from request head string
 		Map<String, String> headers = HttpClientAssist.parseHeaders(
 				"accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3\n" +
 						"accept-encoding: gzip, deflate, br\n" +
@@ -35,7 +36,7 @@ public class HttpClientAssistTest1 {
 						"upgrade-insecure-requests: 1\n" +
 						"user-agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.90 Safari/537.36");
 		
-		// alternative: create a header map
+		// create a params map
 		Map<String, String> params = Colls.ofHashMap(
 				"key1", "v1",
 				"key2", "v2"
@@ -46,7 +47,13 @@ public class HttpClientAssistTest1 {
 			String html = ue.getEntityStr();
 			if (ue.isJson()) {
 				JSONObject json = JSON.parseObject(html);
+				System.out.println(json.getString("result"));
 			}
+		}
+		
+		// post to http://localhost/test with params
+		try (HttpClientAssist.UrlEntity ue = hca.accessPostUrlEncodedForm("http://localhost/test", headers, params)) {
+			System.out.println(ue.getEntityStr());
 		}
 	}
 	
