@@ -1,4 +1,8 @@
 # 那些年玩过的组件和封装过的代码
+
+[![Latest release](https://img.shields.io/github/release/myshzzx/mlib.svg)](https://github.com/myshzzx/mlib/releases/latest)
+
+
 这是一个原创大杂烩。
 
 有时，我只想用 AES 加密一串文本；有时，我只是想取一个网页的内容。。。有 apache 强大的 commons 包，但还得写大段大段的代码，灵活，但啰嗦。放弃一些灵活性封装一下，简单粗暴地两行代码搞定 90% 的任务。
@@ -11,7 +15,6 @@
 * [DynamicSql 动态sql拼接(流式)](#dynasql)
 * [HttpClientAssist 简化版 httpclient](#hca)
 * [cluster 分布式计算框架](#cluster)
-
 
 ----
 
