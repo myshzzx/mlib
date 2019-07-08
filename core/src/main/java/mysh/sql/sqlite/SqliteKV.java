@@ -2,7 +2,6 @@ package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import mysh.collect.Colls;
-import mysh.collect.Pair;
 import mysh.util.Compresses;
 import mysh.util.Serializer;
 import mysh.util.Times;
@@ -31,12 +30,36 @@ public class SqliteKV implements Closeable {
 	private NamedParameterJdbcOperations jdbcTemplate;
 	private Set<String> tableExist = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
+	public static class Item {
+		private String key;
+		private Instant writeTime, readTime;
+		private Object value;
+		
+		public String getKey() {
+			return key;
+		}
+		
+		public Instant getWriteTime() {
+			return writeTime;
+		}
+		
+		public Instant getReadTime() {
+			return readTime;
+		}
+		
+		public <V> V getValue() {
+			return (V) value;
+		}
+	}
+	
 	public interface DAO {
 		<V> V byKey(String key);
 		
-		<V> Pair<V, Instant> infoByKey(String key);
+		Item infoByKey(String key);
 		
-		<V> V byKeyRemoveExpired(String key, Instant validAfter);
+		<V> V byKeyRemoveWriteExpired(String key, Instant validAfter);
+		
+		void removeReadExpired(Instant validAfter);
 		
 		void remove(String key);
 		
@@ -47,6 +70,10 @@ public class SqliteKV implements Closeable {
 		ds = new DruidDataSource(true);
 		ds.setUrl("jdbc:sqlite:" + file.toString());
 		ds.setMaxActive(10);
+		ds.setTestWhileIdle(false);
+		ds.setTestOnBorrow(true);
+		ds.setTestOnReturn(false);
+		ds.setValidationQuery("select 1");
 		
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 	}
@@ -78,11 +105,12 @@ public class SqliteKV implements Closeable {
 					);
 					if (tableCount < 1) {
 						String sql = "CREATE TABLE " + group +
-								             "(\n" +
-								             "k text constraint " + group + "_pk primary key,\n" +
-								             "v blob,\n" +
-								             "t datetime default CURRENT_TIMESTAMP\n" +
-								             ")";
+								"(\n" +
+								"k text constraint " + group + "_pk primary key,\n" +
+								"v blob,\n" +
+								"wt datetime default CURRENT_TIMESTAMP,\n" +
+								"rt datetime default CURRENT_TIMESTAMP\n" +
+								")";
 						jdbcTemplate.update(sql, Collections.emptyMap());
 					}
 					tableExist.add(group);
@@ -94,53 +122,65 @@ public class SqliteKV implements Closeable {
 		public <V> V byKey(String key) {
 			ensureTable(group);
 			
-			final Pair<V, Instant> info = infoByKey(key);
-			return info == null ? null : info.getL();
+			Item item = infoByKey(key);
+			return item == null ? null : item.getValue();
 		}
 		
 		@Override
-		public <V> Pair<V, Instant> infoByKey(String key) {
+		public Item infoByKey(String key) {
 			ensureTable(group);
 			
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
-					"select v,t from " + group + " where k=:key", Colls.ofHashMap("key", key));
+					"select * from " + group + " where k=:key", Colls.ofHashMap("key", key));
 			if (Colls.isEmpty(lst))
 				return null;
 			else {
 				Map<String, Object> r = lst.get(0);
+				Item item = new Item();
+				item.key = key;
 				byte[] blob = (byte[]) r.get("v");
-				Instant t = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("t"))
-				                 .atZone(Times.zoneUTC).toInstant();
+				item.writeTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("wt"))
+						.atZone(Times.zoneUTC).toInstant();
+				item.readTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("rt"))
+						.atZone(Times.zoneUTC).toInstant();
 				
-				V v;
 				if (valueCompressed) {
-					AtomicReference<V> vr = new AtomicReference<>();
+					AtomicReference<Object> vr = new AtomicReference<>();
 					Compresses.deCompress(
 							(entry, in) -> {
 								vr.set(SERIALIZER.deserialize(in));
 							},
 							new ByteArrayInputStream(blob));
-					v = vr.get();
+					item.value = vr.get();
 				} else
-					v = SERIALIZER.deserialize(blob);
+					item.value = SERIALIZER.deserialize(blob);
 				
-				return Pair.of(v, t);
+				jdbcTemplate.update("update " + group + " set rt=CURRENT_TIMESTAMP where k=:key", Colls.ofHashMap("key", key));
+				return item;
 			}
 		}
 		
 		@Override
-		public <V> V byKeyRemoveExpired(String key, Instant validAfter) {
+		public <V> V byKeyRemoveWriteExpired(String key, Instant validAfter) {
 			ensureTable(group);
 			
-			final Pair<V, Instant> info = infoByKey(key);
-			if (info != null) {
-				if (info.getR().compareTo(validAfter) < 0) {
+			Item item = infoByKey(key);
+			if (item != null) {
+				if (item.writeTime.compareTo(validAfter) < 0) {
 					remove(key);
 					return null;
 				} else
-					return info.getL();
+					return item.getValue();
 			} else
 				return null;
+		}
+		
+		@Override
+		public void removeReadExpired(Instant validAfter) {
+			ensureTable(group);
+			
+			jdbcTemplate.update(
+					"delete from " + group + " where rt<:va", Colls.ofHashMap("va", validAfter));
 		}
 		
 		@Override
@@ -179,5 +219,12 @@ public class SqliteKV implements Closeable {
 	 */
 	public DAO genDAO(String group, boolean valueCompressed) {
 		return new DAOImpl(group, valueCompressed);
+	}
+	
+	/**
+	 * @see <a href='http://www.sqlitetutorial.net/sqlite-vacuum/'>clear and rebuild db</a>
+	 */
+	public void maintain() {
+		jdbcTemplate.update("VACUUM", Collections.emptyMap());
 	}
 }
