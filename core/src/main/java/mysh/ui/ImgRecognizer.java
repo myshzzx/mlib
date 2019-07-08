@@ -22,20 +22,20 @@ import java.util.concurrent.TimeUnit;
  * @since 2015/1/14 9:44
  */
 public class ImgRecognizer {
-
+	
 	private final JFrame frame;
 	private final JTextField text;
 	private final CountDownLatch textLatch;
-
+	
 	public ImgRecognizer() {
 		frame = new JFrame();
 		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
 		frame.getContentPane().setLayout(new BorderLayout());
-
+		
 		textLatch = new CountDownLatch(1);
 		text = new JFormattedTextField();
 		text.addActionListener(e -> textLatch.countDown());
-
+		
 		frame.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
@@ -48,7 +48,7 @@ public class ImgRecognizer {
 		frame.setLocationRelativeTo(null);
 		frame.setAlwaysOnTop(true);
 	}
-
+	
 	/**
 	 * build a captcha image and a input text field to get captcha by human labor.
 	 *
@@ -59,8 +59,8 @@ public class ImgRecognizer {
 	 */
 	public ImgRecognizer build(String imgUrl, String title,
 	                           HttpClientAssist httpAssist, Map<String, String> reqHeaders)
-					throws IOException, InterruptedException {
-
+			throws IOException, InterruptedException {
+		
 		Objects.requireNonNull(imgUrl, "image url can't be null");
 		if (httpAssist == null)
 			httpAssist = new HttpClientAssist(new HttpClientConfig());
@@ -70,7 +70,7 @@ public class ImgRecognizer {
 		}
 		return build(imgBuf, title);
 	}
-
+	
 	/**
 	 * build a captcha image and a input text field to get captcha by human labor.
 	 *
@@ -79,10 +79,10 @@ public class ImgRecognizer {
 	 */
 	public ImgRecognizer build(String imgBase64Data, String title) throws IOException {
 		byte[] buf = Base64.getDecoder().decode(
-						imgBase64Data.substring(imgBase64Data.indexOf(',') + 1));
+				imgBase64Data.substring(imgBase64Data.indexOf(',') + 1));
 		return build(buf, title);
 	}
-
+	
 	/**
 	 * build a captcha image and a input text field to get captcha by human labor.
 	 *
@@ -91,13 +91,18 @@ public class ImgRecognizer {
 	 */
 	public ImgRecognizer build(byte[] imgBuf, String title) throws IOException {
 		BufferedImage img = ImageIO.read(new ByteArrayInputStream(imgBuf));
+		build(img, title);
+		return this;
+	}
+	
+	public ImgRecognizer build(BufferedImage img, String title) {
 		CaptchaPanel imgPanel = new CaptchaPanel(img);
 		frame.add(imgPanel, BorderLayout.CENTER);
 		frame.setTitle(title != null ? title : "Input Captcha");
 		frame.setVisible(true);
 		return this;
 	}
-
+	
 	/**
 	 * get input text.
 	 */
@@ -106,7 +111,7 @@ public class ImgRecognizer {
 		frame.dispose();
 		return text.getText();
 	}
-
+	
 	/**
 	 * get input text.
 	 */
@@ -115,15 +120,15 @@ public class ImgRecognizer {
 		frame.dispose();
 		return text.getText();
 	}
-
+	
 	private static class CaptchaPanel extends JPanel {
 		private static final long serialVersionUID = 4833366611371266515L;
 		private BufferedImage img;
-
+		
 		public CaptchaPanel(BufferedImage img) {
 			this.img = img;
 		}
-
+		
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			g.drawImage(img, 0, 0, null);

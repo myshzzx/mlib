@@ -31,6 +31,7 @@ module mlib.core {
 
 	requires java.desktop;
 	requires java.management;
+	requires java.naming;
 	requires java.sql;
 	requires com.sun.jna;
 	requires com.sun.jna.platform;
@@ -57,4 +58,5 @@ module mlib.core {
 	requires com.github.benmanes.caffeine;
 	requires okhttp3;
 	requires com.google.common;
+	requires druid;
 }
