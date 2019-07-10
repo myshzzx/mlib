@@ -85,12 +85,19 @@ public class SqliteKV implements Closeable {
 	}
 	
 	private class DAOImpl implements DAO {
-		String group;
-		boolean valueCompressed;
+		final String group;
+		final boolean suggestCompressValue;
+		final boolean updateReadTime;
 		
-		DAOImpl(String group, boolean valueCompressed) {
+		/**
+		 * @param group                snake_case_group
+		 * @param suggestCompressValue value may be zip compress before save, depends on reducing size or not
+		 * @param updateReadTime       update rt on each read
+		 */
+		DAOImpl(String group, boolean suggestCompressValue, boolean updateReadTime) {
 			this.group = group;
-			this.valueCompressed = valueCompressed;
+			this.suggestCompressValue = suggestCompressValue;
+			this.updateReadTime = updateReadTime;
 		}
 		
 		private void ensureTable(String group) {
@@ -144,7 +151,7 @@ public class SqliteKV implements Closeable {
 				item.readTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("rt"))
 						.atZone(Times.zoneUTC).toInstant();
 				
-				if (valueCompressed) {
+				if (suggestCompressValue && blob[0] == 'P' && blob[1] == 'K') {
 					AtomicReference<Object> vr = new AtomicReference<>();
 					Compresses.deCompress(
 							(entry, in) -> {
@@ -152,10 +159,12 @@ public class SqliteKV implements Closeable {
 							},
 							new ByteArrayInputStream(blob));
 					item.value = vr.get();
-				} else
+				}
+				if (item.value == null)
 					item.value = SERIALIZER.deserialize(blob);
 				
-				jdbcTemplate.update("update " + group + " set rt=CURRENT_TIMESTAMP where k=:key", Colls.ofHashMap("key", key));
+				if (updateReadTime)
+					jdbcTemplate.update("update " + group + " set rt=CURRENT_TIMESTAMP where k=:key", Colls.ofHashMap("key", key));
 				return item;
 			}
 		}
@@ -195,10 +204,13 @@ public class SqliteKV implements Closeable {
 			ensureTable(group);
 			
 			byte[] buf = SERIALIZER.serialize(value);
-			if (valueCompressed) {
+			if (suggestCompressValue) {
 				ByteArrayOutputStream out = new ByteArrayOutputStream();
 				Compresses.compress("d", new ByteArrayInputStream(buf), buf.length, out, -1);
-				buf = out.toByteArray();
+				byte[] cb = out.toByteArray();
+				
+				if (cb.length < buf.length)
+					buf = cb;
 			}
 			jdbcTemplate.update(
 					"insert or replace into " + group + "(k,v) values(:key,:value)",
@@ -211,14 +223,14 @@ public class SqliteKV implements Closeable {
 	 * @param group snake_case_group style
 	 */
 	public DAO genDAO(String group) {
-		return new DAOImpl(group, false);
+		return new DAOImpl(group, false, false);
 	}
 	
 	/**
 	 * @param group snake_case_group style
 	 */
-	public DAO genDAO(String group, boolean valueCompressed) {
-		return new DAOImpl(group, valueCompressed);
+	public DAO genDAO(String group, boolean suggestCompressValue, boolean updateReadTime) {
+		return new DAOImpl(group, suggestCompressValue, updateReadTime);
 	}
 	
 	/**
