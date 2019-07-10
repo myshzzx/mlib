@@ -15,7 +15,7 @@ import java.time.ZoneId;
 public class SqliteKVTest1 {
 	
 	SqliteKV kv = new SqliteKV(Path.of("l:/a.db"));
-	SqliteKV.DAO dao = kv.genDAO("test_group", true);
+	SqliteKV.DAO dao = kv.genDAO("test_group", true, false);
 	
 	@After
 	public void end() {
