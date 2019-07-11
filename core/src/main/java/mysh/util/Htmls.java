@@ -124,6 +124,18 @@ public class Htmls {
 				.replace("&rdquo;", "”");
 	}
 	
+	public static String escapeXml(String text) {
+		return text
+				.replace(" ", "&nbsp;")
+				.replace("&", "&amp;")
+				.replace("<", "&lt;")
+				.replace(">", "&gt;")
+				.replace("\"", "&quot;")
+				.replace("'", "&apos;")
+				.replace("“", "&ldquo;")
+				.replace("”", "&rdquo;");
+	}
+	
 	/**
 	 * encode urls to str like "%2C1200&"
 	 */
