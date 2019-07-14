@@ -114,7 +114,19 @@ public class Times {
 		/**
 		 * Tue, 3 Jun 2008 11:05:30 GMT
 		 */
-		ISO(DateTimeFormatter.RFC_1123_DATE_TIME);
+		RFC_1123(DateTimeFormatter.RFC_1123_DATE_TIME),
+		
+		/**
+		 * 2011-12-03T10:15:30Z
+		 */
+		ISO_INSTANT(DateTimeFormatter.ISO_INSTANT),
+		
+		/**
+		 * 2011-12-03T10:15:30+01:00[Europe/Paris]
+		 */
+		ISO_ZONED(DateTimeFormatter.ISO_ZONED_DATE_TIME),
+		
+		;
 		
 		private DateTimeFormatter formatter;
 		
@@ -241,5 +253,11 @@ public class Times {
 		requireNonNull(time, "need time");
 		DateTimeFormatter formatter = getProperFormatter(format);
 		return LocalDateTime.parse(time, formatter);
+	}
+	
+	public static Instant parseInstant(Object format, String time) {
+		requireNonNull(time, "need time");
+		DateTimeFormatter formatter = getProperFormatter(format);
+		return Instant.from(formatter.parse(time));
 	}
 }
