@@ -37,4 +37,9 @@
 	        <scope>provided</scope>
         </dependency>
 	</dependencies>
+
+	<build>
+		<finalName>mlib-media</finalName>
+	</build>
+
 </project>

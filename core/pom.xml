@@ -131,6 +131,10 @@
 		</dependency>
 	</dependencies>
 
+	<build>
+		<finalName>mlib-core</finalName>
+	</build>
+
 	<profiles>
 		<profile>
 			<id>build_AppContainer</id>
@@ -150,6 +154,14 @@
 								<descriptorRef>jar-with-dependencies</descriptorRef>
 							</descriptorRefs>
 						</configuration>
+						<executions>
+							<execution>
+								<phase>install</phase>
+								<goals>
+									<goal>single</goal>
+								</goals>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>
