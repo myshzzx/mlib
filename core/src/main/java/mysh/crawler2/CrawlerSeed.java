@@ -3,7 +3,7 @@ package mysh.crawler2;
 import mysh.net.httpclient.HttpClientAssist;
 
 import java.io.Serializable;
-import java.util.Queue;
+import java.util.Collection;
 import java.util.stream.Stream;
 
 /**
@@ -53,7 +53,7 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	/**
 	 * invoked by crawler after crawler being completely stopped.
 	 */
-	default void onCrawlerStopped(Queue<UrlCtxHolder<CTX>> unhandledTasks) {
+	default void onCrawlerStopped(Collection<UrlCtxHolder<CTX>> unhandledTasks) {
 	}
 
 	/**

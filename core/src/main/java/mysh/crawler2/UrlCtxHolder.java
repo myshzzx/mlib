@@ -40,7 +40,7 @@ public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 		UrlCtxHolder<?> that = (UrlCtxHolder<?>) o;
 
 		if (!url.equals(that.url)) return false;
-		return !(ctx != null ? !ctx.equals(that.ctx) : that.ctx != null);
+		return Objects.equals(ctx, that.ctx);
 	}
 
 	@Override

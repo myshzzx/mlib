@@ -3,7 +3,7 @@ package mysh.crawler2.repo;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
 
-import java.util.Queue;
+import java.util.Collection;
 
 /**
  * Repo
@@ -16,12 +16,12 @@ public interface Repo<CTX extends UrlContext> {
 	/**
 	 * load saved info. return saved tasks.
 	 */
-	Queue<UrlCtxHolder<CTX>> load();
+	Collection<UrlCtxHolder<CTX>> load();
 
 	/**
 	 * save repo info and tasks.
 	 */
-	void save(Queue<UrlCtxHolder<CTX>> tasks);
+	void save(Collection<UrlCtxHolder<CTX>> tasks);
 
 	/**
 	 * put url to repo.

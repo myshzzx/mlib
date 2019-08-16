@@ -17,6 +17,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.*;
 import java.net.ProxySelector;
+import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
@@ -607,8 +608,12 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
-				entityBuf = rsp.body().bytes();
-				entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
+				try {
+					entityBuf = rsp.body().bytes();
+					entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
+				} catch (IllegalStateException e) {
+					throw new SocketException(e.toString());
+				}
 			}
 		}
 		

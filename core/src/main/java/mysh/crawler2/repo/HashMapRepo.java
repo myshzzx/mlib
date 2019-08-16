@@ -9,8 +9,8 @@ import mysh.util.FilesUtil;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -31,10 +31,10 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	}
 
 	@Override
-	public Queue<UrlCtxHolder<Ctx>> load() {
+	public Collection<UrlCtxHolder<Ctx>> load() {
 		if (file.exists()) {
 			try {
-				Pair<Set<String>, Queue<UrlCtxHolder<Ctx>>> data = FilesUtil.decompressFile(file);
+				Pair<Set<String>, Collection<UrlCtxHolder<Ctx>>> data = FilesUtil.decompressFile(file);
 				urls = data.getL();
 				return data.getR();
 			} catch (IOException e) {
@@ -47,8 +47,8 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	}
 
 	@Override
-	public void save(Queue<UrlCtxHolder<Ctx>> tasks) {
-		Pair<Set<String>, Queue<UrlCtxHolder<Ctx>>> data = Pair.of(urls, tasks);
+	public void save(Collection<UrlCtxHolder<Ctx>> tasks) {
+		Pair<Set<String>, Collection<UrlCtxHolder<Ctx>>> data = Pair.of(urls, tasks);
 		try {
 			FilesUtil.compress2File(file, data);
 		} catch (IOException e) {
