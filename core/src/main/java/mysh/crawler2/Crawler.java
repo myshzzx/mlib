@@ -313,14 +313,21 @@ public class Crawler<CTX extends UrlContext> {
 		public void run() {
 			try {
 				seed.beforeAccess(this);
-				if (!seed.accept(this.url, this.ctx)) return;
+				if (!seed.accept(this.url, this.ctx))
+					return;
 				
 				while (status.get() == Status.PAUSED) {
 					Thread.sleep(50);
 				}
 				
 				try (HttpClientAssist.UrlEntity ue = classifier.access(url)) {
-					if (!seed.accept(ue.getCurrentURL(), this.ctx))
+					if (ue == null) {
+						// blocked
+						classifier.recrawlWhenFail(this, null);
+						return;
+					}
+					
+					if (!seed.accept(this.url, this.ctx))
 						return;
 					if (status.get() == Status.STOPPED) {
 						storeUnhandledTask(url, ctx, null);
@@ -329,16 +336,15 @@ public class Crawler<CTX extends UrlContext> {
 					
 					log.debug("onGet={}, reqUrl={}", ue.getCurrentURL(), ue.getReqUrl());
 					
-					if (seed.onGet(ue, this.ctx))
+					if (seed.onGet(ue, this.ctx)) {
 						classifier.onGetSuccess(url);
-					else
+						if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
+							seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
+							    .filter(h -> seed.accept(h.url, h.ctx))
+							    .forEach(h -> classify(h.url, h.ctx));
+						}
+					} else
 						classifier.recrawlWhenFail(this, null);
-					
-					if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
-						seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
-						    .filter(h -> seed.accept(h.url, h.ctx))
-						    .forEach(h -> classify(h.url, h.ctx));
-					}
 				}
 			} catch (InterruptedIOException | SocketException ex) {
 				classifier.recrawlWhenFail(this, ex);
@@ -386,7 +392,8 @@ public class Crawler<CTX extends UrlContext> {
 				String protocolPrefix = ue.getProtocol() + ":";
 				while (srcValueMatcher.find()) {
 					tValue = srcValueMatcher.group(4);
-					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#") || tValue.startsWith("mailto:")) {
+					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")
+							|| tValue.startsWith("mailto:") || tValue.startsWith("javascript:")) {
 						continue;
 					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
 						tUrl = tValue;
@@ -572,7 +579,7 @@ public class Crawler<CTX extends UrlContext> {
 				if (useAdjuster && ex != null)
 					adjuster.onException(ex);
 				exec.execute(worker);
-				log.debug("recrawl scheduled: {} - {}", ex, worker.url);
+				log.debug("recrawl: {}/3, ex={}, url={}", count.get(), ex, worker.url);
 			} else {
 				storeUnhandledTask(worker.url, worker.ctx, ex);
 			}
@@ -591,6 +598,8 @@ public class Crawler<CTX extends UrlContext> {
 		/**
 		 * access url, with flow rate control.<br/>
 		 * see {@link HttpClientAssist#access(String)}
+		 *
+		 * @return <code>null</code> if this access blocked
 		 */
 		HttpClientAssist.UrlEntity access(String url) throws IOException, InterruptedException {
 			long timeStep = this.milliSecStep;
@@ -608,9 +617,16 @@ public class Crawler<CTX extends UrlContext> {
 			if (useAdjuster)
 				adjuster.beforeAccess();
 			HttpClientAssist.UrlEntity ue = this.hca.access(url);
-			if (useAdjuster && blockChecker != null && blockChecker.isBlocked(ue))
-				adjuster.onBlocked(ue);
-			return ue;
+			if (!Objects.equals(ue.getReqUrl(), ue.getCurrentURL()))
+				log.warn("url-jumped: {} -> {}", ue.getReqUrl(), ue.getCurrentURL());
+			
+			if (blockChecker != null && blockChecker.isBlocked(ue)) {
+				if (useAdjuster)
+					adjuster.onBlocked(ue);
+				log.warn("access-blocked: status={}, req={}, current={}", ue.getStatusCode(), ue.getReqUrl(), ue.getCurrentURL());
+				return null;
+			} else
+				return ue;
 		}
 		
 		void afterAccess() {
