@@ -20,10 +20,8 @@ public final class HttpClientConfig implements Cloneable {
 			" Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36";
 
 	// http://user-agent-string.info/list-of-ua/bots
-	public static final String UA_GOOGLE =
+	public static final String UA_GOOGLE_BOT =
 			"Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
-	public static final String UA_BING =
-			"Mozilla/5.0 (compatible; bingbot/2.0; +http://www.bing.com/bingbot.htm)";
 
 	Map<String, Object> headers = Colls.ofHashMap(HttpHeaders.ACCEPT, "*/*");
 
@@ -35,7 +33,7 @@ public final class HttpClientConfig implements Cloneable {
 	/**
 	 * 用户代理
 	 */
-	String userAgent = UA;
+	String userAgent = UA_GOOGLE_BOT;
 
 	/**
 	 * 连接超时. in millisecond

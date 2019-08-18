@@ -22,9 +22,10 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * HTTP 客户端组件.
@@ -264,19 +265,67 @@ public class HttpClientAssist implements Closeable {
 	
 	/**
 	 * download big resource and save to file.
+	 * support breakpoint resume.
 	 *
-	 * @param url       数据文件地址
-	 * @param headers   请求头, 可为 null
+	 * @param headers   can be null
 	 * @param overwrite overwrite exist file or rename new file
+	 * @param stopChk   check stop download or not: check(retryTimes).
 	 * @return write successfully or not
-	 * @throws Exception IO异常
 	 */
 	public boolean saveDirectlyToFile(
-			String url, @Nullable Map<String, ?> headers, File file, boolean overwrite, @Nullable Callable<Boolean> stopChk
-	) throws Exception {
-		try (UrlEntity ue = this.access(url, headers)) {
-			return ue.downloadDirectlyToFile(file, overwrite, stopChk);
+			String url, @Nullable Map<String, ?> headers, File file, boolean overwrite, @Nullable Function<Integer, Boolean> stopChk
+	) {
+		File writableFile = overwrite ? file : FilesUtil.getWritableFile(file);
+		File writeFile = new File(writableFile.getPath() + ".~write~");
+		if (!file.getParentFile().exists())
+			file.getParentFile().mkdirs();
+		
+		Map<String, Object> accHeaders = headers == null ? new HashMap<>() : new HashMap<>(headers);
+		boolean supportResume = true, result;
+		int retryTimes = 0;
+		while (true) {
+			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
+				result = false;
+				break;
+			}
+			accHeaders.put(HttpHeaders.RANGE, "bytes=" + writeFile.length() + "-");
+			
+			try (UrlEntity ue = this.access(url, accHeaders)) {
+				String rhAcceptRanges = ue.rsp.header(HttpHeaders.ACCEPT_RANGES);
+				String rhContentRange = ue.rsp.header(HttpHeaders.CONTENT_RANGE);
+				supportResume = Strings.isNotBlank(rhAcceptRanges) && !"none".equals(rhAcceptRanges) || Strings.isNotBlank(rhContentRange);
+				
+				if (ue.getStatusCode() >= 400) {
+					log.error("download-file-fail, status={}, url={}", ue.getStatusCode(), url);
+					result = false;
+				} else
+					result = ue.downloadDirectlyToFile(writeFile, retryTimes, stopChk);
+				
+				break;
+			} catch (Exception e) {
+				retryTimes++;
+				
+				if (writeFile.length() == 0) {
+					log.error("download-file-with-exp, exp={}, url={}", e, url);
+					result = false;
+					break;
+				} else if (supportResume) {
+					log.info("resume-breakpoint, exp={}, url={}", e, url);
+				} else {
+					log.error("download-file-exp,no-breakpoint-resume-support, exp={}, url={}", e, url);
+					result = false;
+					break;
+				}
+			}
 		}
+		
+		if (result) {
+			writableFile.delete();
+			writeFile.renameTo(writableFile);
+		} else {
+			log.error("download-file-failed, file={}, url={}", writeFile.getAbsolutePath(), url);
+		}
+		return result;
 	}
 	
 	/**
@@ -667,22 +716,17 @@ public class HttpClientAssist implements Closeable {
 		 * download resource directly to file, without cache to entityBuf.
 		 * WARNING: after downloading the content directly to file, the ue content can't be read again.
 		 *
-		 * @param file      file will not be overwritten, if this file exists, a new file will be created.
-		 * @param stopChk   check stop download or not.
-		 * @param overwrite overwrite exist file or rename new file
+		 * @param writeFile file writing will be create/append
+		 * @param stopChk   check stop download or not: check(retryTimes).
 		 * @return write successfully or not
 		 */
-		public synchronized boolean downloadDirectlyToFile(
-				File file, boolean overwrite, @Nullable Callable<Boolean> stopChk) throws Exception {
-			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.call())) {
+		private synchronized boolean downloadDirectlyToFile(
+				File writeFile, int retryTimes, @Nullable Function<Integer, Boolean> stopChk) throws Exception {
+			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
 				return false;
 			}
 			
-			File writableFile = overwrite ? file : FilesUtil.getWritableFile(file);
-			File writeFile = new File(writableFile.getPath() + ".~write~");
-			if (!file.getParentFile().exists())
-				file.getParentFile().mkdirs();
-			try (OutputStream out = Files.newOutputStream(writeFile.toPath());
+			try (OutputStream out = Files.newOutputStream(writeFile.toPath(), StandardOpenOption.APPEND, StandardOpenOption.CREATE);
 			     InputStream is = rsp.body().byteStream()) {
 				Thread thread = Thread.currentThread();
 				
@@ -690,7 +734,7 @@ public class HttpClientAssist implements Closeable {
 				int rl;
 				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
 					out.write(buf, 0, rl);
-					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.call())) {
+					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
 						return false;
 					}
 				}
@@ -698,8 +742,6 @@ public class HttpClientAssist implements Closeable {
 					throw new InterruptedIOException("download interrupted: " + reqUrl);
 				}
 			}
-			writableFile.delete();
-			writeFile.renameTo(writableFile);
 			return true;
 		}
 	}
