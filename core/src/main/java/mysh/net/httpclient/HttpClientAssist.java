@@ -7,6 +7,7 @@ import mysh.collect.Colls;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
+import mysh.util.Times;
 import okhttp3.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
@@ -281,11 +282,11 @@ public class HttpClientAssist implements Closeable {
 			file.getParentFile().mkdirs();
 		
 		Map<String, Object> accHeaders = headers == null ? new HashMap<>() : new HashMap<>(headers);
-		boolean supportResume = true, result;
+		boolean supportResume = true, result = false;
 		int retryTimes = 0;
-		while (true) {
+		Thread thread = Thread.currentThread();
+		while (!thread.isInterrupted()) {
 			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
-				result = false;
 				break;
 			}
 			accHeaders.put(HttpHeaders.RANGE, "bytes=" + writeFile.length() + "-");
@@ -297,7 +298,6 @@ public class HttpClientAssist implements Closeable {
 				
 				if (ue.getStatusCode() >= 400) {
 					log.error("download-file-fail, status={}, url={}", ue.getStatusCode(), url);
-					result = false;
 				} else
 					result = ue.downloadDirectlyToFile(writeFile, retryTimes, stopChk);
 				
@@ -307,16 +307,16 @@ public class HttpClientAssist implements Closeable {
 				
 				if (writeFile.length() == 0) {
 					log.error("download-file-with-exp, exp={}, url={}", e, url);
-					result = false;
 					break;
 				} else if (supportResume) {
 					log.info("resume-breakpoint, exp={}, url={}", e, url);
 				} else {
 					log.error("download-file-exp,no-breakpoint-resume-support, exp={}, url={}", e, url);
-					result = false;
 					break;
 				}
 			}
+			
+			Times.sleepNoExp(5000);
 		}
 		
 		if (result) {
