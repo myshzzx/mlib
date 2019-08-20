@@ -53,6 +53,8 @@ public class SqliteKV implements Closeable {
 	}
 	
 	public interface DAO {
+		boolean containsKey(String key);
+		
 		<V> V byKey(String key);
 		
 		Item infoByKey(String key, boolean queryTime);
@@ -130,6 +132,16 @@ public class SqliteKV implements Closeable {
 		}
 		
 		@Override
+		public boolean containsKey(String key) {
+			ensureTable(group);
+			
+			Integer count = jdbcTemplate.queryForObject(
+					"select count(1) from " + group + " where k=:key",
+					Colls.ofHashMap("key", key), Integer.class);
+			return count > 0;
+		}
+		
+		@Override
 		public <V> V byKey(String key) {
 			ensureTable(group);
 			
@@ -142,7 +154,7 @@ public class SqliteKV implements Closeable {
 			ensureTable(group);
 			
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
-					String.format("select %s from %s where k=:key", queryTime ? "v,wt,rt" : "v", group),
+					"select " + (queryTime ? "v,wt,rt" : "v") + " from " + group + " where k=:key",
 					Colls.ofHashMap("key", key));
 			if (Colls.isEmpty(lst))
 				return null;
@@ -171,7 +183,7 @@ public class SqliteKV implements Closeable {
 				
 				if (updateReadTime)
 					jdbcTemplate.update(
-							String.format("update %s set rt=CURRENT_TIMESTAMP where k=:key", group),
+							"update " + group + " set rt=CURRENT_TIMESTAMP where k=:key",
 							Colls.ofHashMap("key", key));
 				return item;
 			}
@@ -197,7 +209,7 @@ public class SqliteKV implements Closeable {
 			ensureTable(group);
 			
 			jdbcTemplate.update(
-					String.format("delete from %s where rt<:va", group),
+					"delete from " + group + " where rt<:va",
 					Colls.ofHashMap("va", validAfter));
 		}
 		
@@ -205,7 +217,7 @@ public class SqliteKV implements Closeable {
 		public void remove(String key) {
 			ensureTable(group);
 			jdbcTemplate.update(
-					String.format("delete from %s where k=:key", group),
+					"delete from " + group + " where k=:key",
 					Colls.ofHashMap("key", key));
 		}
 		
@@ -223,7 +235,7 @@ public class SqliteKV implements Closeable {
 					buf = cb;
 			}
 			jdbcTemplate.update(
-					String.format("insert or replace into %s(k,wt,v) values(:key,CURRENT_TIMESTAMP,:value)", group),
+					"insert or replace into " + group + "(k,wt,v) values(:key,CURRENT_TIMESTAMP,:value)",
 					Colls.ofHashMap("key", key, "value", buf)
 			);
 		}

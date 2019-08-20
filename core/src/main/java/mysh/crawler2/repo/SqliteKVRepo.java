@@ -4,24 +4,18 @@ import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
 import mysh.sql.sqlite.SqliteKV;
 
-import java.nio.file.Path;
 import java.util.Collection;
 
 /**
+ * save all urls in sqlite kv store.
+ *
  * @since 2019-08-20
  */
 public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
-	private SqliteKV kv;
 	private SqliteKV.DAO dao;
 	
-	public SqliteKVRepo(Path dbFile, String name) {
-		kv = new SqliteKV(dbFile);
-		dao = kv.genDAO(name, false, false);
-	}
-	
-	public SqliteKVRepo(SqliteKV kv, String name) {
-		this.kv = kv;
-		dao = kv.genDAO(name, false, false);
+	public SqliteKVRepo(SqliteKV.DAO dao) {
+		this.dao = dao;
 	}
 	
 	@Override
@@ -31,7 +25,7 @@ public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
 	
 	@Override
 	public void add(String url) {
-		put(url, "");
+		put(url, null);
 	}
 	
 	@Override
@@ -46,7 +40,7 @@ public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
 	
 	@Override
 	public boolean contains(String url) {
-		return dao.byKey(url) != null;
+		return dao.containsKey(url);
 	}
 	
 	@Override

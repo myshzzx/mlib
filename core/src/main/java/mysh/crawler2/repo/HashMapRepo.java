@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ThreadSafe
 public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	private final File file;
-	private Map<String, Object> urls;
+	public Map<String, Object> urls;
 	
 	public HashMapRepo(File file) {
 		Asserts.notNull(file, "save file");
