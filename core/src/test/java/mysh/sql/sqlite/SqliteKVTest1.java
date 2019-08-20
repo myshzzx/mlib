@@ -36,10 +36,10 @@ public class SqliteKVTest1 {
 	
 	@Test
 	public void expire() {
-		String v = dao.byKeyRemoveWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-07").atStartOfDay(ZoneId.systemDefault()).toInstant());
+		String v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-07").atStartOfDay(ZoneId.systemDefault()).toInstant());
 		System.out.println(v);
 		
-		v = dao.byKeyRemoveWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-10").atStartOfDay(ZoneId.systemDefault()).toInstant());
+		v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-10").atStartOfDay(ZoneId.systemDefault()).toInstant());
 		System.out.println(v);
 	}
 }

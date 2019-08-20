@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 2016/8/13
  */
 @ThreadSafe
-public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
+public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	private final File file;
 	private Map<String, Object> urls;
 	
@@ -30,10 +30,10 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	}
 	
 	@Override
-	public Collection<UrlCtxHolder<Ctx>> load() {
+	public Collection<UrlCtxHolder<CTX>> load() {
 		if (file.exists()) {
 			try {
-				Pair<Map<String, Object>, Collection<UrlCtxHolder<Ctx>>> data = FilesUtil.decompressFile(file);
+				Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>> data = FilesUtil.decompressFile(file);
 				urls = data.getL();
 				return data.getR();
 			} catch (IOException e) {
@@ -46,8 +46,8 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	}
 	
 	@Override
-	public void save(Collection<UrlCtxHolder<Ctx>> tasks) {
-		Pair<Map<String, Object>, Collection<UrlCtxHolder<Ctx>>> data = Pair.of(urls, tasks);
+	public void save(Collection<UrlCtxHolder<CTX>> tasks) {
+		Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>> data = Pair.of(urls, tasks);
 		try {
 			FilesUtil.compress2File(file, data);
 		} catch (IOException e) {
@@ -57,10 +57,10 @@ public class HashMapRepo<Ctx extends UrlContext> implements Repo<Ctx> {
 	
 	@Override
 	public void add(String url) {
-		urls.put(url, "");
+		put(url, "");
 	}
 	
-	public void put(String url, String content) {
+	public void put(String url, Object content) {
 		urls.put(url, content);
 	}
 	

@@ -55,9 +55,13 @@ public class SqliteKV implements Closeable {
 	public interface DAO {
 		<V> V byKey(String key);
 		
-		Item infoByKey(String key);
+		Item infoByKey(String key, boolean queryTime);
 		
-		<V> V byKeyRemoveWriteExpired(String key, Instant validAfter);
+		default Item infoByKey(String key) {
+			return infoByKey(key, true);
+		}
+		
+		<V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter);
 		
 		void removeReadExpired(Instant validAfter);
 		
@@ -129,16 +133,17 @@ public class SqliteKV implements Closeable {
 		public <V> V byKey(String key) {
 			ensureTable(group);
 			
-			Item item = infoByKey(key);
+			Item item = infoByKey(key, false);
 			return item == null ? null : item.getValue();
 		}
 		
 		@Override
-		public Item infoByKey(String key) {
+		public Item infoByKey(String key, boolean queryTime) {
 			ensureTable(group);
 			
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
-					"select * from " + group + " where k=:key", Colls.ofHashMap("key", key));
+					String.format("select %s from %s where k=:key", queryTime ? "v,wt,rt" : "v", group),
+					Colls.ofHashMap("key", key));
 			if (Colls.isEmpty(lst))
 				return null;
 			else {
@@ -146,12 +151,14 @@ public class SqliteKV implements Closeable {
 				Item item = new Item();
 				item.key = key;
 				byte[] blob = (byte[]) r.get("v");
-				item.writeTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("wt"))
-						.atZone(Times.zoneUTC).toInstant();
-				item.readTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("rt"))
-						.atZone(Times.zoneUTC).toInstant();
+				if (queryTime) {
+					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("wt"))
+					                      .atZone(Times.zoneUTC).toInstant();
+					item.readTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("rt"))
+					                     .atZone(Times.zoneUTC).toInstant();
+				}
 				
-				if (suggestCompressValue && blob[0] == 'P' && blob[1] == 'K') {
+				if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
 					AtomicReference<Object> vr = new AtomicReference<>();
 					Compresses.deCompress(
 							(entry, in) -> {
@@ -159,21 +166,22 @@ public class SqliteKV implements Closeable {
 							},
 							new ByteArrayInputStream(blob));
 					item.value = vr.get();
-				}
-				if (item.value == null)
+				} else
 					item.value = SERIALIZER.deserialize(blob);
 				
 				if (updateReadTime)
-					jdbcTemplate.update("update " + group + " set rt=CURRENT_TIMESTAMP where k=:key", Colls.ofHashMap("key", key));
+					jdbcTemplate.update(
+							String.format("update %s set rt=CURRENT_TIMESTAMP where k=:key", group),
+							Colls.ofHashMap("key", key));
 				return item;
 			}
 		}
 		
 		@Override
-		public <V> V byKeyRemoveWriteExpired(String key, Instant validAfter) {
+		public <V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter) {
 			ensureTable(group);
 			
-			Item item = infoByKey(key);
+			Item item = infoByKey(key, true);
 			if (item != null) {
 				if (item.writeTime.compareTo(validAfter) < 0) {
 					remove(key);
@@ -189,14 +197,16 @@ public class SqliteKV implements Closeable {
 			ensureTable(group);
 			
 			jdbcTemplate.update(
-					"delete from " + group + " where rt<:va", Colls.ofHashMap("va", validAfter));
+					String.format("delete from %s where rt<:va", group),
+					Colls.ofHashMap("va", validAfter));
 		}
 		
 		@Override
 		public void remove(String key) {
 			ensureTable(group);
 			jdbcTemplate.update(
-					"delete from " + group + " where k=:key", Colls.ofHashMap("key", key));
+					String.format("delete from %s where k=:key", group),
+					Colls.ofHashMap("key", key));
 		}
 		
 		@Override
@@ -213,7 +223,7 @@ public class SqliteKV implements Closeable {
 					buf = cb;
 			}
 			jdbcTemplate.update(
-					"insert or replace into " + group + "(k,v) values(:key,:value)",
+					String.format("insert or replace into %s(k,wt,v) values(:key,CURRENT_TIMESTAMP,:value)", group),
 					Colls.ofHashMap("key", key, "value", buf)
 			);
 		}

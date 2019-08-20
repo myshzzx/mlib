@@ -110,8 +110,8 @@ public class Compresses {
 			int len;
 			byte[] buf = new byte[Compresses.getProperBufSize(bufSize)];
 			while (maxReadLen > 0
-					       && (len = in.read(buf, 0, maxReadLen > buf.length ? buf.length
-							                                 : (int) maxReadLen)) > -1) {
+					&& (len = in.read(buf, 0, maxReadLen > buf.length ? buf.length
+					: (int) maxReadLen)) > -1) {
 				zos.write(buf, 0, len);
 				maxReadLen -= len;
 			}
@@ -137,7 +137,7 @@ public class Compresses {
 	public static void deCompress(EntryPicker picker, final InputStream in) {
 		try (CheckedInputStream cis = new CheckedInputStream(in, new CRC32()) {
 			@Override
-			public void close() throws IOException {
+			public void close() {
 				// do not close in
 			}
 		};
@@ -148,7 +148,6 @@ public class Compresses {
 				picker.getEntry(entry, zis);
 				zis.closeEntry();
 			}
-			
 		} catch (Exception e) {
 			throw Exps.unchecked(e);
 		}
