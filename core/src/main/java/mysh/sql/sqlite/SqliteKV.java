@@ -73,8 +73,15 @@ public class SqliteKV implements Closeable {
 	}
 	
 	public SqliteKV(Path file) {
+		this(file, false);
+	}
+	
+	/**
+	 * @param useLock about 10 times speed up on query, but the db file will be locked by the process.
+	 */
+	public SqliteKV(Path file, boolean useLock) {
 		ds = new DruidDataSource(true);
-		ds.setUrl("jdbc:sqlite:" + file.toString());
+		ds.setUrl("jdbc:sqlite:" + file.toString() + (useLock ? "?locking_mode=EXCLUSIVE" : ""));
 		ds.setMaxActive(10);
 		ds.setTestWhileIdle(false);
 		ds.setTestOnBorrow(true);
