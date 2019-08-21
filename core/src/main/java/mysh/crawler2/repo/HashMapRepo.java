@@ -3,7 +3,7 @@ package mysh.crawler2.repo;
 import mysh.collect.Pair;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
-import mysh.util.Asserts;
+import mysh.sql.sqlite.SqliteKV;
 import mysh.util.FilesUtil;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -21,24 +22,37 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @ThreadSafe
 public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
-	private final File file;
 	public Map<String, Object> urls;
 	
+	private File file;
+	private SqliteKV.DAO sqliteDao;
+	private String sqliteItemName;
+	
 	public HashMapRepo(File file) {
-		Asserts.notNull(file, "save file");
-		this.file = file;
+		this.file = Objects.requireNonNull(file, "file can't be null");
+	}
+	
+	public HashMapRepo(SqliteKV.DAO sqliteDao, String sqliteItemName) {
+		this.sqliteDao = sqliteDao;
+		this.sqliteItemName = sqliteItemName;
 	}
 	
 	@Override
 	public Collection<UrlCtxHolder<CTX>> load() {
-		if (file.exists()) {
+		Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>> data = null;
+		if (file != null && file.exists()) {
 			try {
-				Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>> data = FilesUtil.decompressFile(file);
-				urls = data.getL();
-				return data.getR();
+				data = FilesUtil.decompressFile(file);
 			} catch (IOException e) {
 				throw new RuntimeException("load file error.", e);
 			}
+		} else if (sqliteDao != null) {
+			data = sqliteDao.byKey(sqliteItemName);
+		}
+		
+		if (data != null) {
+			urls = data.getL();
+			return data.getR();
 		} else {
 			urls = new ConcurrentHashMap<>();
 			return null;
@@ -48,10 +62,14 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	@Override
 	public void save(Collection<UrlCtxHolder<CTX>> tasks) {
 		Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>> data = Pair.of(urls, tasks);
-		try {
-			FilesUtil.compress2File(file, data);
-		} catch (IOException e) {
-			throw new RuntimeException("save file error.", e);
+		if (file != null) {
+			try {
+				FilesUtil.compress2File(file, data);
+			} catch (IOException e) {
+				throw new RuntimeException("save file error.", e);
+			}
+		} else if (sqliteDao != null) {
+			sqliteDao.save(sqliteItemName, data);
 		}
 	}
 	

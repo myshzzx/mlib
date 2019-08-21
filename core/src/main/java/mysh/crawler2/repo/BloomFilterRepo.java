@@ -62,8 +62,9 @@ public class BloomFilterRepo<CTX extends UrlContext> implements Repo<CTX> {
 			} catch (IOException e) {
 				throw new RuntimeException("load file error.", e);
 			}
-		} else if (sqliteDao != null)
+		} else if (sqliteDao != null) {
 			data = sqliteDao.byKey(sqliteItemName);
+		}
 		
 		if (data != null) {
 			urls = data.getL();
