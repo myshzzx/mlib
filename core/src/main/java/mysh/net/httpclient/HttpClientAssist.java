@@ -503,8 +503,8 @@ public class HttpClientAssist implements Closeable {
 				
 				int statusCode = rsp.code();
 				if (statusCode >= 400) {
-					log.warn("access unsuccessful, status={}, msg={}, url={}",
-							statusCode, rsp.message(), this.reqUrl);
+					log.warn("access unsuccessful, status={}, msg={}, req={}, curr={}",
+							statusCode, rsp.message(), this.reqUrl, this.getCurrentURL());
 				}
 				contentType = rsp.body().contentType();
 			} catch (IOException e) {

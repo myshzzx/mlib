@@ -57,10 +57,12 @@ public class SqliteKV implements Closeable {
 		
 		<V> V byKey(String key);
 		
-		Item infoByKey(String key, boolean queryTime);
+		Item infoByKey(String key, boolean queryValue, boolean queryTime);
+		
+		Item timeByKey(String key);
 		
 		default Item infoByKey(String key) {
-			return infoByKey(key, true);
+			return infoByKey(key, true, true);
 		}
 		
 		<V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter);
@@ -152,16 +154,21 @@ public class SqliteKV implements Closeable {
 		public <V> V byKey(String key) {
 			ensureTable(group);
 			
-			Item item = infoByKey(key, false);
+			Item item = infoByKey(key, true, false);
 			return item == null ? null : item.getValue();
 		}
 		
 		@Override
-		public Item infoByKey(String key, boolean queryTime) {
+		public Item timeByKey(String key) {
+			return infoByKey(key, false, true);
+		}
+		
+		@Override
+		public Item infoByKey(String key, boolean queryValue, boolean queryTime) {
 			ensureTable(group);
 			
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
-					"select " + (queryTime ? "v,wt,rt" : "v") + " from " + group + " where k=:key",
+					"select " + (queryValue ? "v," : "") + (queryTime ? "wt,rt," : "") + "1 from " + group + " where k=:key",
 					Colls.ofHashMap("key", key));
 			if (Colls.isEmpty(lst))
 				return null;
@@ -169,7 +176,21 @@ public class SqliteKV implements Closeable {
 				Map<String, Object> r = lst.get(0);
 				Item item = new Item();
 				item.key = key;
-				byte[] blob = (byte[]) r.get("v");
+				
+				if(queryValue) {
+					byte[] blob = (byte[]) r.get("v");
+					if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
+						AtomicReference<Object> vr = new AtomicReference<>();
+						Compresses.deCompress(
+								(entry, in) -> {
+									vr.set(SERIALIZER.deserialize(in));
+								},
+								new ByteArrayInputStream(blob));
+						item.value = vr.get();
+					} else
+						item.value = SERIALIZER.deserialize(blob);
+				}
+				
 				if (queryTime) {
 					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("wt"))
 					                      .atZone(Times.zoneUTC).toInstant();
@@ -177,21 +198,11 @@ public class SqliteKV implements Closeable {
 					                     .atZone(Times.zoneUTC).toInstant();
 				}
 				
-				if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
-					AtomicReference<Object> vr = new AtomicReference<>();
-					Compresses.deCompress(
-							(entry, in) -> {
-								vr.set(SERIALIZER.deserialize(in));
-							},
-							new ByteArrayInputStream(blob));
-					item.value = vr.get();
-				} else
-					item.value = SERIALIZER.deserialize(blob);
-				
-				if (updateReadTime)
+				if (updateReadTime) {
 					jdbcTemplate.update(
 							"update " + group + " set rt=CURRENT_TIMESTAMP where k=:key",
 							Colls.ofHashMap("key", key));
+				}
 				return item;
 			}
 		}
@@ -200,7 +211,7 @@ public class SqliteKV implements Closeable {
 		public <V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter) {
 			ensureTable(group);
 			
-			Item item = infoByKey(key, true);
+			Item item = infoByKey(key, true, true);
 			if (item != null) {
 				if (item.writeTime.compareTo(validAfter) < 0) {
 					remove(key);
@@ -242,7 +253,7 @@ public class SqliteKV implements Closeable {
 					buf = cb;
 			}
 			jdbcTemplate.update(
-					"insert or replace into " + group + "(k,wt,v) values(:key,CURRENT_TIMESTAMP,:value)",
+					"insert or replace into " + group + "(k,v) values(:key,:value)",
 					Colls.ofHashMap("key", key, "value", buf)
 			);
 		}
