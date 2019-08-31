@@ -213,7 +213,9 @@ public class Times {
 		
 		TemporalAccessor formatTime;
 		
-		if (time instanceof Date)
+		if (time instanceof Long) {
+			formatTime = Instant.ofEpochMilli((Long) time).atZone(zone);
+		} else if (time instanceof Date)
 			formatTime = ((Date) time).toInstant().atZone(zone);
 		else if (time instanceof Instant)
 			formatTime = ((Instant) time).atZone(zone);

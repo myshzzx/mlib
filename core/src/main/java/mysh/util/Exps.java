@@ -12,7 +12,7 @@ import java.util.function.Function;
  */
 public abstract class Exps {
 	private static final Logger log = LoggerFactory.getLogger(Exps.class);
-
+	
 	/**
 	 * 将CheckedException转换为UncheckedException.
 	 */
@@ -23,7 +23,7 @@ public abstract class Exps {
 			return new RuntimeException(e);
 		}
 	}
-
+	
 	/**
 	 * 将ErrorStack转化为String.
 	 */
@@ -32,7 +32,7 @@ public abstract class Exps {
 		e.printStackTrace(new PrintWriter(stringWriter));
 		return stringWriter.toString();
 	}
-
+	
 	/**
 	 * 判断异常是否由某些底层的异常(含本层)引起. 是则返回异常, 否返回 null.
 	 */
@@ -49,7 +49,7 @@ public abstract class Exps {
 		}
 		return null;
 	}
-
+	
 	/**
 	 * 执行若有异常自动重试.
 	 *
@@ -69,15 +69,15 @@ public abstract class Exps {
 				if (times < Math.max(1, retryTimes)
 						&& (needRetry == null || needRetry.apply(e))) {
 					times++;
-					log.info("retry-on-exp, {}, {}/{}, exp={}", comment, times, retryTimes, e.toString());
+					log.info("retry-on-exp {}/{}, {}, exp={}", times, retryTimes, comment, e.toString());
 				} else {
-					log.error("stop-retry, {}, {}/{}, exp={}", comment, times, retryTimes, e.toString());
+					log.error("stop-retry {}/{}, {}, exp={}", times, retryTimes, comment, e.toString());
 					throw e;
 				}
 			}
 		}
 	}
-
+	
 	/**
 	 * @see #retryOnExp(String, int, Function, Try.ExpCallable)
 	 */
