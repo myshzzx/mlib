@@ -37,23 +37,23 @@ import java.util.concurrent.TimeUnit;
  */
 public class Oss {
 	private static final Logger log = LoggerFactory.getLogger(Oss.class);
-
+	
 	public static final String fileSep = System.getProperty("file.separator");
 	public static final String lineSep = System.getProperty("line.separator");
-
+	
 	public enum OS {
 		Windows, Linux, Mac, Unix, Unknown
 	}
-
+	
 	private static OS currOs;
-
+	
 	/**
 	 * get os.
 	 */
 	public static OS getOS() {
 		if (currOs != null)
 			return currOs;
-
+		
 		OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
 		String osName = osBean.getName().toLowerCase();
 		if (osName.contains("windows"))
@@ -66,10 +66,10 @@ public class Oss {
 			currOs = OS.Unix;
 		else
 			currOs = OS.Unknown;
-
+		
 		return currOs;
 	}
-
+	
 	/**
 	 * get current process id.
 	 */
@@ -79,7 +79,7 @@ public class Oss {
 		int idx = name.indexOf('@');
 		return Integer.parseInt(name.substring(0, idx));
 	}
-
+	
 	/**
 	 * get command line of current process.
 	 */
@@ -99,7 +99,7 @@ public class Oss {
 			default:
 				throw new RuntimeException("can't get cmdLine from unknown os.");
 		}
-
+		
 		Process proc = runtime.exec(cmd);
 		try (BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()))) {
 			String line;
@@ -111,7 +111,7 @@ public class Oss {
 			proc.destroy();
 		}
 	}
-
+	
 	/**
 	 * restart current process.
 	 *
@@ -121,12 +121,12 @@ public class Oss {
 	public static void restart(boolean inheritIO) throws IOException {
 		String cmd = getCmdLine();
 		log.debug("restart cmdLine:" + cmd);
-
+		
 		executeCmd(cmd, inheritIO);
-
+		
 		System.exit(0);
 	}
-
+	
 	/**
 	 * execute a cmd without waiting for termination.
 	 *
@@ -135,7 +135,7 @@ public class Oss {
 	public static Process executeCmd(String cmd, boolean inheritIO) throws IOException {
 		return executeCmd(cmd, inheritIO, true);
 	}
-
+	
 	/**
 	 * execute a cmd without waiting for termination.
 	 *
@@ -144,18 +144,18 @@ public class Oss {
 	public static Process executeCmd(String cmd, boolean inheritIO, boolean printLog) throws IOException {
 		if (printLog)
 			log.debug("executeCmd: {}", cmd);
-
+		
 		StringTokenizer st = new StringTokenizer(cmd);
 		String[] cmdArray = new String[st.countTokens()];
 		for (int i = 0; st.hasMoreTokens(); i++)
 			cmdArray[i] = st.nextToken();
-
+		
 		ProcessBuilder pb = new ProcessBuilder(cmdArray);
 		if (inheritIO)
 			pb.inheritIO();
 		return pb.start();
 	}
-
+	
 	public enum OsProcPriority {
 		VeryHigh("real time", "-20"),
 		High("high priority", "-12"),
@@ -163,16 +163,16 @@ public class Oss {
 		Normal("normal", "0"),
 		BelowNormal("below normal", "5"),
 		VeryLow("idle", "19");
-
+		
 		String win;
 		String linux;
-
+		
 		OsProcPriority(String win, String linux) {
 			this.win = win;
 			this.linux = linux;
 		}
 	}
-
+	
 	/**
 	 * change process priority.
 	 * Windows: wmic process where ProcessId=2547 CALL setpriority "xxx"
@@ -190,7 +190,7 @@ public class Oss {
 		log.debug("change priority: " + cmd);
 		Runtime.getRuntime().exec(cmd);
 	}
-
+	
 	/**
 	 * parse cmd line to separated params.<br/>
 	 * example1: [cmd param1 "param 2"] -> [cmd, param1, param 2]<br/>
@@ -202,7 +202,7 @@ public class Oss {
 		cmd = cmd.trim();
 		if (cmd.length() == 0)
 			return Collections.emptyList();
-
+		
 		List<String> r = new ArrayList<>();
 		char[] chars = cmd.toCharArray();
 		int start = 0;
@@ -237,7 +237,7 @@ public class Oss {
 		}
 		return r;
 	}
-
+	
 	/**
 	 * current system cpu usage. [0, 1]
 	 */
@@ -250,13 +250,13 @@ public class Oss {
 			throw new RuntimeException("can't get system cpu usage");
 		}
 	}
-
+	
 	/**
 	 * list all windows processes. it's a heavy operation.
 	 *
 	 * @param fetchCmdLine fetch cmd line or not. it's an expensive op, fetch them only if you need to iterate all processes' cmd lines.
 	 */
-	public static List<ProcessInfoWin32> getAllWinProcesses(boolean fetchCmdLine) throws IOException {
+	public static List<ProcessInfoWin32> getAllWinProcesses(boolean fetchCmdLine) throws Exception {
 		if (getOS() != OS.Windows) {
 			return Collections.emptyList();
 		}
@@ -272,49 +272,52 @@ public class Oss {
 			for (int i = 1; i < cols.length; i++) {
 				colsIdx[i] = header.indexOf(cols[i], colsIdx[i - 1]);
 			}
-
+			
 			List<ProcessInfoWin32> processes = new ArrayList<>();
 			Map<String, String> infoMap = new HashMap<>();
 			reader.lines()
-					.filter(line -> line.length() > 0)
-					.forEach(line -> {
-						byte[] lineBytes = line.getBytes(winCharset); for (int i = 0; i < cols.length; i++) {
-							String key = cols[i];
-							String value = i < cols.length - 1 ?
-									new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset)
-									: new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
-							value = value.trim();
-							infoMap.put(key, value);
-						}
-						processes.add(new ProcessInfoWin32(infoMap));
-					});
+			      .filter(line -> line.length() > 0)
+			      .forEach(line -> {
+				      byte[] lineBytes = line.getBytes(winCharset);
+				      for (int i = 0; i < cols.length; i++) {
+					      String key = cols[i];
+					      String value;
+					      if (i < cols.length - 1)
+						      value = new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset);
+					      else
+						      value = new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
+					      infoMap.put(key, value.trim());
+				      }
+				      processes.add(new ProcessInfoWin32(infoMap));
+			      });
 			return processes;
 		}
 	}
-
+	
 	private static final DateTimeFormatter CREATION_DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-
+	
 	public static class ProcessInfoWin32 implements Serializable {
 		private static final long serialVersionUID = -2891053091206604968L;
-
+		
 		private static Cache<Long, String> cmdLineCache = CacheBuilder.newBuilder()
-				.maximumSize(1000)
-				.expireAfterWrite(10, TimeUnit.HOURS)
-				.build();
+		                                                              .maximumSize(1000)
+		                                                              .expireAfterWrite(10, TimeUnit.HOURS)
+		                                                              .build();
 		private int pid, parentPid, priority;
 		private String name, exePath, cmdLine;
 		private LocalDateTime startTime;
 		private int threadCount, handleCount;
 		private long userModeMicroSec, kernelModeMicroSec;
 		private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
-
+		
 		private ProcessInfoWin32(Map<String, String> m) {
 			name = m.get("Name");
 			pid = Integer.parseInt(m.get("ProcessId"));
 			parentPid = Integer.parseInt(m.get("ParentProcessId"));
-
+			
 			startTime = LocalDateTime.parse(m.get("CreationDate").substring(0, 14), CREATION_DATE_FMT);
-			exePath = m.get("ExecutablePath"); cmdLine = m.get("CommandLine");
+			exePath = m.get("ExecutablePath");
+			cmdLine = m.get("CommandLine");
 			priority = Integer.parseInt(m.get("Priority"));
 			threadCount = Integer.parseInt(m.get("ThreadCount"));
 			handleCount = Integer.parseInt(m.get("HandleCount"));
@@ -325,7 +328,7 @@ public class Oss {
 			peakVirtualSize = Long.parseLong(m.get("PeakVirtualSize"));
 			peakWorkingSetSize = Long.parseLong(m.get("PeakWorkingSetSize"));
 		}
-
+		
 		@Override
 		public String toString() {
 			return "ProcessInfoWin32{" +
@@ -335,14 +338,14 @@ public class Oss {
 					", exePath='" + exePath + '\'' +
 					'}';
 		}
-
+		
 		/**
 		 * 取命令行(非常耗时), 并缓存
 		 */
 		public String getCmdLine() {
 			if (cmdLine != null)
 				return cmdLine;
-
+			
 			try {
 				return cmdLine = cmdLineCache.get(
 						((long) pid << 34) | startTime.toEpochSecond(ZoneOffset.UTC),
@@ -356,65 +359,65 @@ public class Oss {
 				return null;
 			}
 		}
-
+		
 		public int getPid() {
 			return pid;
 		}
-
+		
 		public int getParentPid() {
 			return parentPid;
 		}
-
+		
 		public int getPriority() {
 			return priority;
 		}
-
+		
 		public String getName() {
 			return name;
 		}
-
-
+		
+		
 		public String getExePath() {
 			return exePath;
 		}
-
+		
 		public LocalDateTime getStartTime() {
 			return startTime;
 		}
-
+		
 		public int getThreadCount() {
 			return threadCount;
 		}
-
+		
 		public int getHandleCount() {
 			return handleCount;
 		}
-
+		
 		public long getUserModeMicroSec() {
 			return userModeMicroSec;
 		}
-
+		
 		public long getKernelModeMicroSec() {
 			return kernelModeMicroSec;
 		}
-
+		
 		public long getVirtualSize() {
 			return virtualSize;
 		}
-
+		
 		public long getWorkingSetSize() {
 			return workingSetSize;
 		}
-
+		
 		public long getPeakVirtualSize() {
 			return peakVirtualSize;
 		}
-
+		
 		public long getPeakWorkingSetSize() {
 			return peakWorkingSetSize;
 		}
 	}
-
+	
 	public static void terminateProcess(int pid, boolean force) {
 		try {
 			switch (getOS()) {
@@ -434,7 +437,7 @@ public class Oss {
 			log.error("terminateProcess error. pid=" + pid + ", force=" + force, e);
 		}
 	}
-
+	
 	public static void terminateLinuxProcessTree(Process process) {
 		if (process != null) {
 			try {
@@ -448,7 +451,7 @@ public class Oss {
 			}
 		}
 	}
-
+	
 	/**
 	 * read process output content.
 	 * this method will block until process terminate, so make sure the process will exit immediately.
@@ -465,7 +468,7 @@ public class Oss {
 		}
 		return aos.toByteArray();
 	}
-
+	
 	/**
 	 * default app charset of current OS
 	 */
@@ -473,7 +476,7 @@ public class Oss {
 		String enc = System.getProperty("sun.jnu.encoding");
 		if (enc == null)
 			enc = System.getProperty("ibm.system.encoding");
-
+		
 		if (enc == null)
 			return Oss.getOS() == OS.Windows ? Encodings.GBK : Encodings.UTF_8;
 		else

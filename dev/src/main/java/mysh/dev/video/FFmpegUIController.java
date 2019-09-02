@@ -22,20 +22,20 @@ import java.util.concurrent.ForkJoinPool;
  */
 class FFmpegUIController {
 	private static final Logger log = LoggerFactory.getLogger(FFmpegUIController.class);
-
+	
 	private volatile Runnable stopAction;
 	private volatile Process process;
 	private Component parent;
-
+	
 	public FFmpegUIController(Component parent) {
 		this.parent = parent;
 	}
-
+	
 	void stop() {
 		if (stopAction != null)
 			stopAction.run();
 	}
-
+	
 	void h265(String src, String target, String temp, String start, String to, int crf,
 	          boolean overwrite, boolean hwAccel, boolean frameRate, int frameRateValue,
 	          boolean copyAudio, boolean mono, boolean opusKps, int opusKpsValue,
@@ -53,7 +53,7 @@ class FFmpegUIController {
 				Pair<List<File>, File> filePair = parseFiles(src, target, overwrite);
 				if (filePair == null)
 					return;
-
+				
 				List<File> srcFiles = filePair.getL();
 				File targetFile = filePair.getR(), realTarget = targetFile;
 				boolean isTargetDir = targetFile.isDirectory();
@@ -61,7 +61,7 @@ class FFmpegUIController {
 					JOptionPane.showMessageDialog(parent, "多源时目标必须是目录");
 					return;
 				}
-
+				
 				FFmpegs f = FFmpegs.create();
 				if (overwrite)
 					f.overwrite();
@@ -79,11 +79,11 @@ class FFmpegUIController {
 							f.audioOpusVoip();
 					}
 				}
-
+				
 				f.from(start).to(to).videoH265Params(crf);
-
+				
 				stopAction = renewStopAction();
-
+				
 				taskStart.run();
 				for (File srcFile : srcFiles) {
 					if (isTargetDir)
@@ -91,9 +91,9 @@ class FFmpegUIController {
 								FilesUtil.getFileNameWithoutExtension(srcFile) + ".mkv");
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
-
+					
 					f.input(srcFile);
-
+					
 					double cpuUsage = Oss.getCpuUsageSystem();
 					File tempFile = null;
 					if (tempDir != null) {
@@ -101,36 +101,40 @@ class FFmpegUIController {
 						process = f.output(tempFile).go();
 					} else
 						process = f.output(realTarget).go();
-
+					
 					if (Oss.getOS() == Oss.OS.Windows) {
-						Oss.getAllWinProcesses(true).stream()
-								.filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
-								.forEach(p -> {
-									try {
-										Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
-
-										int availableProcessors = Runtime.getRuntime().availableProcessors();
-										Random rnd = new Random();
-
-										char[] maskChars = new char[availableProcessors];
-										Arrays.fill(maskChars, '0');
-										for (int i = 0; i < availableProcessors; i++) {
-											if (rnd.nextDouble() > cpuUsage)
-												maskChars[i] = '1';
-										}
-										long mask = Long.parseLong(new String(maskChars), 2);
-										WinAPI.setProcessAffinityMask(p.getPid(), Math.max(1, mask));
-									} catch (Exception e) {
-										log.info("change process resource fail: " + p.getCmdLine(), e);
-									}
-								});
+						try {
+							Oss.getAllWinProcesses(true).stream()
+							   .filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
+							   .forEach(p -> {
+								   try {
+									   Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+									
+									   int availableProcessors = Runtime.getRuntime().availableProcessors();
+									   Random rnd = new Random();
+									
+									   char[] maskChars = new char[availableProcessors];
+									   Arrays.fill(maskChars, '0');
+									   for (int i = 0; i < availableProcessors; i++) {
+										   if (rnd.nextDouble() > cpuUsage)
+											   maskChars[i] = '1';
+									   }
+									   long mask = Long.parseLong(new String(maskChars), 2);
+									   WinAPI.setProcessAffinityMask(p.getPid(), Math.max(1, mask));
+								   } catch (Exception e) {
+									   log.info("change process resource fail: " + p.getCmdLine(), e);
+								   }
+							   });
+						} catch (Exception e) {
+							log.error("fetch-all-process-fail", e);
+						}
 					}
 					process.waitFor();
-
+					
 					if (tempFile != null) {
 						Files.move(tempFile.toPath(), realTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
-
+					
 					Thread.sleep(2000);
 				}
 			} catch (InterruptedException e) {
@@ -143,7 +147,7 @@ class FFmpegUIController {
 			}
 		});
 	}
-
+	
 	void split(String src, String target, String temp, String start, String to,
 	           boolean overwrite, boolean hwAccel,
 	           Runnable taskStart, Runnable taskComplete) {
@@ -154,7 +158,7 @@ class FFmpegUIController {
 					filePair = parseFiles(src, target, overwrite);
 				if (filePair == null)
 					return;
-
+				
 				List<File> srcFiles = filePair.getL();
 				File targetFile = filePair.getR(), realTarget = targetFile;
 				boolean isTargetDir = targetFile.isDirectory();
@@ -162,23 +166,23 @@ class FFmpegUIController {
 					JOptionPane.showMessageDialog(parent, "多源时目标必须是目录");
 					return;
 				}
-
+				
 				FFmpegs f = FFmpegs.create();
 				if (overwrite)
 					f.overwrite();
 				if (hwAccel)
 					f.hardwareAccel();
 				f.from(start).to(to);
-
+				
 				stopAction = renewStopAction();
-
+				
 				taskStart.run();
 				for (File srcFile : srcFiles) {
 					if (isTargetDir)
 						realTarget = new File(targetFile, srcFile.getName());
 					if (!overwrite)
 						realTarget = FilesUtil.getWritableFile(realTarget);
-
+					
 					process = f.input(srcFile).output(realTarget).go();
 					process.waitFor();
 				}
@@ -192,7 +196,7 @@ class FFmpegUIController {
 			}
 		});
 	}
-
+	
 	void merge(String src, String target,
 	           boolean overwrite, boolean hwAccel,
 	           Runnable taskStart, Runnable taskComplete) {
@@ -201,7 +205,7 @@ class FFmpegUIController {
 				Pair<List<File>, File> filePair = parseFiles(src, target, overwrite);
 				if (filePair == null)
 					return;
-
+				
 				List<File> srcFiles = filePair.getL();
 				File targetFile = filePair.getR();
 				if (targetFile.exists() && !targetFile.isFile()) {
@@ -214,15 +218,15 @@ class FFmpegUIController {
 				}
 				if (!overwrite && targetFile.exists())
 					targetFile = FilesUtil.getWritableFile(targetFile);
-
+				
 				FFmpegs f = FFmpegs.create();
 				if (overwrite)
 					f.overwrite();
 				if (hwAccel)
 					f.hardwareAccel();
-
+				
 				stopAction = renewStopAction();
-
+				
 				taskStart.run();
 				process = f.merge(srcFiles).output(targetFile).go();
 				process.waitFor();
@@ -236,33 +240,33 @@ class FFmpegUIController {
 			}
 		});
 	}
-
+	
 	private Runnable renewStopAction() {
 		if (stopAction != null) {
 			JOptionPane.showMessageDialog(parent, "异常,请重试");
 			throw new RuntimeException();
 		}
-
+		
 		Thread currentThread = Thread.currentThread();
 		return () -> {
 			Process p = this.process;
 			currentThread.interrupt();
-
+			
 			if (p != null && p.isAlive()) {
 				p.destroyForcibly();
 			}
 		};
 	}
-
+	
 	private Pair<List<File>, File> parseFiles(String src, String target, boolean overwrite) {
 		List<File> srcFiles = new ArrayList<>();
-
+		
 		if (Strings.isBlank(src) || Strings.isBlank(target))
 			return null;
-
+		
 		String[] srcArr = src.trim().split("[\r\n]+");
 		File targetFile = new File(target.trim());
-
+		
 		for (String s : srcArr) {
 			File file = new File(s.trim());
 			if (!file.exists() || !file.isFile()) {
