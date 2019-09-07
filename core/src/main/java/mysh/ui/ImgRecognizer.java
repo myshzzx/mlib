@@ -100,6 +100,7 @@ public class ImgRecognizer {
 		frame.add(imgPanel, BorderLayout.CENTER);
 		frame.setTitle(title != null ? title : "Input Captcha");
 		frame.setVisible(true);
+		frame.setAlwaysOnTop(false);
 		return this;
 	}
 	
