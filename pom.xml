@@ -21,7 +21,6 @@
 		<springVersion>4.2.8.RELEASE</springVersion>
 		<logback.version>1.2.3</logback.version>
 		<junit.version>4.12</junit.version>
-		<lombok.version>1.18.8</lombok.version>
 		<javafx.version>12.0.1</javafx.version>
 		<libthrift.version>0.12.0</libthrift.version>
 		<netty.version>4.1.36.Final</netty.version>
@@ -69,7 +68,8 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>${lombok.version}</version>
+				<version>1.18.8</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
 				<!--in case of lombok module compile error-->
