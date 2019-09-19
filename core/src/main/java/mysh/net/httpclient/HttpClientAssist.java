@@ -1,6 +1,7 @@
 package mysh.net.httpclient;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 /**
@@ -39,6 +41,7 @@ public class HttpClientAssist implements Closeable {
 	private static final HttpClientConfig defaultHcc = new HttpClientConfig();
 	private HttpClientConfig hcc;
 	private OkHttpClient client;
+	private AtomicBoolean closeFlag = new AtomicBoolean(false);
 	
 	public HttpClientAssist() {
 		this(null, null);
@@ -252,15 +255,21 @@ public class HttpClientAssist implements Closeable {
 		return new UrlEntity(rb);
 	}
 	
+	public boolean isClosed(){
+		return closeFlag.get();
+	}
+	
 	@Override
 	public void close() {
-		try {
-			Cache cache = client.cache();
-			if (cache != null)
-				cache.delete();
-			client.connectionPool().evictAll();
-		} catch (Exception e) {
-			log.debug("hca close error", e);
+		if (closeFlag.compareAndSet(false, true)) {
+			try {
+				client.connectionPool().evictAll();
+				Cache cache = client.cache();
+				if (cache != null)
+					cache.delete();
+			} catch (Exception e) {
+				log.error("hca close error", e);
+			}
 		}
 	}
 	
@@ -623,6 +632,15 @@ public class HttpClientAssist implements Closeable {
 				entityStr = JSON.parse(entityStr).toString();
 			
 			return entityStr;
+		}
+		
+		public synchronized JSONObject getJsonObj() throws IOException {
+			if (entityStr == null) {
+				downloadEntityAndParseEncoding();
+				entityStr = new String(entityBuf, entityEncoding);
+			}
+			
+			return JSON.parseObject(entityStr);
 		}
 		
 		private void downloadEntityAndParseEncoding() throws IOException {
