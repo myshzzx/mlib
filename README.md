@@ -1,9 +1,13 @@
-# 那些年玩过的组件和封装过的代码
-
 [![Latest release](https://img.shields.io/github/release/myshzzx/mlib.svg)](https://github.com/myshzzx/mlib/releases/latest)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.myshzzx/mlib/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.myshzzx/mlib/)
 [![License](https://img.shields.io/badge/license-Apache%202-4EB1BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
+```xml
+<dependency>
+    <groupId>com.github.myshzzx</groupId>
+    <artifactId>mlib-core</artifactId>
+</dependency>
+```
 
 这是一个原创大杂烩。
 
