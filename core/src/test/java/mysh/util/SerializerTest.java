@@ -23,6 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author mysh
  * @since 2015/7/15.
  */
+@Ignore
 public class SerializerTest {
 	private static final Logger log = LoggerFactory.getLogger(SerializerTest.class);
 

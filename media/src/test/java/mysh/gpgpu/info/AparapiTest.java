@@ -5,6 +5,7 @@ import com.aparapi.Range;
 import com.aparapi.device.Device;
 import com.aparapi.device.OpenCLDevice;
 import mysh.gpgpu.AparapiUtil;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -14,6 +15,7 @@ import java.util.Random;
  * @author Mysh
  * @since 2014/9/1 21:42
  */
+@Ignore
 public class AparapiTest {
 
 
