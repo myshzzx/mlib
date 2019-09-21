@@ -5,8 +5,8 @@
 	<groupId>com.github.myshzzx</groupId>
 	<artifactId>mlib</artifactId>
 	<packaging>pom</packaging>
-	<!--	mvn versions:set -DnewVersion=2.0-->
-	<version>2.0</version>
+	<!--	mvn versions:set -DnewVersion=2.1-->
+	<version>X-SNAPSHOT</version>
 	<modules>
 		<module>core</module>
 		<module>media</module>
