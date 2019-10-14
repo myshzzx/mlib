@@ -16,7 +16,6 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
-import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -35,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 2016/7/22
  */
 @Aspect
-@Component
+// @Component
 public class LocalCacheAspect {
 	private static final Logger log = LoggerFactory.getLogger(LocalCacheAspect.class);
 

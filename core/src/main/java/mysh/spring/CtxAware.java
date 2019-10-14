@@ -20,10 +20,10 @@ public class CtxAware implements ApplicationContextAware {
 
 	public static ApplicationContext getCtx() {
 		try {
-			latch.await();
 			if (ctx == null) {
 				String msg = "没有上下文对象";
 				log.error(msg, new RuntimeException(msg));
+				latch.await();
 			}
 
 			return ctx;
