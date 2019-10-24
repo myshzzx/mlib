@@ -21,17 +21,17 @@ public class Images {
 		BilinearInterpolation resize = new BilinearInterpolation(width, height, 1 / scale);
 		return in.process(resize).normalise();
 	}
-
+	
 	public static MBFImage read(File imgFile) throws IOException {
 		return ImageUtilities.readMBF(imgFile);
 	}
-
+	
 	public static void write(MBFImage img, File dstFile) throws IOException {
 		File writeFile = FilesUtil.getWriteFile(dstFile);
+		writeFile = new File(writeFile.getAbsolutePath() + "." + FilesUtil.getFileExtension(dstFile));
 		ImageUtilities.write(img, writeFile);
 		dstFile.delete();
 		writeFile.renameTo(dstFile);
 	}
-
-
+	
 }
