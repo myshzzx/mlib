@@ -122,7 +122,7 @@ public class SysTrayNotifier implements Closeable {
 		icon.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				if (Oss.getOS() == Oss.OS.Mac) {
+				if (Oss.isMac()) {
 					switch (e.getButton()) {
 						case MouseEvent.BUTTON3:
 							notifyAction.run();

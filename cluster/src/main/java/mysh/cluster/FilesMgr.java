@@ -313,7 +313,7 @@ public class FilesMgr implements Closeable {
                 // write delete script
                 String updateScriptFile, script;
                 Charset charset;
-                if (Oss.getOS() == Oss.OS.Windows) {
+                if (Oss.isWindows()) {
                     updateScriptFile = "update.bat";
                     charset = StandardCharsets.US_ASCII;
                     script = "del /f /q \"" + mainDir + "\\" + type.dir + "\\" + fileName + "\"";
@@ -399,7 +399,7 @@ public class FilesMgr implements Closeable {
     public String[] getRestartCmd() {
         final String pid = String.valueOf(Oss.getPid());
 
-        if (Oss.getOS() == Oss.OS.Windows)
+        if (Oss.isWindows())
             return new String[]{"startCluster.bat", pid};
         else
             return new String[]{"/bin/sh", "startCluster.sh", pid};

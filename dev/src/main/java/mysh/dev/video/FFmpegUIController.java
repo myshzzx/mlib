@@ -102,7 +102,7 @@ class FFmpegUIController {
 					} else
 						process = f.output(realTarget).go();
 					
-					if (Oss.getOS() == Oss.OS.Windows) {
+					if (Oss.isWindows()) {
 						try {
 							Oss.getAllWinProcesses(true).stream()
 							   .filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))

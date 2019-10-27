@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * @author Mysh
  * @since 2014/10/12 18:37
  */
-public class Oss {
+public abstract class Oss {
 	private static final Logger log = LoggerFactory.getLogger(Oss.class);
 	
 	public static final String fileSep = System.getProperty("file.separator");
@@ -68,6 +68,18 @@ public class Oss {
 			currOs = OS.Unknown;
 		
 		return currOs;
+	}
+	
+	public static boolean isWindows() {
+		return getOS() == OS.Windows;
+	}
+	
+	public static boolean isLinux() {
+		return getOS() == OS.Linux;
+	}
+	
+	public static boolean isMac() {
+		return getOS() == OS.Mac;
 	}
 	
 	/**

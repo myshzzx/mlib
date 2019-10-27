@@ -164,7 +164,7 @@ public class HotKeysGlobalWindows implements WinAPI {
 	}
 
 	private static void chkOS() {
-		if (Oss.getOS() != Oss.OS.Windows)
+		if (!Oss.isWindows())
 			throw new RuntimeException("current OS is: " + Oss.getOS());
 	}
 
