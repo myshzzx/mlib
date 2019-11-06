@@ -5,17 +5,11 @@ import mysh.collect.Colls;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.net.SocketException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -26,11 +20,9 @@ import java.util.function.Consumer;
  */
 @Slf4j
 public class MsgConsumer implements Closeable {
-	public interface MsgSupplier extends Closeable {
+	public interface MsgReceiver extends Closeable {
 		Msg<?> fetch() throws IOException;
 	}
-	
-	private static MsgSupplier DEFAULT_UDP_SUPPLIER;
 	
 	private static RejectedExecutionHandler DEFAULT_REJECTED_EXECUTION_HANDLER = (r, e) -> {
 		if (!e.isShutdown()) {
@@ -40,29 +32,25 @@ public class MsgConsumer implements Closeable {
 		}
 	};
 	
-	private MsgSupplier msgSupplier;
+	private MsgReceiver msgReceiver;
 	private ExecutorService exec;
 	private Map<String, Set<Consumer<Msg<?>>>> consumerMap = new ConcurrentHashMap<>();
 	
-	public MsgConsumer() throws SocketException {
-		this(getDefaultUdpSupplier(), Runtime.getRuntime().availableProcessors(), DEFAULT_REJECTED_EXECUTION_HANDLER);
-	}
-	
-	public MsgConsumer(MsgSupplier msgSupplier, int threadCount, RejectedExecutionHandler msgRejectedHandler) {
+	public MsgConsumer(MsgReceiver msgReceiver, int threadCount, RejectedExecutionHandler msgRejectedHandler) {
 		if (threadCount < 1)
 			throw new RuntimeException("threadCount should be positive");
-		this.msgSupplier = Objects.requireNonNull(msgSupplier, "msgSupplier can't be null");
+		this.msgReceiver = Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
 		
 		AtomicInteger ci = new AtomicInteger();
 		exec = new ThreadPoolExecutor(1, threadCount + 1, 1, TimeUnit.MINUTES,
 				new LinkedBlockingQueue<>(100),
 				r -> new Thread(r, "MsgConsumer-" + ci.incrementAndGet()),
-				msgRejectedHandler);
+				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
 		exec.submit(() -> {
 			Thread t = Thread.currentThread();
 			while (!t.isInterrupted())
 				try {
-					Msg<?> msg = msgSupplier.fetch();
+					Msg<?> msg = msgReceiver.fetch();
 					String topic = msg.getTopic();
 					Set<Consumer<Msg<?>>> consumers = consumerMap.get(topic);
 					if (Colls.isNotEmpty(consumers))
@@ -89,16 +77,7 @@ public class MsgConsumer implements Closeable {
 	@Override
 	public void close() throws IOException {
 		exec.shutdownNow();
-		msgSupplier.close();
+		msgReceiver.close();
 	}
 	
-	private static MsgSupplier getDefaultUdpSupplier() throws SocketException {
-		synchronized (MsgConsumer.class) {
-			if (DEFAULT_UDP_SUPPLIER == null) {
-				DEFAULT_UDP_SUPPLIER = DefaultUdpUtil.generateUdpConsumer(
-						DefaultUdpUtil.DEFAULT_PORT, DefaultUdpUtil.DEFAULT_UDP_PACK_BUF);
-			}
-			return DEFAULT_UDP_SUPPLIER;
-		}
-	}
 }

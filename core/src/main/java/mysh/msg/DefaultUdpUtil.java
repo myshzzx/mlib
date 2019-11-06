@@ -17,14 +17,13 @@ import java.util.concurrent.atomic.AtomicLong;
 @Slf4j
 public abstract class DefaultUdpUtil {
 	
-	public static final int DEFAULT_PORT = 44444;
-	public static final int DEFAULT_UDP_PACK_BUF = 1200;
+	public static final int UDP_PACK_SIZE = 1200;
 	
-	public static MsgConsumer.MsgSupplier generateUdpConsumer(int port, int bufSize) throws SocketException {
+	public static MsgConsumer.MsgReceiver generateUdpReceiver(int port, int bufSize) throws SocketException {
 		DatagramSocket sock = new DatagramSocket(port);
 		ThreadLocal<DatagramPacket> tp = ThreadLocal.withInitial(() -> new DatagramPacket(new byte[bufSize], bufSize));
 		
-		return new MsgConsumer.MsgSupplier() {
+		return new MsgConsumer.MsgReceiver() {
 			@Override
 			public void close() {
 				sock.close();
@@ -41,7 +40,7 @@ public abstract class DefaultUdpUtil {
 		};
 	}
 	
-	public static MsgProducer.MsgSender generateUdpHandler(int broadcastPort, int maxDataSize) throws SocketException {
+	public static MsgProducer.MsgSender generateUdpSender(int broadcastPort, int maxDataSize) throws SocketException {
 		DatagramSocket sock = new DatagramSocket();
 		
 		return new MsgProducer.MsgSender() {
@@ -88,14 +87,7 @@ public abstract class DefaultUdpUtil {
 		long last = lastRenewBroadcastAddr.get();
 		if (last + 60_000 < now) {
 			if (lastRenewBroadcastAddr.compareAndSet(last, now)) {
-				List<InetAddress> ba = new ArrayList<>();
-				Nets.iterateNetworkIF(i -> i.getInterfaceAddresses().forEach(
-						ia -> {
-							if (ia.getBroadcast() != null)
-								ba.add(ia.getBroadcast());
-						}
-				));
-				broadcastAddr = ba;
+				broadcastAddr = Nets.getBroadcastAddress();
 			}
 		}
 		return broadcastAddr;

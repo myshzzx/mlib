@@ -1,7 +1,9 @@
 package mysh.net;
 
 import java.net.*;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -40,13 +42,23 @@ public class Nets {
 	 * iterate enabled and non-loopback network interfaces.
 	 */
 	public static void iterateNetworkIF(Consumer<NetworkInterface> c) throws SocketException {
-	    Enumeration<NetworkInterface> nifEnum = NetworkInterface.getNetworkInterfaces();
-	    while (nifEnum.hasMoreElements()) {
-	        NetworkInterface nif = nifEnum.nextElement();
-	        if (nif.isUp() && !nif.isLoopback()) {
-	            c.accept(nif);
-	        }
-	    }
+		Enumeration<NetworkInterface> nifEnum = NetworkInterface.getNetworkInterfaces();
+		while (nifEnum.hasMoreElements()) {
+			NetworkInterface nif = nifEnum.nextElement();
+			if (nif.isUp() && !nif.isLoopback()) {
+				c.accept(nif);
+			}
+		}
 	}
 	
+	public static List<InetAddress> getBroadcastAddress() throws SocketException {
+		List<InetAddress> ba = new ArrayList<>();
+		Nets.iterateNetworkIF(i -> i.getInterfaceAddresses().forEach(
+				ia -> {
+					if (ia.getBroadcast() != null)
+						ba.add(ia.getBroadcast());
+				}
+		));
+		return ba;
+	}
 }
