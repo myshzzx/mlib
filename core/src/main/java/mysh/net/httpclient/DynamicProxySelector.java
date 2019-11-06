@@ -28,13 +28,13 @@ import java.util.*;
 public class DynamicProxySelector extends ProxySelector {
 	private static final Logger log = LoggerFactory.getLogger(DynamicProxySelector.class);
 	private static final long startSec = System.currentTimeMillis() / 1000;
-
+	
 	private static class PriorityProxy extends Proxy implements Comparable<PriorityProxy> {
 		static final InetSocketAddress SA = InetSocketAddress.createUnresolved("0.0.0.0", 12345);
-
+		
 		volatile int priority;
 		final Proxy p;
-
+		
 		PriorityProxy(Proxy p, int priority) {
 			super(Type.SOCKS, SA);
 			if (p == null)
@@ -42,39 +42,40 @@ public class DynamicProxySelector extends ProxySelector {
 			this.p = p;
 			this.priority = priority;
 		}
-
+		
 		@Override
 		public Type type() {
 			return p.type();
 		}
-
+		
 		@Override
 		public SocketAddress address() {
 			return p.address();
 		}
-
+		
 		@Override
 		public int compareTo(PriorityProxy o) {
 			return this.priority - o.priority;
 		}
 	}
-
+	
 	private volatile List<PriorityProxy> ps;
 	private volatile Map<SocketAddress, PriorityProxy> saProxyMap;
 	private LoadingCache<String, PriorityQueue<PriorityProxy>> hostProxyCache;
-
+	
 	public DynamicProxySelector() {
 		this(2000, Collections.emptyList());
 	}
-
+	
 	public DynamicProxySelector(List<Proxy> ps) {
 		this(2000, ps);
 	}
-
+	
 	public DynamicProxySelector(int maxHostCacheSize, List<Proxy> ps) {
-		hostProxyCache = CacheBuilder.newBuilder()
+		hostProxyCache = CacheBuilder
+				.newBuilder()
 				.maximumSize(maxHostCacheSize)
-				.build(new CacheLoader<>() {
+				.build(new CacheLoader<String, PriorityQueue<PriorityProxy>>() {
 					@Override
 					public PriorityQueue<PriorityProxy> load(String h) {
 						return new PriorityQueue<>(DynamicProxySelector.this.ps);
@@ -82,7 +83,7 @@ public class DynamicProxySelector extends ProxySelector {
 				});
 		reset(ps);
 	}
-
+	
 	public synchronized final void reset(List<Proxy> ps) {
 		List<PriorityProxy> plst = new ArrayList<>();
 		Map<SocketAddress, PriorityProxy> spMap = new HashMap<>();
@@ -96,9 +97,9 @@ public class DynamicProxySelector extends ProxySelector {
 		this.saProxyMap = spMap;
 		this.hostProxyCache.cleanUp();
 	}
-
+	
 	private static final List<Proxy> directProxy = Arrays.asList(Proxy.NO_PROXY);
-
+	
 	@Override
 	public List<Proxy> select(URI uri) {
 		PriorityQueue<PriorityProxy> proxies = cachedProxy(uri);
@@ -111,7 +112,7 @@ public class DynamicProxySelector extends ProxySelector {
 				return Collections.singletonList(pp);
 		}
 	}
-
+	
 	@Override
 	public void connectFailed(URI uri, SocketAddress proxySa, IOException ioe) {
 		PriorityQueue<PriorityProxy> proxies = cachedProxy(uri);
@@ -125,7 +126,7 @@ public class DynamicProxySelector extends ProxySelector {
 			proxies.add(pp);
 		}
 	}
-
+	
 	private PriorityQueue<PriorityProxy> cachedProxy(URI uri) {
 		try {
 			final String host = uri.getHost();

@@ -5,7 +5,7 @@ import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.ZoneId;
 
 /**
@@ -14,7 +14,7 @@ import java.time.ZoneId;
 @Ignore
 public class SqliteKVTest1 {
 	
-	SqliteKV kv = new SqliteKV(Path.of("l:/a.db"));
+	SqliteKV kv = new SqliteKV(Paths.get("l:/a.db"));
 	SqliteKV.DAO dao = kv.genDAO("test_group", true, false);
 	
 	@After

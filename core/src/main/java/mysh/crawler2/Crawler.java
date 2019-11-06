@@ -93,7 +93,7 @@ public class Crawler<CTX extends UrlContext> {
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc, @Nullable ProxySelector proxySelector,
 	               int ratePerMin, int threadPoolSize) throws Exception {
-		this(seed, new UrlClassifierConf.Factory<>() {
+		this(seed, new UrlClassifierConf.Factory<CTX>() {
 			UrlClassifierConf ucc = new UrlClassifierConf(
 					seed.getClass().getSimpleName() + "-default",
 					threadPoolSize,

@@ -7,11 +7,13 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-import static mysh.util.FilesUtil.*;
+import static mysh.util.FilesUtil.folderSize;
+import static mysh.util.FilesUtil.getFileExtension;
+import static mysh.util.FilesUtil.getFileNameWithoutExtension;
+import static mysh.util.FilesUtil.writeFile;
 import static org.junit.Assert.assertEquals;
 
 public class FilesUtilTest {
@@ -33,17 +35,17 @@ public class FilesUtilTest {
 	
 	@Test
 	public void getFileExtensionTest2() {
-		assertEquals("txt", getFileExtension(Path.of("fea.txt")));
-		assertEquals("txt", getFileExtension(Path.of("  fe a  .txt")));
-		assertEquals("txt", getFileExtension(Path.of(".txt")));
-		assertEquals("txt", getFileExtension(Path.of(".txt")));
-		assertEquals("", getFileExtension(Path.of("txt")));
-		assertEquals("", getFileExtension(Path.of("txt.")));
-		assertEquals("    txt", getFileExtension(Path.of("     .    txt.")));
-		assertEquals("txt", getFileExtension(Path.of("   abc.def.txt")));
-		assertEquals(" t xt", getFileExtension(Path.of("   abc.def. t xt")));
-		assertEquals("", getFileExtension(Path.of(".")));
-		assertEquals("", getFileExtension(Path.of("")));
+		assertEquals("txt", getFileExtension(Paths.get("fea.txt")));
+		assertEquals("txt", getFileExtension(Paths.get("  fe a  .txt")));
+		assertEquals("txt", getFileExtension(Paths.get(".txt")));
+		assertEquals("txt", getFileExtension(Paths.get(".txt")));
+		assertEquals("", getFileExtension(Paths.get("txt")));
+		assertEquals("", getFileExtension(Paths.get("txt.")));
+		assertEquals("    txt", getFileExtension(Paths.get("     .    txt.")));
+		assertEquals("txt", getFileExtension(Paths.get("   abc.def.txt")));
+		assertEquals(" t xt", getFileExtension(Paths.get("   abc.def. t xt")));
+		assertEquals("", getFileExtension(Paths.get(".")));
+		assertEquals("", getFileExtension(Paths.get("")));
 	}
 	
 	@Test
