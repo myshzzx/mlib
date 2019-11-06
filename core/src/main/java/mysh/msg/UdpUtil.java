@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @since 2019-11-06
  */
 @Slf4j
-public abstract class DefaultUdpUtil {
+public abstract class UdpUtil {
 	
 	public static final int UDP_PACK_SIZE = 1200;
 	
