@@ -395,29 +395,6 @@
 				<artifactId>maven-dependency-plugin</artifactId>
 			</plugin>
 
-			<!-- Javadoc -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>3.1.1</version>
-				<configuration>
-					<show>public</show>
-					<nohelp>true</nohelp>
-					<charset>UTF-8</charset>
-					<encoding>UTF-8</encoding>
-					<docencoding>UTF-8</docencoding>
-					<additionalJOptions>-Xdoclint:none
-					</additionalJOptions>  <!-- TODO 临时解决不规范的javadoc生成报错,后面要规范化后把这行去掉 -->
-				</configuration>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
 
@@ -451,6 +428,28 @@
 			</properties>
 			<build>
 				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-javadoc-plugin</artifactId>
+						<version>3.1.1</version>
+						<configuration>
+							<show>public</show>
+							<nohelp>true</nohelp>
+							<charset>UTF-8</charset>
+							<encoding>UTF-8</encoding>
+							<docencoding>UTF-8</docencoding>
+							<!-- TODO 临时解决不规范的javadoc生成报错,后面要规范化后把这行去掉 -->
+							<additionalJOptions>-Xdoclint:none</additionalJOptions>
+						</configuration>
+						<executions>
+							<execution>
+								<phase>package</phase>
+								<goals>
+									<goal>jar</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
