@@ -12,7 +12,6 @@ import java.net.DatagramSocket;
 /**
  * ClusterCommon
  *
- * @author 凯泓(zhixian.zzx@alibaba-inc.com)
  * @since 2017/11/27
  */
 public class ClusterCommon {

@@ -8,7 +8,6 @@ import java.net.UnknownHostException;
 /**
  * RelayAddress
  *
- * @author 凯泓(zhixian.zzx@alibaba-inc.com)
  * @since 2017/11/27
  */
 public class NetFace {

@@ -13,7 +13,6 @@ import java.io.IOException;
  * <p>
  * https://open-doc.dingtalk.com/docs/doc.htm?source=search&treeId=257&articleId=105735&docType=1
  *
- * @author <pre>凯泓(zhixian.zzx@alibaba-inc.com)</pre>
  * @since 2018/08/28
  */
 public class DingTalkRobot {

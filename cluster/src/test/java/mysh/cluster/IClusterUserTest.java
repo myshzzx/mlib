@@ -9,7 +9,6 @@ import java.util.List;
 /**
  * IClusterUserTest
  *
- * @author 凯泓(zhixian.zzx@alibaba-inc.com)
  * @since 2017/12/03
  */
 public class IClusterUserTest {

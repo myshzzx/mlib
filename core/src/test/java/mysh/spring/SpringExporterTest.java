@@ -15,7 +15,6 @@ import java.net.Socket;
 import static org.junit.Assert.*;
 
 /**
- * @author <pre>凯泓(zhixian.zzx@alibaba-inc.com)</pre>
  * @since 2019-02-19
  */
 @Ignore

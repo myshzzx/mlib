@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 /**
  * Nets
  *
- * @author 凯泓(zhixian.zzx @ alibaba - inc.com)
  * @since 2017/11/28
  */
 public class Nets {
