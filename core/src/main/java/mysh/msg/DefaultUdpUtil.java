@@ -6,10 +6,7 @@ import mysh.net.Nets;
 import mysh.util.Serializer;
 
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,7 +22,7 @@ public abstract class DefaultUdpUtil {
 	
 	public static MsgConsumer.MsgSupplier generateUdpConsumer(int port, int bufSize) throws SocketException {
 		DatagramSocket sock = new DatagramSocket(port);
-		DatagramPacket p = new DatagramPacket(new byte[bufSize], bufSize);
+		ThreadLocal<DatagramPacket> tp = ThreadLocal.withInitial(() -> new DatagramPacket(new byte[bufSize], bufSize));
 		
 		return new MsgConsumer.MsgSupplier() {
 			@Override
@@ -35,36 +32,44 @@ public abstract class DefaultUdpUtil {
 			
 			@Override
 			public Msg<?> fetch() throws IOException {
+				DatagramPacket p = tp.get();
 				sock.receive(p);
-				return Serializer.FST.deserialize(p.getData(), 0, p.getLength(), null);
+				Msg<?> msg = Serializer.FST.deserialize(p.getData(), 0, p.getLength(), null);
+				msg.setSockAddr(p.getSocketAddress());
+				return msg;
 			}
 		};
 	}
 	
-	public static MsgProducer.MsgHandler generateUdpHandler(int targetPort, int maxDataSize) throws SocketException {
+	public static MsgProducer.MsgSender generateUdpHandler(int broadcastPort, int maxDataSize) throws SocketException {
 		DatagramSocket sock = new DatagramSocket();
 		
-		return new MsgProducer.MsgHandler() {
+		return new MsgProducer.MsgSender() {
 			@Override
-			public void handle(Msg<?> msg) throws IOException {
-				List<InetAddress> ba = getBroadcastAddress();
-				if (Colls.isEmpty(ba)) {
-					log.warn("sendMsg-canceled,no-broadcast-address");
-					return;
-				}
+			public void send(Msg<?> msg) throws IOException {
 				byte[] buf = Serializer.FST.serialize(msg);
 				if (buf.length > maxDataSize)
 					throw new RuntimeException("dataTooBig,serializationSize-exceeds:" + maxDataSize);
 				DatagramPacket p = new DatagramPacket(buf, buf.length);
-				p.setPort(targetPort);
 				
-				for (InetAddress addr : ba) {
-					p.setAddress(addr);
-					try {
-						sock.send(p);
-					} catch (Exception e) {
-						log.error("sendMsg-fail,addr={}", addr, e);
+				if (msg.getSockAddr() == null) {
+					List<InetAddress> ba = getBroadcastAddress();
+					if (Colls.isEmpty(ba)) {
+						log.warn("sendMsg-canceled,no-broadcast-address");
+						return;
 					}
+					p.setPort(broadcastPort);
+					for (InetAddress addr : ba) {
+						p.setAddress(addr);
+						try {
+							sock.send(p);
+						} catch (Exception e) {
+							log.error("sendMsg-broadcast-fail,addr={}", addr, e);
+						}
+					}
+				} else {
+					p.setSocketAddress(msg.getSockAddr());
+					sock.send(p);
 				}
 			}
 			

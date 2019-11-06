@@ -3,6 +3,7 @@ package mysh.msg;
 import lombok.Data;
 
 import java.io.Serializable;
+import java.net.SocketAddress;
 
 /**
  * @since 2019-11-06
@@ -13,6 +14,7 @@ public class Msg<T> implements Serializable {
 	
 	private String topic;
 	private T data;
+	private SocketAddress sockAddr;
 	
 	public Msg(String topic, T data) {
 		this.topic = topic;

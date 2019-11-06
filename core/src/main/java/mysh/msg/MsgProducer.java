@@ -2,6 +2,8 @@ package mysh.msg;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.Objects;
 
@@ -9,19 +11,19 @@ import java.util.Objects;
  * @since 2019-11-06
  */
 public class MsgProducer implements Closeable {
-	public interface MsgHandler extends Closeable {
-		void handle(Msg<?> msg) throws IOException;
+	public interface MsgSender extends Closeable {
+		void send(Msg<?> msg) throws IOException;
 	}
 	
-	private static MsgHandler DEFAULT_UDP_HANDLER;
+	private static MsgSender DEFAULT_UDP_HANDLER;
 	
-	private MsgHandler handler;
+	private MsgSender handler;
 	
 	public MsgProducer() throws SocketException {
 		this(getDefaultUdpHandler());
 	}
 	
-	private static MsgHandler getDefaultUdpHandler() throws SocketException {
+	private static MsgSender getDefaultUdpHandler() throws SocketException {
 		synchronized (MsgConsumer.class) {
 			if (DEFAULT_UDP_HANDLER == null) {
 				DEFAULT_UDP_HANDLER = DefaultUdpUtil.generateUdpHandler(
@@ -31,12 +33,15 @@ public class MsgProducer implements Closeable {
 		}
 	}
 	
-	public MsgProducer(MsgHandler handler) {
+	public MsgProducer(MsgSender handler) {
 		this.handler = Objects.requireNonNull(handler, "handler can't be null");
 	}
 	
-	public void produce(String topic, Object data) throws IOException {
-		handler.handle(new Msg<>(topic, data));
+	public void produce(InetAddress targetAddr, Integer targetPort, String topic, Object data) throws IOException {
+		Msg<Object> msg = new Msg<>(topic, data);
+		if (targetAddr != null && targetPort != null)
+			msg.setSockAddr(new InetSocketAddress(targetAddr, targetPort));
+		handler.send(msg);
 	}
 	
 	@Override
