@@ -11,6 +11,11 @@
 
 	<artifactId>mlib-dev</artifactId>
 
+	<properties>
+		<maven.compiler.source>9</maven.compiler.source>
+		<maven.compiler.target>9</maven.compiler.target>
+	</properties>
+
 	<dependencies>
 		<dependency>
 			<groupId>com.github.myshzzx</groupId>

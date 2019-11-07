@@ -36,13 +36,13 @@ public class MsgConsumer implements Closeable {
 	private ExecutorService exec;
 	private Map<String, Set<Consumer<Msg<?>>>> consumerMap = new ConcurrentHashMap<>();
 	
-	public MsgConsumer(MsgReceiver msgReceiver, int threadCount, RejectedExecutionHandler msgRejectedHandler) {
-		if (threadCount < 1)
-			throw new RuntimeException("threadCount should be positive");
+	public MsgConsumer(MsgReceiver msgReceiver, int threadPoolSize, RejectedExecutionHandler msgRejectedHandler) {
+		if (threadPoolSize < 1)
+			throw new RuntimeException("threadPoolSize should be positive");
 		this.msgReceiver = Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
 		
 		AtomicInteger ci = new AtomicInteger();
-		exec = new ThreadPoolExecutor(1, threadCount + 1, 1, TimeUnit.MINUTES,
+		exec = new ThreadPoolExecutor(1, threadPoolSize + 1, 1, TimeUnit.MINUTES,
 				new LinkedBlockingQueue<>(100),
 				r -> new Thread(r, "MsgConsumer-" + ci.incrementAndGet()),
 				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
