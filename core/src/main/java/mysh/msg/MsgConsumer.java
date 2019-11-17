@@ -33,7 +33,7 @@ public class MsgConsumer implements Closeable {
 	};
 	
 	private MsgReceiver msgReceiver;
-	private ExecutorService exec;
+	private ThreadPoolExecutor exec;
 	private Map<String, Set<Consumer<Msg<?>>>> consumerMap = new ConcurrentHashMap<>();
 	
 	public MsgConsumer(MsgReceiver msgReceiver, int threadPoolSize, RejectedExecutionHandler msgRejectedHandler) {
@@ -42,10 +42,11 @@ public class MsgConsumer implements Closeable {
 		this.msgReceiver = Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
 		
 		AtomicInteger ci = new AtomicInteger();
-		exec = new ThreadPoolExecutor(1, threadPoolSize + 1, 1, TimeUnit.MINUTES,
-				new LinkedBlockingQueue<>(100),
+		exec = new ThreadPoolExecutor(threadPoolSize + 1, threadPoolSize + 1, 1, TimeUnit.MINUTES,
+				new LinkedBlockingQueue<>(50),
 				r -> new Thread(r, "MsgConsumer-" + ci.incrementAndGet()),
 				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
+		exec.allowCoreThreadTimeOut(true);
 		exec.submit(() -> {
 			Thread t = Thread.currentThread();
 			while (!t.isInterrupted())

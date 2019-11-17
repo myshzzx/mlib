@@ -48,7 +48,7 @@ public abstract class UdpUtil {
 			public Msg<?> fetch() throws IOException {
 				DatagramPacket p = tp.get();
 				sock.receive(p);
-				Msg<?> msg = Serializer.FST.deserialize(p.getData(), 0, p.getLength(), null);
+				Msg<?> msg = Serializer.BUILD_IN.deserialize(p.getData(), 0, p.getLength(), null);
 				msg.setSockAddr((InetSocketAddress) p.getSocketAddress());
 				return msg;
 			}
@@ -72,7 +72,7 @@ public abstract class UdpUtil {
 		return new MsgProducer.MsgSender() {
 			@Override
 			public void send(Msg<?> msg) throws IOException {
-				byte[] buf = Serializer.FST.serialize(msg);
+				byte[] buf = Serializer.BUILD_IN.serialize(msg);
 				if (buf.length > maxUdpPackSize)
 					throw new RuntimeException("dataTooBig,serializationSize-exceeds:" + maxUdpPackSize);
 				DatagramPacket p = new DatagramPacket(buf, buf.length);

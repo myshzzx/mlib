@@ -1,10 +1,13 @@
 package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import lombok.extern.slf4j.Slf4j;
 import mysh.collect.Colls;
 import mysh.util.Compresses;
 import mysh.util.Serializer;
+import mysh.util.Tick;
 import mysh.util.Times;
+import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -13,16 +16,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @since 2019-07-08
  */
+@Slf4j
 public class SqliteKV implements Closeable {
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
@@ -57,6 +58,10 @@ public class SqliteKV implements Closeable {
 		
 		<V> V byKey(String key);
 		
+		List<Item> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
+		
+		List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
+		
 		Item infoByKey(String key, boolean queryValue, boolean queryTime);
 		
 		Item timeByKey(String key);
@@ -72,6 +77,8 @@ public class SqliteKV implements Closeable {
 		void remove(String key);
 		
 		void save(String key, Object value);
+		
+		boolean exists(String key);
 	}
 	
 	public SqliteKV(Path file) {
@@ -164,6 +171,34 @@ public class SqliteKV implements Closeable {
 		}
 		
 		@Override
+		public List<Item> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
+			List<Map<String, Object>> lst = this.byRawSql(cols, conditions, clauses, params);
+			
+			List<Item> items = new ArrayList<>();
+			for (Map<String, Object> mi : lst) {
+				Item item = new Item();
+				item.key = (String) mi.get("k");
+				this.assembleItem(mi, item, true, true);
+				items.add(item);
+			}
+			return items;
+		}
+		
+		@Override
+		public List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
+			ensureTable(group);
+			
+			String sql = "select " + cols + " from " + group + " where " + conditions + " " + ObjectUtils.firstNonNull(clauses, "");
+			params = params == null ? Collections.emptyMap() : params;
+			Tick tick = Tick.tick();
+			List<Map<String, Object>> lst = jdbcTemplate.queryForList(sql, params);
+			if (tick.nip() > 100) {
+				log.warn("sql-need-optimize,cost={}ms, sql={}, params={}", tick.nip(), sql, params);
+			}
+			return lst == null ? Collections.emptyList() : lst;
+		}
+		
+		@Override
 		public Item infoByKey(String key, boolean queryValue, boolean queryTime) {
 			ensureTable(group);
 			
@@ -177,26 +212,7 @@ public class SqliteKV implements Closeable {
 				Item item = new Item();
 				item.key = key;
 				
-				if(queryValue) {
-					byte[] blob = (byte[]) r.get("v");
-					if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
-						AtomicReference<Object> vr = new AtomicReference<>();
-						Compresses.deCompress(
-								(entry, in) -> {
-									vr.set(SERIALIZER.deserialize(in));
-								},
-								new ByteArrayInputStream(blob));
-						item.value = vr.get();
-					} else
-						item.value = SERIALIZER.deserialize(blob);
-				}
-				
-				if (queryTime) {
-					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("wt"))
-					                      .atZone(Times.zoneUTC).toInstant();
-					item.readTime = Times.parseDayTime(Times.Formats.DayTime, (String) r.get("rt"))
-					                     .atZone(Times.zoneUTC).toInstant();
-				}
+				assembleItem(r, item, queryValue, queryTime);
 				
 				if (updateReadTime) {
 					jdbcTemplate.update(
@@ -204,6 +220,34 @@ public class SqliteKV implements Closeable {
 							Colls.ofHashMap("key", key));
 				}
 				return item;
+			}
+		}
+		
+		private void assembleItem(Map<String, Object> r, Item item, boolean queryValue, boolean queryTime) {
+			byte[] blob = (byte[]) r.get("v");
+			if (queryValue && blob != null) {
+				if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
+					AtomicReference<Object> vr = new AtomicReference<>();
+					Compresses.deCompress(
+							(entry, in) -> {
+								vr.set(SERIALIZER.deserialize(in));
+							},
+							new ByteArrayInputStream(blob));
+					item.value = vr.get();
+				} else
+					item.value = SERIALIZER.deserialize(blob);
+			}
+			
+			if (queryTime) {
+				String wt = (String) r.get("wt");
+				if (wt != null)
+					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, wt)
+					                      .atZone(Times.zoneUTC).toInstant();
+				
+				String rt = (String) r.get("rt");
+				if (rt != null)
+					item.readTime = Times.parseDayTime(Times.Formats.DayTime, rt)
+					                     .atZone(Times.zoneUTC).toInstant();
 			}
 		}
 		
@@ -256,6 +300,13 @@ public class SqliteKV implements Closeable {
 					"insert or replace into " + group + "(k,v) values(:key,:value)",
 					Colls.ofHashMap("key", key, "value", buf)
 			);
+		}
+		
+		@Override
+		public boolean exists(String key) {
+			ensureTable(group);
+			return jdbcTemplate.queryForObject("select count(1) from " + group + " where k=:key",
+					Colls.ofHashMap("key", key), Integer.class) > 0;
 		}
 	}
 	

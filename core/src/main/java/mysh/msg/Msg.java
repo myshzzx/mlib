@@ -14,7 +14,7 @@ public class Msg<T> implements Serializable {
 	
 	private String topic;
 	private T data;
-	private InetSocketAddress sockAddr;
+	private transient InetSocketAddress sockAddr;
 	
 	public Msg(String topic, T data) {
 		this.topic = topic;
