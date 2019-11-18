@@ -44,7 +44,7 @@ public class MsgConsumer implements Closeable {
 		AtomicInteger ci = new AtomicInteger();
 		exec = new ThreadPoolExecutor(threadPoolSize + 1, threadPoolSize + 1, 1, TimeUnit.MINUTES,
 				new LinkedBlockingQueue<>(50),
-				r -> new Thread(r, "MsgConsumer-" + ci.incrementAndGet()),
+				r -> new Thread(r, Thread.currentThread().getName() + "-MsgConsumer-" + ci.incrementAndGet()),
 				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
 		exec.allowCoreThreadTimeOut(true);
 		exec.submit(() -> {
