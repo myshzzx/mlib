@@ -122,6 +122,11 @@
 			<artifactId>okhttp</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>eu.agno3.jcifs</groupId>
+			<artifactId>jcifs-ng</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<dependency>
 			<groupId>org.xerial</groupId>

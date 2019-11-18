@@ -192,7 +192,7 @@ public class SqliteKV implements Closeable {
 			params = params == null ? Collections.emptyMap() : params;
 			Tick tick = Tick.tick();
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(sql, params);
-			if (tick.nip() > 100) {
+			if (tick.nip() > 30) {
 				log.warn("sql-need-optimize,cost={}ms, sql={}, params={}", tick.nip(), sql, params);
 			}
 			return lst == null ? Collections.emptyList() : lst;
