@@ -11,6 +11,7 @@ import java.awt.event.MouseEvent;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 任务栏通知.
@@ -86,7 +87,6 @@ public class SysTrayNotifier implements Closeable {
 	private final ActionListener listener;
 	private final Image oriTrayImg;
 	
-	private volatile Image currentImg;
 	private volatile Set<Msg> unHandledMsgs = Collections.synchronizedSet(new HashSet<>());
 	
 	/**
@@ -102,7 +102,7 @@ public class SysTrayNotifier implements Closeable {
 		this.listener = listener == null ? DEFAULT_LISTENER : listener;
 		icon.setToolTip(this.title);
 		
-		currentImg = oriTrayImg = icon.getImage();
+		oriTrayImg = icon.getImage();
 		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank16.png"));
 		
 		Runnable notifyAction = () -> {
@@ -152,9 +152,10 @@ public class SysTrayNotifier implements Closeable {
 			public void run() {
 				try {
 					while (true) {
-						icon.setImage(oriTrayImg);
+						flashLt.await();
+						icon.setImage(blankImg);
 						Thread.sleep(iconFlashTime);
-						icon.setImage(currentImg);
+						icon.setImage(oriTrayImg);
 						Thread.sleep(iconFlashTime);
 					}
 				} catch (Exception e) {
@@ -168,6 +169,7 @@ public class SysTrayNotifier implements Closeable {
 	}
 	
 	private Thread flashThread;
+	private CountDownLatch flashLt = new CountDownLatch(1);
 	
 	@Override
 	public void close() {
@@ -198,11 +200,10 @@ public class SysTrayNotifier implements Closeable {
 			this.setFlashing(true);
 	}
 	
-	private void setFlashing(boolean flag) {
+	private synchronized void setFlashing(boolean flag) {
 		if (flag)
-			currentImg = blankImg;
-		else
-			currentImg = oriTrayImg;
+			flashLt.countDown();
+		else if (flashLt.getCount() == 0)
+			flashLt = new CountDownLatch(1);
 	}
-	
 }
