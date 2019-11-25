@@ -7,7 +7,6 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,13 +37,9 @@ import java.util.concurrent.atomic.AtomicReference;
 public class LocalCacheAspect {
 	private static final Logger log = LoggerFactory.getLogger(LocalCacheAspect.class);
 
-	@Pointcut("@annotation(LocalCache)")
-	public void local() {
-	}
-
 	private static final Joiner keyJoiner = Joiner.on('\u0000');
 
-	@Around("local()")
+	@Around(value = "@annotation(LocalCache)", argNames = "pjp")
 	public Object getLocalCache(final ProceedingJoinPoint pjp) throws Throwable {
 		MethodSignature signature = (MethodSignature) pjp.getSignature();
 		Method method = pjp.getTarget().getClass().getMethod(signature.getName(), signature.getMethod().getParameterTypes());
