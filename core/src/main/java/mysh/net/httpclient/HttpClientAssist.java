@@ -9,7 +9,22 @@ import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 import mysh.util.Strings;
 import mysh.util.Times;
-import okhttp3.*;
+import okhttp3.Cache;
+import okhttp3.Call;
+import okhttp3.ConnectionPool;
+import okhttp3.FormBody;
+import okhttp3.Headers;
+import okhttp3.Interceptor;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+import okhttp3.internal.http.RealResponseBody;
+import okio.GzipSource;
+import okio.Okio;
+import org.apache.commons.compress.compressors.brotli.BrotliCompressorInputStream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +32,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.net.ProxySelector;
 import java.net.SocketException;
 import java.net.URI;
@@ -25,10 +46,18 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.zip.DeflaterInputStream;
+import java.util.zip.GZIPInputStream;
 
 /**
  * HTTP 客户端组件.
@@ -59,10 +88,37 @@ public class HttpClientAssist implements Closeable {
 				.readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
 				.connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
 				.proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
-				.cookieJar(hcc.cookieJar);
+				.cookieJar(hcc.cookieJar)
+				// .addInterceptor(new OkHttpUnzipInterceptor())
+				;
 		if (hcc.eventListener != null)
 			builder.eventListener(hcc.eventListener);
 		client = builder.build();
+	}
+	
+	private static class OkHttpUnzipInterceptor implements Interceptor {
+		@Override
+		public Response intercept(Chain chain) throws IOException {
+			Response response = chain.proceed(chain.request());
+			if (response.body() == null) {
+				return response;
+			}
+			
+			//check if we have gzip response
+			String contentEncoding = response.header(HttpHeaders.CONTENT_ENCODING);
+			
+			//this is used to decompress gzipped responses
+			if ("gzip".equals(contentEncoding)) {
+				Long contentLength = response.body().contentLength();
+				GzipSource responseBody = new GzipSource(response.body().source());
+				Headers strippedHeaders = response.headers().newBuilder().build();
+				return response.newBuilder().headers(strippedHeaders)
+				               .body(new RealResponseBody(response.body().contentType().toString(), contentLength, Okio.buffer(responseBody)))
+				               .build();
+			} else {
+				return response;
+			}
+		}
 	}
 	
 	/**
@@ -255,7 +311,7 @@ public class HttpClientAssist implements Closeable {
 		return new UrlEntity(rb);
 	}
 	
-	public boolean isClosed(){
+	public boolean isClosed() {
 		return closeFlag.get();
 	}
 	
@@ -670,13 +726,48 @@ public class HttpClientAssist implements Closeable {
 			return this.entityEncoding;
 		}
 		
+		private ThreadLocal<byte[]> decompressBuf = ThreadLocal.withInitial(() -> new byte[100_000]);
+		
 		/**
 		 * download entire entity to memory. download will run only once.
 		 */
 		public synchronized void downloadEntity2Buf() throws IOException {
 			if (entityBuf == null) {
 				try {
-					entityBuf = rsp.body().bytes();
+					String contentEncoding = rsp.header(HttpHeaders.CONTENT_ENCODING);
+					if (rsp.body() != null) {
+						if (contentEncoding == null) {
+							entityBuf = rsp.body().bytes();
+						} else {
+							InputStream bodyStream = rsp.body().byteStream();
+							boolean decompress = true;
+							switch (contentEncoding) {
+								case "gzip":
+									bodyStream = new GZIPInputStream(bodyStream);
+									break;
+								case "deflate":
+									bodyStream = new DeflaterInputStream(bodyStream);
+									break;
+								case "br":
+									bodyStream = new BrotliCompressorInputStream(bodyStream);
+									break;
+								default:
+									decompress = false;
+									entityBuf = rsp.body().bytes();
+							}
+							
+							if (decompress) {
+								byte[] buf = decompressBuf.get();
+								int len;
+								ByteArrayOutputStream out = new ByteArrayOutputStream();
+								while ((len = bodyStream.read(buf)) > 0) {
+									out.write(buf, 0, len);
+								}
+								entityBuf = out.toByteArray();
+							}
+						}
+					}
+					
 					entityBuf = entityBuf == null ? EMPTY_BUF : entityBuf;
 				} catch (IllegalStateException e) {
 					throw new SocketException(e.toString());

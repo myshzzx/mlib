@@ -123,6 +123,16 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-compress</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.brotli</groupId>
+			<artifactId>dec</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
 			<groupId>eu.agno3.jcifs</groupId>
 			<artifactId>jcifs-ng</artifactId>
 			<scope>provided</scope>
