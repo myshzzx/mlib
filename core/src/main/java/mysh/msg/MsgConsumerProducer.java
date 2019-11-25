@@ -16,8 +16,7 @@ public class MsgConsumerProducer implements Closeable {
 	public MsgConsumerProducer(
 			MsgConsumer.MsgReceiver msgReceiver, int consumerThreadPoolSize,
 			RejectedExecutionHandler consumerRejectedHandler,
-			MsgProducer.MsgSender msgSender
-	) {
+			MsgProducer.MsgSender msgSender) {
 		consumer = new MsgConsumer(msgReceiver, consumerThreadPoolSize, consumerRejectedHandler);
 		producer = new MsgProducer(msgSender);
 	}
@@ -34,9 +33,11 @@ public class MsgConsumerProducer implements Closeable {
 	public void close() {
 		try {
 			consumer.close();
-		} catch (Exception e) { }
+		} catch (Exception e) {
+		}
 		try {
 			producer.close();
-		} catch (Exception e) {}
+		} catch (Exception e) {
+		}
 	}
 }

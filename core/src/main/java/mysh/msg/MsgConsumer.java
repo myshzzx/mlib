@@ -42,9 +42,10 @@ public class MsgConsumer implements Closeable {
 		this.msgReceiver = Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
 		
 		AtomicInteger ci = new AtomicInteger();
+		String threadName = Thread.currentThread().getName();
 		exec = new ThreadPoolExecutor(threadPoolSize + 1, threadPoolSize + 1, 1, TimeUnit.MINUTES,
 				new LinkedBlockingQueue<>(50),
-				r -> new Thread(r, Thread.currentThread().getName() + "-MsgConsumer-" + ci.incrementAndGet()),
+				r -> new Thread(r, threadName + "-MsgConsumer-" + ci.incrementAndGet()),
 				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
 		exec.allowCoreThreadTimeOut(true);
 		exec.submit(() -> {
