@@ -1,8 +1,13 @@
 package jsocks.socks;
-import java.net.*;
-import java.io.*;
-import java.util.Hashtable;
-import java.util.Enumeration;
+import lombok.Getter;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
   Abstract class CProxy, base for classes Socks4Proxy and Socks5Proxy.
@@ -16,7 +21,9 @@ public abstract class CProxy{
    protected InetRange directHosts = new InetRange();
 
    protected InetAddress proxyIP = null;
+   @Getter
    protected String proxyHost = null;
+   @Getter
    protected int proxyPort;
    protected Socket proxySocket = null;
 
