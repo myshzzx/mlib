@@ -121,8 +121,10 @@ class UDPRelayServer implements Runnable {
 		log("Remote socket " + remote_sock.getLocalAddress() + ":" +
 				remote_sock.getLocalPort());
 		
-		pipe_thread1 = new Thread(this, "pipe1");
-		pipe_thread2 = new Thread(this, "pipe2");
+		pipe_thread1 = new Thread(this, "UDPRelayServer-pipe1");
+		pipe_thread1.setDaemon(true);
+		pipe_thread2 = new Thread(this, "UDPRelayServer-pipe2");
+		pipe_thread2.setDaemon(true);
 		
 		lastReadTime = System.currentTimeMillis();
 		
@@ -178,9 +180,15 @@ class UDPRelayServer implements Runnable {
 		pipe_thread1 = null;
 	}
 	
+	private static boolean printLog;
 	
-	static private void log(String s) {
-		log.info(s);
+	public static void setPrintLog(boolean p) {
+		printLog = p;
+	}
+	
+	private void log(String s) {
+		if (printLog)
+			log.debug("{}:{}", getClass().getSimpleName(), s);
 	}
 	
 	private void pipe(DatagramSocket from, DatagramSocket to, boolean out)

@@ -55,7 +55,7 @@ public class ProxyServer implements Runnable {
 	static int iddleTimeout = 180000; //3 minutes
 	static int acceptTimeout = 180000; //3 minutes
 	
-	static CProxy proxy;
+	CProxy proxy;
 	
 	
 	//Public Constructors
@@ -93,7 +93,7 @@ public class ProxyServer implements Runnable {
 	 *
 	 * @param p CProxy which should be used to handle user requests.
 	 */
-	public static void setProxy(CProxy p) {
+	public void setProxy(CProxy p) {
 		proxy = p;
 		UDPRelayServer.proxy = proxy;
 	}
@@ -103,7 +103,7 @@ public class ProxyServer implements Runnable {
 	 *
 	 * @return CProxy wich is used to handle user requests.
 	 */
-	public static CProxy getProxy() {
+	public CProxy getProxy() {
 		return proxy;
 	}
 	
@@ -168,12 +168,15 @@ public class ProxyServer implements Runnable {
 			ss = new ServerSocket(port, backlog, localIP);
 			log("Starting SOCKS Proxy on:" + ss.getInetAddress().getHostAddress() + ":"
 					+ ss.getLocalPort());
-			while (true) {
+			Thread thread = Thread.currentThread();
+			while (!thread.isInterrupted()) {
 				Socket s = ss.accept();
 				log("Accepted from:" + s.getInetAddress().getHostName() + ":"
 						+ s.getPort());
 				ProxyServer ps = new ProxyServer(auth, s);
-				(new Thread(ps)).start();
+				Thread t = new Thread(ps, "ProxyServer-Accepted");
+				t.setDaemon(true);
+				t.start();
 			}
 		} catch (IOException ioe) {
 			log.error("proxyServer-handle-exp,port={},backlog={}", port, backlog, ioe);
@@ -384,7 +387,8 @@ public class ProxyServer implements Runnable {
 		mode = ACCEPT_MODE;
 		
 		pipe_thread1 = Thread.currentThread();
-		pipe_thread2 = new Thread(this);
+		pipe_thread2 = new Thread(this, "ProxyServer-OnBind");
+		pipe_thread2.setDaemon(true);
 		pipe_thread2.start();
 		
 		//Make timeout infinit.
@@ -527,7 +531,8 @@ public class ProxyServer implements Runnable {
 			remote_in = s.getInputStream();
 			remote_out = s.getOutputStream();
 			pipe_thread1 = Thread.currentThread();
-			pipe_thread2 = new Thread(this);
+			pipe_thread2 = new Thread(this, "ProxyServer-pipe2");
+			pipe_thread2.setDaemon(true);
 			pipe_thread2.start();
 			pipe(in, remote_out);
 		} catch (IOException ioe) {
@@ -559,11 +564,19 @@ public class ProxyServer implements Runnable {
 		} catch (IOException ioe) {}
 	}
 	
-	static final void log(String s) {
-		log.info(s);
+	private static boolean printLog;
+	
+	public static void setPrintLog(boolean p) {
+		printLog = p;
+		UDPRelayServer.setPrintLog(printLog);
 	}
 	
-	static final void log(ProxyMessage msg) {
+	final void log(String s) {
+		if (printLog)
+			log.debug("{}:{}", getClass().getSimpleName(), s);
+	}
+	
+	final void log(ProxyMessage msg) {
 		log("Request version:" + msg.version +
 				"\tCommand: " + command2String(msg.command));
 		log("IP:" + msg.ip + "\tPort:" + msg.port +

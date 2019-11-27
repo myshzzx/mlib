@@ -231,7 +231,7 @@ public class SOCKS {
 		}
 		
 		
-		ProxyServer.setProxy(proxy);
+		// ProxyServer.setProxy(proxy);
 	}
 	
 	/**

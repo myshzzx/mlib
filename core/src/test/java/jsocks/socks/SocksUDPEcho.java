@@ -2,7 +2,6 @@ package jsocks.socks;
 
 import java.net.*;
 import java.io.*;
-import socks.*;
 
 /** SOCKS aware UDP echo client.<br>
     Reads input line by line and sends it to given on command line

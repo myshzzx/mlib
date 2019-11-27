@@ -1,7 +1,6 @@
 package jsocks.socks;
 import java.net.*;
 import java.io.*;
-import socks.*;
 
 /** SOCKS aware echo client*/
 

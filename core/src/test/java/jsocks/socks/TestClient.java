@@ -1,7 +1,6 @@
 package jsocks.socks;
 import java.io.*;
 import java.net.*;
-import socks.*;
 
 public class TestClient extends TestService{
    /** Proxy which should be used*/
