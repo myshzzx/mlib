@@ -96,13 +96,13 @@ public class Pusher implements PusherStateController {
 
 		this.buf = new byte[bufLen];
 		this.dataPusher.setName("jpipe.Pusher." + type);
+		dataPusher.setDaemon(true);
 	}
 
 	/**
 	 * 启动推送器.
 	 */
 	public void start() {
-
 		this.dataPusher.start();
 	}
 
