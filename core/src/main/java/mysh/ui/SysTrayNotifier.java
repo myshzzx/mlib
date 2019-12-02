@@ -169,7 +169,7 @@ public class SysTrayNotifier implements Closeable {
 	}
 	
 	private Thread flashThread;
-	private CountDownLatch flashLt = new CountDownLatch(1);
+	private volatile CountDownLatch flashLt = new CountDownLatch(1);
 	
 	@Override
 	public void close() {
