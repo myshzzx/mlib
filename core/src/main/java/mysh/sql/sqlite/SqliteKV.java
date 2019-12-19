@@ -2,6 +2,7 @@ package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import lombok.extern.slf4j.Slf4j;
+import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
 import mysh.util.Compresses;
 import mysh.util.Serializer;
@@ -16,7 +17,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -321,6 +326,14 @@ public class SqliteKV implements Closeable {
 	 * @param group snake_case_group style
 	 */
 	public DAO genDAO(String group, boolean suggestCompressValue, boolean updateReadTime) {
+		return new DAOImpl(group, suggestCompressValue, updateReadTime);
+	}
+	
+	/**
+	 * @param daoName use snake_case style
+	 */
+	public DAO genDAO(Class<?> c, String daoName, boolean suggestCompressValue, boolean updateReadTime) {
+		String group = CodeUtil.camel2underline(c.getSimpleName()).toLowerCase() + "_" + daoName;
 		return new DAOImpl(group, suggestCompressValue, updateReadTime);
 	}
 	
