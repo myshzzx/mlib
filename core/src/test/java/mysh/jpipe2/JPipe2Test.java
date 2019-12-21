@@ -9,6 +9,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @author mysh
@@ -18,8 +19,14 @@ import java.util.List;
 public class JPipe2Test {
 	
 	@Test
+	public void pipe() throws InterruptedException {
+		JPipe2 j = new JPipe2(8080, "l", 80, "test", 1);
+		new CountDownLatch(1).await();
+	}
+	
+	@Test
 	public void handlers() throws InterruptedException {
-		JPipe2 j = new JPipe2(80, "l", 8080, "test", 1,
+		JPipe2 j = new JPipe2(8080, "l", 80, "test", 1,
 				new ChannelHandler[]{
 						new ByteToMessageDecoder() {
 							@Override
@@ -37,6 +44,6 @@ public class JPipe2Test {
 							}
 						}
 				}, null);
-//		new CountDownLatch(1).await();
+		new CountDownLatch(1).await();
 	}
 }

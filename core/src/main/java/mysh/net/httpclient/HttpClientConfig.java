@@ -2,6 +2,10 @@
 package mysh.net.httpclient;
 
 import com.google.common.net.HttpHeaders;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import mysh.collect.Colls;
 import okhttp3.CookieJar;
 import okhttp3.EventListener;
@@ -14,6 +18,10 @@ import java.util.Map;
  *
  * @author ZhangZhx
  */
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public final class HttpClientConfig implements Cloneable {
 	
 	public static final String UA =
@@ -65,9 +73,6 @@ public final class HttpClientConfig implements Cloneable {
 	
 	EventListener eventListener;
 	
-	public HttpClientConfig() {
-	}
-	
 	public HttpClientConfig addHeaders(Map<String, ?> headers) {
 		if (this.headers == null)
 			this.headers = new HashMap<>();
@@ -89,108 +94,9 @@ public final class HttpClientConfig implements Cloneable {
 		return c;
 	}
 	
-	// getter and setter
-	
-	/**
-	 * @see #cookieJar
-	 */
 	public HttpClientConfig setCookieJar(CookieJar cookieJar) {
-		if (cookieJar != null) {
+		if (cookieJar != null)
 			this.cookieJar = cookieJar;
-		}
-		return this;
-	}
-	
-	public boolean isKeepAlive() {
-		return isKeepAlive;
-	}
-	
-	public HttpClientConfig setKeepAlive(boolean keepAlive) {
-		isKeepAlive = keepAlive;
-		return this;
-	}
-	
-	public String getUserAgent() {
-		return userAgent;
-	}
-	
-	public HttpClientConfig setUserAgent(String userAgent) {
-		this.userAgent = userAgent;
-		return this;
-	}
-	
-	/**
-	 * @see #connectionTimeout
-	 */
-	public int getConnectionTimeout() {
-		return connectionTimeout;
-	}
-	
-	/**
-	 * @see #connectionTimeout
-	 */
-	public HttpClientConfig setConnectionTimeout(int connectionTimeout) {
-		this.connectionTimeout = connectionTimeout;
-		return this;
-	}
-	
-	/**
-	 * @see #soTimeout
-	 */
-	public int getSoTimeout() {
-		return soTimeout;
-	}
-	
-	/**
-	 * @see #soTimeout
-	 */
-	public HttpClientConfig setSoTimeout(int soTimeout) {
-		this.soTimeout = soTimeout;
-		return this;
-	}
-	
-	/**
-	 * @see #maxIdolConnections
-	 */
-	public int getMaxIdolConnections() {
-		return maxIdolConnections;
-	}
-	
-	/**
-	 * @see #maxIdolConnections
-	 */
-	public HttpClientConfig setMaxIdolConnections(int maxIdolConnections) {
-		this.maxIdolConnections = maxIdolConnections;
-		return this;
-	}
-	
-	/**
-	 * @see #connPoolKeepAliveSec
-	 */
-	public int getConnPoolKeepAliveSec() {
-		return connPoolKeepAliveSec;
-	}
-	
-	/**
-	 * @see #connPoolKeepAliveSec
-	 */
-	public HttpClientConfig setConnPoolKeepAliveSec(int connPoolKeepAliveSec) {
-		this.connPoolKeepAliveSec = connPoolKeepAliveSec;
-		return this;
-	}
-	
-	/**
-	 * @see #eventListener
-	 */
-	public EventListener getEventListener() {
-		return eventListener;
-	}
-	
-	/**
-	 * @see #eventListener
-	 */
-	public HttpClientConfig setEventListener(EventListener eventListener) {
-		this.eventListener = eventListener;
 		return this;
 	}
 }

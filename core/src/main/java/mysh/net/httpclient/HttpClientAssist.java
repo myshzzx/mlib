@@ -62,8 +62,7 @@ public class HttpClientAssist implements Closeable {
 				.readTimeout(hcc.soTimeout, TimeUnit.MILLISECONDS)
 				.connectionPool(new ConnectionPool(hcc.maxIdolConnections, hcc.connPoolKeepAliveSec, TimeUnit.SECONDS))
 				.proxySelector(ObjectUtils.firstNonNull(proxySelector, ProxySelector.getDefault()))
-				.cookieJar(hcc.cookieJar)
-				;
+				.cookieJar(hcc.cookieJar);
 		if (hcc.eventListener != null)
 			builder.eventListener(hcc.eventListener);
 		client = builder.build();
@@ -534,8 +533,6 @@ public class HttpClientAssist implements Closeable {
 			if (closed) return;
 			try {
 				closed = true;
-				if (!call.isCanceled())
-					call.cancel();
 				if (rsp != null)
 					rsp.close();
 			} catch (Exception e) {
@@ -792,6 +789,7 @@ public class HttpClientAssist implements Closeable {
 				while (!thread.isInterrupted() && (rl = is.read(buf)) > -1) {
 					out.write(buf, 0, rl);
 					if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
+						call.cancel();
 						return false;
 					}
 				}
