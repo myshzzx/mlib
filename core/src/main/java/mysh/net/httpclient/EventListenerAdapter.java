@@ -77,10 +77,6 @@ public class EventListenerAdapter extends EventListener {
 		this.listeners.forEach(l->l.requestBodyEnd(call, byteCount));
 	}
 
-	public void requestFailed(Call call, IOException ioe) {
-		this.listeners.forEach(l->l.requestFailed(call, ioe));
-	}
-
 	public void responseHeadersStart(Call call) {
 		this.listeners.forEach(l->l.responseHeadersStart(call));
 	}
@@ -95,10 +91,6 @@ public class EventListenerAdapter extends EventListener {
 
 	public void responseBodyEnd(Call call, long byteCount) {
 		this.listeners.forEach(l->l.responseBodyEnd(call, byteCount));
-	}
-
-	public void responseFailed(Call call, IOException ioe) {
-		this.listeners.forEach(l->l.responseFailed(call, ioe));
 	}
 
 	public void callEnd(Call call) {
