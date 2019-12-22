@@ -2,8 +2,6 @@
 package mysh.net.httpclient;
 
 import com.google.common.net.HttpHeaders;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import mysh.collect.Colls;
@@ -19,8 +17,6 @@ import java.util.Map;
  * @author ZhangZhx
  */
 @Data
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
 public final class HttpClientConfig implements Cloneable {
 	
