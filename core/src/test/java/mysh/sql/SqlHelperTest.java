@@ -3,6 +3,7 @@ package mysh.sql;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.io.Serializable;
 import java.text.DateFormat;
@@ -21,7 +22,7 @@ import java.util.Map;
 public class SqlHelperTest {
 
 	@Autowired
-	NamedParamQuery jdbcTemplate;
+	NamedParameterJdbcTemplate jdbcTemplate;
 
 	@Test
 	public void dynamicSqlRetTable() throws Exception {

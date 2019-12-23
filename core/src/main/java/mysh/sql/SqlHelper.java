@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import mysh.codegen.CodeUtil;
 import mysh.codegen.DynamicSql;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -30,7 +31,7 @@ import java.util.concurrent.TimeUnit;
  * @since 2015/8/25
  */
 public class SqlHelper extends DynamicSql<SqlHelper> {
-	private NamedParamQuery jdbc;
+	private NamedParameterJdbcTemplate jdbc;
 	
 	private int pageNo;
 	private int pageSize;
@@ -392,12 +393,12 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 	}
 	
 	// ========== create below =============
-	public static SqlHelper create(NamedParamQuery jdbc, String querySql) {
+	public static SqlHelper create(NamedParameterJdbcTemplate jdbc, String querySql) {
 		return new SqlHelper(jdbc,
 				new StringBuilder(Objects.requireNonNull(querySql, "query sql can't be null")), null);
 	}
 	
-	public SqlHelper(NamedParamQuery jdbc, StringBuilder cond, Map<String, Object> paramMap) {
+	public SqlHelper(NamedParameterJdbcTemplate jdbc, StringBuilder cond, Map<String, Object> paramMap) {
 		super(cond, paramMap);
 		this.jdbc = Objects.requireNonNull(jdbc, "jdbc template can't be null");
 	}

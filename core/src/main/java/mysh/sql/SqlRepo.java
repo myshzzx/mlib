@@ -1,16 +1,23 @@
 package mysh.sql;
 
+import lombok.Setter;
 import mysh.codegen.CodeUtil;
 import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.*;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * SqlRepo
@@ -22,7 +29,9 @@ public class SqlRepo {
 	private static final Logger log = LoggerFactory.getLogger(SqlRepo.class);
 
 	private final Map<String, String> repo = new HashMap<>();
-	private NamedParamQueryImpl jdbc;
+	@Setter
+	private NamedParameterJdbcTemplate jdbc;
+	@Setter
 	private DictRepo dictRepo;
 	private EnumSet<SqlHelper.KeyStrategy> keyStrategies = EnumSet.of(SqlHelper.KeyStrategy.UPPER_CASE);
 
@@ -33,15 +42,6 @@ public class SqlRepo {
 				loadSqlFile(is);
 			}
 		}
-	}
-
-	public SqlRepo setDictRepo(DictRepo dictRepo) {
-		this.dictRepo = dictRepo;
-		return this;
-	}
-
-	public void setJdbc(NamedParamQueryImpl jdbc) {
-		this.jdbc = jdbc;
 	}
 
 	/**

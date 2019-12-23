@@ -12,6 +12,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
@@ -94,14 +95,11 @@ public class SqliteKV implements Closeable {
 	 * @param useLock about 10 times speed up on query, but the db file will be locked by the process.
 	 */
 	public SqliteKV(Path file, boolean useLock) {
-		ds = new DruidDataSource(true);
-		ds.setUrl("jdbc:sqlite:" + file.toString() + (useLock ? "?locking_mode=EXCLUSIVE" : ""));
-		ds.setMaxActive(10);
-		ds.setTestWhileIdle(false);
-		ds.setTestOnBorrow(true);
-		ds.setTestOnReturn(false);
-		ds.setValidationQuery("select 1");
-		
+		ds = SqliteUtil.newDataSource(file, useLock);
+		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+	}
+	
+	public SqliteKV(DataSource ds) {
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 	}
 	
