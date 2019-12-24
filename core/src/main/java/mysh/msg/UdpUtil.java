@@ -40,7 +40,7 @@ public abstract class UdpUtil {
 		
 		return new MsgConsumer.MsgReceiver() {
 			@Override
-			public void close() {
+			public void shutdown() {
 				sock.close();
 			}
 			
@@ -98,8 +98,7 @@ public abstract class UdpUtil {
 				}
 			}
 			
-			@Override
-			public void close() {
+			public void shutdown() {
 				sock.close();
 			}
 		};

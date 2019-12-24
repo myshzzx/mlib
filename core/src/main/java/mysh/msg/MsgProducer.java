@@ -1,29 +1,26 @@
 package mysh.msg;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Objects;
 
 /**
  * @since 2019-11-06
  */
-public class MsgProducer implements Closeable {
-	public interface MsgSender extends Closeable {
+public class MsgProducer {
+	public interface MsgSender {
 		void send(Msg<?> msg) throws IOException;
+		
+		void shutdown();
 	}
 	
-	private MsgSender handler;
+	private MsgSender msgSender;
 	
 	public MsgProducer(MsgSender msgSender) {
-		this.handler = Objects.requireNonNull(msgSender, "msgSender can't be null");
+		this.msgSender = Objects.requireNonNull(msgSender, "msgSender can't be null");
 	}
 	
 	public void produce(Msg<?> msg) throws IOException {
-		handler.send(msg);
+		msgSender.send(msg);
 	}
 	
-	@Override
-	public void close() throws IOException {
-		handler.close();
-	}
 }

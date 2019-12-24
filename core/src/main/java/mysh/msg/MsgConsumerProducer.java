@@ -1,6 +1,5 @@
 package mysh.msg;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.function.Consumer;
@@ -8,7 +7,7 @@ import java.util.function.Consumer;
 /**
  * @since 2019-11-07
  */
-public class MsgConsumerProducer implements Closeable {
+public class MsgConsumerProducer {
 	
 	private MsgConsumer consumer;
 	private MsgProducer producer;
@@ -29,15 +28,7 @@ public class MsgConsumerProducer implements Closeable {
 		producer.produce(msg);
 	}
 	
-	@Override
-	public void close() {
-		try {
-			consumer.close();
-		} catch (Exception e) {
-		}
-		try {
-			producer.close();
-		} catch (Exception e) {
-		}
+	public void shutdown() {
+		consumer.shutdown();
 	}
 }

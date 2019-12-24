@@ -3,13 +3,17 @@ package mysh.msg;
 import lombok.extern.slf4j.Slf4j;
 import mysh.collect.Colls;
 
-import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -19,9 +23,11 @@ import java.util.function.Consumer;
  * @since 2019-11-06
  */
 @Slf4j
-public class MsgConsumer implements Closeable {
-	public interface MsgReceiver extends Closeable {
+public class MsgConsumer {
+	public interface MsgReceiver   {
 		Msg<?> fetch() throws IOException;
+		
+		void shutdown();
 	}
 	
 	private static RejectedExecutionHandler DEFAULT_REJECTED_EXECUTION_HANDLER = (r, e) -> {
@@ -32,14 +38,13 @@ public class MsgConsumer implements Closeable {
 		}
 	};
 	
-	private MsgReceiver msgReceiver;
 	private ThreadPoolExecutor exec;
 	private Map<String, Set<Consumer<Msg<?>>>> consumerMap = new ConcurrentHashMap<>();
 	
 	public MsgConsumer(MsgReceiver msgReceiver, int threadPoolSize, RejectedExecutionHandler msgRejectedHandler) {
 		if (threadPoolSize < 1)
 			throw new RuntimeException("threadPoolSize should be positive");
-		this.msgReceiver = Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
+		Objects.requireNonNull(msgReceiver, "msgReceiver can't be null");
 		
 		AtomicInteger ci = new AtomicInteger();
 		String threadName = Thread.currentThread().getName();
@@ -66,7 +71,8 @@ public class MsgConsumer implements Closeable {
 							}
 						});
 				} catch (Exception e) {
-					log.error("fail-on-getMsg", e);
+					if (!(e instanceof SocketException && Objects.equals(e.getMessage(), "socket closed")))
+						log.error("fail-on-getMsg", e);
 				}
 		});
 	}
@@ -76,10 +82,8 @@ public class MsgConsumer implements Closeable {
 		consumers.add(c);
 	}
 	
-	@Override
-	public void close() throws IOException {
+	public void shutdown() {
 		exec.shutdownNow();
-		msgReceiver.close();
 	}
 	
 }
