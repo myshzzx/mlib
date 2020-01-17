@@ -451,7 +451,7 @@ public class HttpClientAssist implements Closeable {
 	public static Map<String, String> parseHeaders(String headerStr) {
 		if (Strings.isNotBlank(headerStr)) {
 			Map<String, String> hm = Maps.newHashMap();
-			for (String line : headerStr.split("[\\r\\n]+")) {
+			for (String line : headerStr.trim().split("[\\r\\n]+")) {
 				String[] header = line.split(": *", 2);
 				if (!header[0].equalsIgnoreCase("accept-encoding"))
 					hm.put(header[0], header[1]);

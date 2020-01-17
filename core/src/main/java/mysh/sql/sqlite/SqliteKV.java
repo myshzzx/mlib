@@ -64,6 +64,8 @@ public class SqliteKV implements Closeable {
 		
 		<V> V byKey(String key);
 		
+		<V> V byKey(String key, V defaultValue);
+		
 		List<Item> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
 		
 		List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
@@ -162,10 +164,15 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public <V> V byKey(String key) {
+			return byKey(key, null);
+		}
+		
+		@Override
+		public <V> V byKey(String key, V defaultValue) {
 			ensureTable(group);
 			
 			Item item = infoByKey(key, true, false);
-			return item == null ? null : item.getValue();
+			return item == null ? defaultValue : item.getValue();
 		}
 		
 		@Override
