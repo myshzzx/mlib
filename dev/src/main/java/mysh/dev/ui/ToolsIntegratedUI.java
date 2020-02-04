@@ -85,7 +85,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
 		frames.add(ffmpegUI);
 		
-		loadFxml("counter", "mysh/dev/utils/Counter.fxml");
+		// loadFxml("counter", "mysh/dev/utils/Counter.fxml");
 		loadFxml("Settings", "mysh/dev/ui/Settings.fxml");
 		
 		//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);

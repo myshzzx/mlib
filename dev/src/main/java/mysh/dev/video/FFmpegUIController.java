@@ -135,7 +135,7 @@ class FFmpegUIController {
 						Files.move(tempFile.toPath(), realTarget.toPath(), StandardCopyOption.REPLACE_EXISTING);
 					}
 					
-					Thread.sleep(2000);
+					Thread.sleep(4000);
 				}
 			} catch (InterruptedException e) {
 				log.info("task terminated");
