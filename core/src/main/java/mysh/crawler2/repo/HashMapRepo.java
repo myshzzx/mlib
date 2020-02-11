@@ -15,7 +15,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * HashMapRepo
+ * HashMapRepo, used for few amount of data, large scale data consider {@link BloomFilterRepo}
  *
  * @author mysh
  * @since 2016/8/13
