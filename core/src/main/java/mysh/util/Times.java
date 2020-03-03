@@ -133,6 +133,10 @@ public class Times {
 		Formats(DateTimeFormatter formatter) {
 			this.formatter = formatter;
 		}
+		
+		public DateTimeFormatter getFormatter() {
+			return formatter;
+		}
 	}
 	
 	private static final ZoneId zoneSysDefault = ZoneId.systemDefault();

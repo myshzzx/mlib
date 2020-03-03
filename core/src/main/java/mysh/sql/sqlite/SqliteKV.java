@@ -1,6 +1,7 @@
 package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
@@ -9,7 +10,6 @@ import mysh.util.Serializer;
 import mysh.util.Tick;
 import mysh.util.Times;
 import org.apache.commons.lang3.ObjectUtils;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -18,11 +18,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,7 +30,8 @@ public class SqliteKV implements Closeable {
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
 	private DruidDataSource ds;
-	private NamedParameterJdbcOperations jdbcTemplate;
+	@Getter
+	private NamedParameterJdbcTemplate jdbcTemplate;
 	private Set<String> tableExist = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	public static class Item {
