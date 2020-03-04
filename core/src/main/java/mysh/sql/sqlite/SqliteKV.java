@@ -233,7 +233,7 @@ public class SqliteKV implements Closeable {
 		private void assembleItem(Map<String, Object> r, Item item, boolean queryValue, boolean queryTime) {
 			byte[] blob = (byte[]) r.get("v");
 			if (queryValue && blob != null) {
-				if (suggestCompressValue && blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
+				if (blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
 					AtomicReference<Object> vr = new AtomicReference<>();
 					Compresses.deCompress(
 							(entry, in) -> {
