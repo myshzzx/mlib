@@ -11,7 +11,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import mysh.dev.codegen.ui.BeanPropCopy2;
-import mysh.dev.encoding.Encoding;
 import mysh.dev.filesearch.FileSearchFrame;
 import mysh.dev.regexp.RegExpTestFrame;
 import mysh.dev.tcpportscanner.TcpPortScannerUI;
@@ -65,9 +64,9 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		// this.tabPane.add("命名转换", nameConvert.getContentPane());
 		// frames.add(nameConvert);
 		
-		Encoding encoding = new Encoding();
-		this.tabPane.add("编码转换", encoding.getContentPane());
-		frames.add(encoding);
+//		Encoding encoding = new Encoding();
+//		this.tabPane.add("编码转换", encoding.getContentPane());
+//		frames.add(encoding);
 		
 		FileSearchFrame fileSearchFrame = new FileSearchFrame();
 		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
@@ -86,7 +85,7 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		frames.add(ffmpegUI);
 		
 		// loadFxml("counter", "mysh/dev/utils/Counter.fxml");
-		loadFxml("Settings", "mysh/dev/ui/Settings.fxml");
+//		loadFxml("Settings", "mysh/dev/ui/Settings.fxml");
 		
 		//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
 		//        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
