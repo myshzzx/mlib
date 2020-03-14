@@ -212,6 +212,8 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 			jFrame.dispose();
 		}
 		
+		Platform.exit();
+		
 		ClassLoader cl = ToolsIntegratedUI.class.getClassLoader();
 		if (cl instanceof Closeable) try {
 			((Closeable) cl).close();
