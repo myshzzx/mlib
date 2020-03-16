@@ -5,11 +5,6 @@
  */
 package mysh.dev.ui;
 
-import javafx.application.Platform;
-import javafx.embed.swing.JFXPanel;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import mysh.dev.codegen.ui.BeanPropCopy2;
 import mysh.dev.filesearch.FileSearchFrame;
 import mysh.dev.regexp.RegExpTestFrame;
@@ -104,20 +99,6 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		//        });
 	}
 	
-	private void loadFxml(String title, String fxmlPath) {
-		Platform.runLater(() -> {
-			try {
-				Parent node = FXMLLoader.load(getClass().getClassLoader().getResource(fxmlPath));
-				Scene scene = new Scene(node);
-				JFXPanel jfxPanel = new JFXPanel();
-				jfxPanel.setScene(scene);
-				this.tabPane.add(title, jfxPanel);
-			} catch (Exception e) {
-				log.error("load {} error", title, e);
-			}
-		});
-	}
-	
 	/**
 	 * This method is called from within the constructor to initialize the form.
 	 * WARNING: Do NOT modify this code. The content of this method is always
@@ -151,12 +132,6 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 	 * @param args the command line arguments
 	 */
 	public static void main(String args[]) {
-		try {
-			Platform.startup(() -> {
-			});
-		} catch (Exception e) {
-			log.error("start javafx error", e);
-		}
 		/* Set the Nimbus look and feel */
 		//<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
 		/* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
@@ -211,8 +186,6 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		for (JFrame jFrame : frames) {
 			jFrame.dispose();
 		}
-		
-		Platform.exit();
 		
 		ClassLoader cl = ToolsIntegratedUI.class.getClassLoader();
 		if (cl instanceof Closeable) try {

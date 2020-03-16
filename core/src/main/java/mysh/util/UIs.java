@@ -1,16 +1,17 @@
 
 package mysh.util;
 
-import javafx.application.ConditionalFeature;
-import javafx.application.Platform;
-import mysh.ui.CookieCatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
-import java.awt.datatransfer.*;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.StringSelection;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
@@ -26,12 +27,12 @@ public class UIs {
 	 * 默认字体.
 	 */
 	public static final Font DefaultFont = new Font("Microsoft YaHei", Font.PLAIN, 13);
-
+	
 	/**
 	 * 使用 Nimbus 皮肤.
 	 */
 	public static void useNimbusLookAndFeel() {
-
+		
 		try {
 			for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
 				if ("Nimbus".equals(info.getName())) {
@@ -40,11 +41,11 @@ public class UIs {
 				}
 			}
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-						| UnsupportedLookAndFeelException ex) {
+				| UnsupportedLookAndFeelException ex) {
 			log.error("use Nimbus L&F failed.", ex);
 		}
 	}
-
+	
 	/**
 	 * set tray icon popup menu.
 	 */
@@ -66,14 +67,14 @@ public class UIs {
 			}
 		});
 	}
-
+	
 	/**
 	 * 取文件扩展名. 扩展名以 . 开头.
 	 *
 	 * @author Allen
 	 */
-	public static interface FileExtensionGetter {
-
+	public interface FileExtensionGetter {
+		
 		/**
 		 * 取以某扩展名结尾的文件.<br/>
 		 * 若不是此扩展名, 则返回一个加上此扩展名的文件.
@@ -81,10 +82,10 @@ public class UIs {
 		 * @param fExtGetter 为 null, 则直接返回 file.
 		 */
 		static File ensureFileWithExtension(File file, FileExtensionGetter fExtGetter) {
-
+			
 			if (fExtGetter == null || fExtGetter.getFileExtension() == null)
 				return file;
-
+			
 			String ext = fExtGetter.getFileExtension().toLowerCase();
 			if (file.getPath().toLowerCase().endsWith(ext)) {
 				return file;
@@ -92,13 +93,13 @@ public class UIs {
 				return new File(file.getPath().concat(ext));
 			}
 		}
-
+		
 		/**
 		 * 取文件扩展名. 扩展名以 . 开头.
 		 */
 		String getFileExtension();
 	}
-
+	
 	/**
 	 * 将字符串复制到系统剪贴板
 	 *
@@ -109,7 +110,7 @@ public class UIs {
 		Transferable tText = new StringSelection(str);
 		clipboard.setContents(tText, null);
 	}
-
+	
 	/**
 	 * get system clipboard content.
 	 *
@@ -120,11 +121,11 @@ public class UIs {
 	public static String getSysClipboard() {
 		try {
 			return (String) Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
-		} catch (Exception e){
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}
-
+	
 	/**
 	 * 重置当前 UI L&F 的默认显示字体.<br/>
 	 * 此方法必须放在 L&F 设置之后, UI 组件创建之前, 否则无效.
@@ -132,16 +133,16 @@ public class UIs {
 	 * @param font 给定字体. 为 null 则使用 13号雅黑.
 	 */
 	public static void resetFont(Font font) {
-
+		
 		if (font == null)
 			font = DefaultFont;
-
+		
 		for (Map.Entry<Object, Object> e : UIManager.getLookAndFeelDefaults().entrySet()) {
 			if (((e.getValue() instanceof FontUIResource))) {
 				e.setValue(font);
 			}
 		}
-
+		
 		UIManager.getLookAndFeelDefaults().put("ArrowButton.font", font);
 		UIManager.getLookAndFeelDefaults().put("Button.font", font);
 		UIManager.getLookAndFeelDefaults().put("CheckBox.font", font);
@@ -191,9 +192,9 @@ public class UIs {
 		UIManager.getLookAndFeelDefaults().put("ToolTip.font", font);
 		UIManager.getLookAndFeelDefaults().put("Tree.font", font);
 		UIManager.getLookAndFeelDefaults().put("Viewport.font", font);
-
+		
 	}
-
+	
 	/**
 	 * 从文件选择器选择保存目标文件, 已存在的文件询问是否要覆盖.<br/>
 	 * 确保返回给定扩展名类型的文件.<br/>
@@ -203,46 +204,28 @@ public class UIs {
 	 * @param fExt   扩展名获取器. 为 null 表示不限扩展名.
 	 */
 	public static File getSaveFileWithOverwriteChecking(
-					JFileChooser fileChooser,
-					Component parent,
-					FileExtensionGetter fExt) {
-
+			JFileChooser fileChooser,
+			Component parent,
+			FileExtensionGetter fExt) {
+		
 		File file = null;
 		boolean fcSelectionMode = fileChooser.isMultiSelectionEnabled();
 		fileChooser.setMultiSelectionEnabled(false);
-
+		
 		while (fileChooser.showSaveDialog(parent) == JFileChooser.APPROVE_OPTION
-						&& (file =
-						FileExtensionGetter.ensureFileWithExtension(fileChooser.getSelectedFile(), fExt)).exists()) {
+				&& (file =
+				FileExtensionGetter.ensureFileWithExtension(fileChooser.getSelectedFile(), fExt)).exists()) {
 			if (JOptionPane.YES_OPTION == JOptionPane.showConfirmDialog(parent, file.getName()
-							+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
+					+ " 已存在\n是否覆盖文件?", "覆盖确认", JOptionPane.YES_NO_OPTION))
 				break;
 			else
 				file = null;
 		}
-
+		
 		fileChooser.setMultiSelectionEnabled(fcSelectionMode);
 		return file;
 	}
-
-	/**
-	 * open url(non-blank) using JavaFx web engine.
-	 */
-	public static void openInnerBrowser(String openUrl) {
-		if (Strings.isBlank(openUrl)) return;
-		if (Platform.isSupported(ConditionalFeature.WEB)) {
-			try {
-				new CookieCatcher(openUrl, openUrl);
-			} catch (Exception e) {
-				String errMsg = "open URL failed:" + openUrl;
-				JOptionPane.showMessageDialog(null, errMsg + "\n" + e.getMessage());
-				log.error(errMsg, e);
-			}
-		} else {
-			log.error("javaFx web not supported, url not opened: " + openUrl);
-		}
-	}
-
+	
 	/**
 	 * open url(non-blank) using default external browser.
 	 */
@@ -260,19 +243,19 @@ public class UIs {
 			log.error("Desktop not supported, url not opened: " + openUrl);
 		}
 	}
-
+	
 	public static JDialog infoMsg(Component parent, int width, int height, String msg) {
 		JDialog j = new JDialog();
 		j.setAlwaysOnTop(true);
 		j.setUndecorated(true);
 		j.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-
+		
 		Container cp = j.getContentPane();
 		cp.setLayout(new BorderLayout());
 		JLabel label = new JLabel(msg);
 		label.setHorizontalAlignment(SwingConstants.CENTER);
 		cp.add(label, BorderLayout.CENTER);
-
+		
 		j.setBounds(0, 0, width, height);
 		j.setLocationRelativeTo(parent);
 		j.setVisible(true);

@@ -20,7 +20,7 @@ public class JarTest1 {
 	@Test
 	@Ignore
 	public void t1() throws IOException {
-		final URL url = new URL("jar:file:///L:/javafx-mx.jar!/");
+		final URL url = new URL("jar:file:///L:/mx.jar!/");
 		final JarURLConnection jar = (JarURLConnection) url.openConnection();
 		final JarFile jarFile = jar.getJarFile();
 		jarFile.stream().forEach(e -> {
