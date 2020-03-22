@@ -165,13 +165,3 @@ public class ScanTask implements Runnable {
 		removeAllObserver();
 	}
 }
-
-// public static void main(String[] args) throws InterruptedException {
-// ScanTask st = new ScanTask().setHost("www.baidu.com").setConcurrentThread(50)
-// .setEndPort(70);
-// new Thread(st).start();
-// // Thread.sleep(3000);
-// // st.stop();
-//
-// }
-

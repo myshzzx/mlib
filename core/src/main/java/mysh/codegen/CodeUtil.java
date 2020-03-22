@@ -152,42 +152,6 @@ public class CodeUtil {
 	}
 
 	/**
-	 * @param className  类名, 用于 set 方法的返回类型.
-	 * @param fieldsCode 属性定义. 完整部分, 含注释, 需要先用 ide 格式化好.
-	 * @return
-	 */
-	public static String genGetSetByFields(String className, String fieldsCode) {
-		StringBuilder sb = new StringBuilder();
-		List<FieldDef> fieldDefs = parseFields(fieldsCode);
-		fieldDefs.forEach(def -> {
-			String comment = def.comment;
-			String type = def.type;
-			String getMethodPrefix = type.toLowerCase().equals("boolean ") ? "is" : "get";
-			String field = def.field;
-			String fieldMethod = field2MethodSign(field);
-
-			if (Strings.isNotBlank(comment)) {
-				sb.append(comment).append('\n');
-			}
-			sb
-					.append("public ").append(type).append(getMethodPrefix).append(fieldMethod).append("() {").append('\n')
-					.append('\t').append("return this.").append(field).append(";\n}\n\n");
-
-			if (Strings.isNotBlank(comment)) {
-				sb.append(comment).append('\n');
-			}
-			sb
-					.append("public ").append(className).append(" set").append(fieldMethod).append('(')
-					.append(type).append(field)
-					.append(") {").append('\n')
-					.append("\tthis.").append(field).append(" = ").append(field).append(";\n")
-					.append('\t').append("return this;\n}\n\n")
-			;
-		});
-		return sb.toString();
-	}
-
-	/**
 	 * 属性复制代码
 	 *
 	 * @param dstVar     目标变量名

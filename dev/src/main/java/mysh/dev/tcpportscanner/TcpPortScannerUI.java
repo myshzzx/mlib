@@ -86,8 +86,8 @@ public class TcpPortScannerUI extends javax.swing.JFrame implements Observer {
 		jLabel4.setText("并发线程数：");
 
 		concurrentThread.setFont(new java.awt.Font("微软雅黑", 0, 14)); // NOI18N
-		concurrentThread.setText("1000");
-		concurrentThread.setToolTipText("1 - 1000");
+		concurrentThread.setText("50");
+		concurrentThread.setToolTipText("1 - 100");
 
 		start.setFont(new java.awt.Font("微软雅黑", 0, 14)); // NOI18N
 		start.setText("开始");
@@ -109,7 +109,7 @@ public class TcpPortScannerUI extends javax.swing.JFrame implements Observer {
 		jLabel5.setText("超时(ms)：");
 
 		timeout.setFont(new java.awt.Font("微软雅黑", 0, 14)); // NOI18N
-		timeout.setText("500");
+		timeout.setText("200");
 
 		javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
 		getContentPane().setLayout(layout);

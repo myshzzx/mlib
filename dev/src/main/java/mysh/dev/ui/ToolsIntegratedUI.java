@@ -46,22 +46,9 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 	}
 	
 	private void initCards() {
-		//		BeanPropCopy beanPropCopy = new BeanPropCopy();
-		//		this.tabPane.add("属性复制", beanPropCopy.getContentPane());
 		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
 		this.tabPane.add("属性复制", beanPropCopy2.getContentPane());
 		frames.add(beanPropCopy2);
-		
-		// FieldGetSet fieldGetSet = new FieldGetSet();
-		// this.tabPane.add("GetSet生成", fieldGetSet);
-		
-		// NameConvert nameConvert = new NameConvert();
-		// this.tabPane.add("命名转换", nameConvert.getContentPane());
-		// frames.add(nameConvert);
-		
-//		Encoding encoding = new Encoding();
-//		this.tabPane.add("编码转换", encoding.getContentPane());
-//		frames.add(encoding);
 		
 		FileSearchFrame fileSearchFrame = new FileSearchFrame();
 		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
@@ -78,25 +65,6 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 		FFmpegUI ffmpegUI = new FFmpegUI();
 		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
 		frames.add(ffmpegUI);
-		
-		// loadFxml("counter", "mysh/dev/utils/Counter.fxml");
-//		loadFxml("Settings", "mysh/dev/ui/Settings.fxml");
-		
-		//        CLJInterpreterFrame cljIptFrame = new CLJInterpreterFrame(this);
-		//        Component cljItpPane = this.tabPane.add("Clj 解释器", cljIptFrame.getContentPane());
-		//
-		//        this.tabPane.addChangeListener(new ChangeListener() {
-		//            private AtomicBoolean cljStartFlag = new AtomicBoolean(false);
-		//
-		//            @Override
-		//            public void stateChanged(ChangeEvent e) {
-		//                if (tabPane.getSelectedComponent() == cljItpPane
-		//                        && cljStartFlag.compareAndSet(false, true)) {
-		//                    cljIptFrame.startCljThread();
-		//                    System.out.println(cljIptFrame.getTitle());
-		//                }
-		//            }
-		//        });
 	}
 	
 	/**

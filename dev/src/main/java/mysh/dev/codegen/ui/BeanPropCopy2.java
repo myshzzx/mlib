@@ -82,7 +82,7 @@ public class BeanPropCopy2 extends javax.swing.JFrame {
 
         fieldDefineTxt.setColumns(20);
         fieldDefineTxt.setRows(5);
-        fieldDefineTxt.setText("\n    /**\n     * 商品编辑表id\n     */\n    @AnnonOfField(desc = \"商品编辑表id\", dbFieldName = \"edit_goods_id\", type = \"BIGINT\", primary = true)\n    private Long editGoodsId;");
+        fieldDefineTxt.setText("\n    /**\n     * 商品编辑表id\n     */\n    private Long editGoodsId;");
         jScrollPane1.setViewportView(fieldDefineTxt);
 
         jSplitPane1.setTopComponent(jScrollPane1);

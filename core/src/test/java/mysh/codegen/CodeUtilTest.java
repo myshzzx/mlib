@@ -19,17 +19,6 @@ import static mysh.codegen.CodeUtil.*;
 public class CodeUtilTest {
     @Test
     @Ignore
-    public void genGetSetByFields() throws Exception {
-        byte[] bytes = Files.readAllBytes(Paths.get("e:/temp/code.txt"));
-        String fieldsDefine = Encodings.isUTF8Bytes(bytes) ?
-                new String(bytes, Encodings.UTF_8) : new String(bytes, Encodings.GBK);
-        String code = CodeUtil.genGetSetByFields("NewGoodsMonitorStatus", fieldsDefine);
-        System.out.println(code);
-
-    }
-
-    @Test
-    @Ignore
     public void genPropCopy() throws Exception {
         byte[] bytes = Files.readAllBytes(Paths.get("e:/temp/code.txt"));
         String fieldsDefine = Encodings.isUTF8Bytes(bytes) ?
