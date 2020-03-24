@@ -244,6 +244,20 @@ public class UIs {
 		}
 	}
 	
+	/**
+	 * open file with system default program.
+	 *
+	 * @see Desktop#open(java.io.File)
+	 */
+	public static void openFile(File file) {
+		try {
+			Desktop.getDesktop().open(file);
+		} catch (Exception e) {
+			log.error("openFile fail.", e);
+			UIs.infoMsg(null, 500, 200, e.toString());
+		}
+	}
+	
 	public static JDialog infoMsg(Component parent, int width, int height, String msg) {
 		JDialog j = new JDialog();
 		j.setAlwaysOnTop(true);
