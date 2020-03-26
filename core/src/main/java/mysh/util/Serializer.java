@@ -206,6 +206,7 @@ public interface Serializer {
 		}
 		
 		@SuppressWarnings("unchecked")
+		@Override
 		public <T> T deserialize(byte[] b, int offset, int length, ClassLoader cl) {
 			try {
 				FSTConfiguration c = getCoder();
@@ -224,6 +225,7 @@ public interface Serializer {
 		}
 		
 		@SuppressWarnings("unchecked")
+		@Override
 		public <T> T deserialize(InputStream is, ClassLoader cl) {
 			FSTConfiguration c = getCoder();
 			c.setClassLoader(cl == null ? getClass().getClassLoader() : cl);
@@ -235,6 +237,7 @@ public interface Serializer {
 			}
 		}
 		
+		@Override
 		public <T> T deserialize(InputStream is) {
 			return deserialize(is, null);
 		}
