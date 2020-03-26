@@ -16,6 +16,7 @@ import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.util.Objects;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -26,7 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 public class JPipe2 implements Closeable {
 	private EventLoopGroup bossGroup;
-	private EventLoopGroup workerGroup;
+	private EventLoopGroup localGroup;
 	private EventLoopGroup remoteGroup;
 	private ChannelFuture mainChannel;
 	@Getter
@@ -43,10 +44,10 @@ public class JPipe2 implements Closeable {
 		workerThreadCount = Range.within(1, Runtime.getRuntime().availableProcessors() * 2, workerThreadCount);
 		
 		bossGroup = new NioEventLoopGroup(1, newFactory(name + "-boss-"));
-		workerGroup = new NioEventLoopGroup(workerThreadCount, newFactory(name + "-worker-"));
+		localGroup = new NioEventLoopGroup(workerThreadCount, newFactory(name + "-local-"));
 		remoteGroup = new NioEventLoopGroup(workerThreadCount, newFactory(name + "-remote-"));
 		ServerBootstrap b = new ServerBootstrap()
-				.group(bossGroup, workerGroup)
+				.group(bossGroup, localGroup)
 				.channel(NioServerSocketChannel.class)
 				.option(ChannelOption.SO_BACKLOG, 128)
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
@@ -89,13 +90,14 @@ public class JPipe2 implements Closeable {
 														}
 														
 														@Override
-														public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
-															super.channelUnregistered(ctx);
+														public void channelUnregistered(ChannelHandlerContext remoteCtx) throws Exception {
+															super.channelUnregistered(remoteCtx);
 															// remote unreachable
-															if (!ctx.channel().isOpen())
+															if (!remoteCtx.channel().isOpen()) {
 																localCtx.close();
+																remoteCtx.close();
+															}
 														}
-														
 													});
 												}
 											});
@@ -120,8 +122,9 @@ public class JPipe2 implements Closeable {
 		try {
 			mainChannel = b.bind(port);
 		} catch (Exception e) {
-			workerGroup.shutdownGracefully();
-			bossGroup.shutdownGracefully();
+			localGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS);
+			remoteGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS);
+			bossGroup.shutdownGracefully(1, 2, TimeUnit.SECONDS);
 			throw e;
 		}
 	}
@@ -142,8 +145,9 @@ public class JPipe2 implements Closeable {
 		} catch (Exception e) {
 			log.error("jpipe2 close fail", e);
 		} finally {
-			workerGroup.shutdownGracefully();
-			bossGroup.shutdownGracefully();
+			localGroup.shutdownGracefully(1, 5, TimeUnit.SECONDS);
+			remoteGroup.shutdownGracefully(1, 5, TimeUnit.SECONDS);
+			bossGroup.shutdownGracefully(1, 5, TimeUnit.SECONDS);
 		}
 	}
 }
