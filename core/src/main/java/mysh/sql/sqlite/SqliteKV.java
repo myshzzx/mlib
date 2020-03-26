@@ -17,7 +17,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.nio.file.Path;
-import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -36,18 +37,18 @@ public class SqliteKV implements Closeable {
 	
 	public static class Item {
 		private String key;
-		private Instant writeTime, readTime;
+		private LocalDateTime writeTime, readTime;
 		private Object value;
 		
 		public String getKey() {
 			return key;
 		}
 		
-		public Instant getWriteTime() {
+		public LocalDateTime getWriteTime() {
 			return writeTime;
 		}
 		
-		public Instant getReadTime() {
+		public LocalDateTime getReadTime() {
 			return readTime;
 		}
 		
@@ -75,9 +76,9 @@ public class SqliteKV implements Closeable {
 			return infoByKey(key, true, true);
 		}
 		
-		<V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter);
+		<V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter);
 		
-		void removeReadExpired(Instant validAfter);
+		void removeReadExpired(LocalDateTime validAfter);
 		
 		void remove(String key);
 		
@@ -139,8 +140,8 @@ public class SqliteKV implements Closeable {
 								"(\n" +
 								"k text constraint " + group + "_pk primary key,\n" +
 								"v blob,\n" +
-								"wt datetime default CURRENT_TIMESTAMP,\n" +
-								"rt datetime default CURRENT_TIMESTAMP\n" +
+								"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
+								"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
 								")";
 						jdbcTemplate.update(sql, Collections.emptyMap());
 					}
@@ -223,8 +224,8 @@ public class SqliteKV implements Closeable {
 				
 				if (updateReadTime) {
 					jdbcTemplate.update(
-							"update " + group + " set rt=CURRENT_TIMESTAMP where k=:key",
-							Colls.ofHashMap("key", key));
+							"update " + group + " set rt=:now where k=:key",
+							Colls.ofHashMap("key", key, "now", Times.formatNow(Times.Formats.DayTime)));
 				}
 				return item;
 			}
@@ -249,17 +250,17 @@ public class SqliteKV implements Closeable {
 				String wt = (String) r.get("wt");
 				if (wt != null)
 					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, wt)
-					                      .atZone(Times.zoneUTC).toInstant();
+					                      .atZone(ZoneId.systemDefault()).toLocalDateTime();
 				
 				String rt = (String) r.get("rt");
 				if (rt != null)
 					item.readTime = Times.parseDayTime(Times.Formats.DayTime, rt)
-					                     .atZone(Times.zoneUTC).toInstant();
+					                     .atZone(ZoneId.systemDefault()).toLocalDateTime();
 			}
 		}
 		
 		@Override
-		public <V> V byKeyRemoveOnWriteExpired(String key, Instant validAfter) {
+		public <V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter) {
 			ensureTable(group);
 			
 			Item item = infoByKey(key, true, true);
@@ -274,12 +275,12 @@ public class SqliteKV implements Closeable {
 		}
 		
 		@Override
-		public void removeReadExpired(Instant validAfter) {
+		public void removeReadExpired(LocalDateTime validAfter) {
 			ensureTable(group);
 			
 			jdbcTemplate.update(
 					"delete from " + group + " where rt<:va",
-					Colls.ofHashMap("va", validAfter));
+					Colls.ofHashMap("va", Times.format(Times.Formats.DayTime, validAfter)));
 		}
 		
 		@Override
@@ -304,8 +305,8 @@ public class SqliteKV implements Closeable {
 					buf = cb;
 			}
 			jdbcTemplate.update(
-					"insert or replace into " + group + "(k,v) values(:key,:value)",
-					Colls.ofHashMap("key", key, "value", buf)
+					"insert or replace into " + group + "(k,v,wt) values(:key,:value,:wt)",
+					Colls.ofHashMap("key", key, "value", buf, "wt", Times.formatNow(Times.Formats.DayTime))
 			);
 		}
 		

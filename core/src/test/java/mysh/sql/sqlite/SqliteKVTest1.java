@@ -6,7 +6,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.nio.file.Paths;
-import java.time.ZoneId;
 
 /**
  * @since 2019-07-08
@@ -36,10 +35,10 @@ public class SqliteKVTest1 {
 	
 	@Test
 	public void expire() {
-		String v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-07").atStartOfDay(ZoneId.systemDefault()).toInstant());
+		String v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-07").atStartOfDay());
 		System.out.println(v);
 		
-		v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-10").atStartOfDay(ZoneId.systemDefault()).toInstant());
+		v = dao.byKeyRemoveOnWriteExpired("k1", Times.parseDay(Times.Formats.Day, "2019-07-10").atStartOfDay());
 		System.out.println(v);
 	}
 }
