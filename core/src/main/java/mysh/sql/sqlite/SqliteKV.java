@@ -304,9 +304,10 @@ public class SqliteKV implements Closeable {
 				if (cb.length < buf.length)
 					buf = cb;
 			}
+			// wt and rt will always be the default value
 			jdbcTemplate.update(
-					"insert or replace into " + group + "(k,v,wt) values(:key,:value,:wt)",
-					Colls.ofHashMap("key", key, "value", buf, "wt", Times.formatNow(Times.Formats.DayTime))
+					"insert or replace into " + group + "(k,v) values(:key,:value)",
+					Colls.ofHashMap("key", key, "value", buf)
 			);
 		}
 		
