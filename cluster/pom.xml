@@ -52,12 +52,11 @@
 					<source>${maven.compiler.source}</source>
 					<target>${maven.compiler.target}</target>
 					<encoding>${sourceEncoding}</encoding>
-					<compilerArgs>
-<!--						<arg>&#45;&#45;add-exports=java.base/sun.security.util=mlib.cluster</arg>-->
-<!--						<arg>&#45;&#45;add-exports=java.base/sun.security.util=ALL-UNNAMED</arg>-->
-					</compilerArgs>
+					<compilerArgument>-parameters</compilerArgument>
+					<testCompilerArgument>-parameters</testCompilerArgument>
 				</configuration>
 				<dependencies>
+					<!--used to generate method parameters-->
 					<dependency>
 						<groupId>org.ow2.asm</groupId>
 						<artifactId>asm</artifactId>
