@@ -25,6 +25,8 @@ public abstract class Converter {
 			return Short.valueOf(value);
 		} else if (type == float.class || type == Float.class) {
 			return Float.valueOf(value);
+		} else if (type == boolean.class || type == Boolean.class) {
+			return Boolean.valueOf(value);
 		}
 		
 		// 是时间值

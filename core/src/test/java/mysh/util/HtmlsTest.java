@@ -15,7 +15,7 @@ import java.util.Map;
 public class HtmlsTest {
 	@Test
 	public void urlDecode() throws Exception {
-		System.out.println(Htmls.urlDecode("%2C1200&", "gbk"));
+		System.out.println(Htmls.urlDecode("%2C1200&", Encodings.GBK));
 	}
 	
 	@Test
@@ -25,7 +25,7 @@ public class HtmlsTest {
 	
 	@Test
 	public void parseQuery() {
-		Map<String, String> params = Htmls.parseQuery("k1=v1&k2=v2%20v2&k3=v3%26%20v3");
+		Map<String, String> params = Htmls.parseQuery("k1=v1&k2=v2%20v2&k3=v3%26%20v3", Encodings.UTF_8);
 		Assert.assertEquals(Colls.ofHashMap("k1", "v1", "k2", "v2 v2", "k3", "v3& v3"), params);
 	}
 	

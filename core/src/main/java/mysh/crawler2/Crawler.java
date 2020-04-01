@@ -17,6 +17,7 @@ import java.net.ProxySelector;
 import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -410,7 +411,7 @@ public class Crawler<CTX extends UrlContext> {
 				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
 			}
 			
-			String entityEncoding = ue.getEntityEncoding().name();
+			Charset enc = ue.getEntityEncoding();
 			return urls.stream()
 			           .filter(url -> url.length() > 0)
 			           .map(url ->
@@ -418,7 +419,7 @@ public class Crawler<CTX extends UrlContext> {
 							           .replace("&amp;", "&")
 							           .replace("&lt;", "<")
 							           .replace("&gt;", ">")
-							           .replace("&quot;", "\""), entityEncoding));
+							           .replace("&quot;", "\""), enc));
 		}
 		
 		private boolean isMalformedUrl(Exception ex) {

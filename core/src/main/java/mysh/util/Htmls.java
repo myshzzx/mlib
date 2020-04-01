@@ -7,6 +7,7 @@ import org.apache.commons.text.StringEscapeUtils;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -150,9 +151,9 @@ public class Htmls {
 	/**
 	 * decode urls like "%2C1200&"
 	 */
-	public static String urlDecode(String url, String enc) {
+	public static String urlDecode(String url, Charset enc) {
 		try {
-			return URLDecoder.decode(url, enc);
+			return URLDecoder.decode(url, enc.name());
 		} catch (UnsupportedEncodingException e) {
 			throw Exps.unchecked(e);
 		}
@@ -160,11 +161,11 @@ public class Htmls {
 	
 	private static final Pattern paramsExp = Pattern.compile("(\\S+?)=(\\S+)");
 	
-	public static Map<String, String> parseQuery(String rawQuery) {
+	public static Map<String, String> parseQuery(String rawQuery, Charset enc) {
 		Map<String, String> params = new HashMap<>();
 		Matcher matcher = paramsExp.matcher(rawQuery.replace('&', ' '));
 		while (matcher.find()) {
-			params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), "UTF-8"));
+			params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), enc));
 		}
 		return params;
 	}
