@@ -5,27 +5,15 @@ import com.google.common.cache.CacheBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Serializable;
+import java.io.*;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
-import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
@@ -430,15 +418,17 @@ public abstract class Oss {
 		}
 	}
 	
-	public static void terminateProcess(int pid, boolean force) {
+	public static void terminateProcess(int pid, boolean force, boolean killTree) {
 		try {
 			switch (getOS()) {
 				case Windows:
-					executeCmd("TASKKILL " + (force ? "/F " : "") + "/PID " + pid, true).waitFor();
+					executeCmd("TASKKILL " + (killTree ? "/T " : "") + (force ? "/F " : "") + "/PID " + pid, true).waitFor();
 					return;
 				case Linux:
 				case Mac:
 				case Unix:
+					if (killTree)
+						executeCmd("pkill " + (force ? "-9 " : "") + " -P " + pid, true).waitFor();
 					executeCmd("kill " + (force ? "-9 " : "") + pid, true).waitFor();
 					return;
 				case Unknown:
@@ -447,20 +437,6 @@ public abstract class Oss {
 			}
 		} catch (Exception e) {
 			log.error("terminateProcess error. pid=" + pid + ", force=" + force, e);
-		}
-	}
-	
-	public static void terminateLinuxProcessTree(Process process) {
-		if (process != null) {
-			try {
-				Field fpid = process.getClass().getDeclaredField("pid");
-				fpid.setAccessible(true);
-				int pid = fpid.getInt(process);
-				executeCmd("pkill -TERM -P " + pid, false);
-				terminateProcess(pid, true);
-			} catch (Exception e) {
-				log.error("process-cannot-be-terminated", e);
-			}
 		}
 	}
 	
