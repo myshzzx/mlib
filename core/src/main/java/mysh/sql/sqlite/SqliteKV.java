@@ -232,18 +232,25 @@ public class SqliteKV implements Closeable {
 		}
 		
 		private void assembleItem(Map<String, Object> r, Item item, boolean queryValue, boolean queryTime) {
-			byte[] blob = (byte[]) r.get("v");
-			if (queryValue && blob != null) {
-				if (blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
-					AtomicReference<Object> vr = new AtomicReference<>();
-					Compresses.deCompress(
-							(entry, in) -> {
-								vr.set(SERIALIZER.deserialize(in));
-							},
-							new ByteArrayInputStream(blob));
-					item.value = vr.get();
-				} else
-					item.value = SERIALIZER.deserialize(blob);
+			Object v = r.get("v");
+			if (queryValue && v != null) {
+				if (v instanceof String) {
+					item.value = v;
+				} else {
+					byte[] blob = (byte[]) v;
+					if (blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
+						AtomicReference<Object> vr = new AtomicReference<>();
+						Compresses.deCompress(
+								(entry, in) -> {
+									vr.set(SERIALIZER.deserialize(in));
+								},
+								new ByteArrayInputStream(blob));
+						item.value = vr.get();
+					} else if (Serializer.isBuildInStream(blob))
+						item.value = SERIALIZER.deserialize(blob);
+					else
+						item.value = new String(blob);
+				}
 			}
 			
 			if (queryTime) {

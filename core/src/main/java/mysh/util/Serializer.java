@@ -73,6 +73,14 @@ public interface Serializer {
 	<T> T deserialize(InputStream is);
 	
 	/**
+	 * is given stream a java serialization stream.
+	 * https://www.cnblogs.com/zhukunrong/p/4868856.html
+	 */
+	static boolean isBuildInStream(byte[] buf) {
+		return buf != null && buf.length > 4 && buf[0] == (byte) 0xac && buf[1] == (byte) 0xed;
+	}
+	
+	/**
 	 * java build-in serializer.
 	 */
 	Serializer BUILD_IN = new Serializer() {
