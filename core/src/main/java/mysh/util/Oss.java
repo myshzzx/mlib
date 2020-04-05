@@ -1,7 +1,5 @@
 package mysh.util;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,12 +8,7 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.nio.charset.Charset;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 /**
  * os utils.
@@ -248,173 +241,6 @@ public abstract class Oss {
 			return osBean.getSystemCpuLoad();
 		} else {
 			throw new RuntimeException("can't get system cpu usage");
-		}
-	}
-	
-	/**
-	 * list all windows processes. it's a heavy operation.
-	 *
-	 * @param fetchCmdLine fetch cmd line or not. it's an expensive op, fetch them only if you need to iterate all processes' cmd lines.
-	 */
-	public static List<ProcessInfoWin32> getAllWinProcesses(boolean fetchCmdLine) throws Exception {
-		if (getOS() != OS.Windows) {
-			return Collections.emptyList();
-		}
-		Charset winCharset = getOsCharset();
-		String wmicGetProcs = "wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize";
-		if (fetchCmdLine)
-			wmicGetProcs += ",CommandLine";
-		Process p = executeCmd(wmicGetProcs, false, false);
-		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
-			String header = reader.readLine();
-			String[] cols = header.split("\\s+");
-			int[] colsIdx = new int[cols.length];
-			for (int i = 1; i < cols.length; i++) {
-				colsIdx[i] = header.indexOf(cols[i], colsIdx[i - 1]);
-			}
-			
-			List<ProcessInfoWin32> processes = new ArrayList<>();
-			Map<String, String> infoMap = new HashMap<>();
-			reader.lines()
-			      .filter(line -> line.length() > 0)
-			      .forEach(line -> {
-				      byte[] lineBytes = line.getBytes(winCharset);
-				      for (int i = 0; i < cols.length; i++) {
-					      String key = cols[i];
-					      String value;
-					      if (i < cols.length - 1)
-						      value = new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset);
-					      else
-						      value = new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
-					      infoMap.put(key, value.trim());
-				      }
-				      processes.add(new ProcessInfoWin32(infoMap));
-			      });
-			return processes;
-		}
-	}
-	
-	private static final DateTimeFormatter CREATION_DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-	
-	public static class ProcessInfoWin32 implements Serializable {
-		private static final long serialVersionUID = -2891053091206604968L;
-		
-		private static Cache<Long, String> cmdLineCache = CacheBuilder.newBuilder()
-		                                                              .maximumSize(1000)
-		                                                              .expireAfterWrite(10, TimeUnit.HOURS)
-		                                                              .build();
-		private int pid, parentPid, priority;
-		private String name, exePath, cmdLine;
-		private LocalDateTime startTime;
-		private int threadCount, handleCount;
-		private long userModeMicroSec, kernelModeMicroSec;
-		private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
-		
-		private ProcessInfoWin32(Map<String, String> m) {
-			name = m.get("Name");
-			pid = Integer.parseInt(m.get("ProcessId"));
-			parentPid = Integer.parseInt(m.get("ParentProcessId"));
-			
-			startTime = LocalDateTime.parse(m.get("CreationDate").substring(0, 14), CREATION_DATE_FMT);
-			exePath = m.get("ExecutablePath");
-			cmdLine = m.get("CommandLine");
-			priority = Integer.parseInt(m.get("Priority"));
-			threadCount = Integer.parseInt(m.get("ThreadCount"));
-			handleCount = Integer.parseInt(m.get("HandleCount"));
-			userModeMicroSec = Long.parseLong(m.get("UserModeTime")) / 10;
-			kernelModeMicroSec = Long.parseLong(m.get("KernelModeTime")) / 10;
-			virtualSize = Long.parseLong(m.get("VirtualSize"));
-			workingSetSize = Long.parseLong(m.get("WorkingSetSize"));
-			peakVirtualSize = Long.parseLong(m.get("PeakVirtualSize"));
-			peakWorkingSetSize = Long.parseLong(m.get("PeakWorkingSetSize"));
-		}
-		
-		@Override
-		public String toString() {
-			return "ProcessInfoWin32{" +
-					"pid=" + pid +
-					", parentPid=" + parentPid +
-					", name='" + name + '\'' +
-					", exePath='" + exePath + '\'' +
-					'}';
-		}
-		
-		/**
-		 * 取命令行(非常耗时), 并缓存
-		 */
-		public String getCmdLine() {
-			if (cmdLine != null)
-				return cmdLine;
-			
-			try {
-				return cmdLine = cmdLineCache.get(
-						((long) pid << 34) | startTime.toEpochSecond(ZoneOffset.UTC),
-						() -> {
-							byte[] infoBytes = readFromProcess("wmic process where processid=" + pid + " get CommandLine");
-							String info = new String(infoBytes, getOsCharset());
-							return info.startsWith("CommandLine") ? info.substring(11).trim() : "";
-						});
-			} catch (ExecutionException e) {
-				log.error("get cmd line error. " + this, e);
-				return null;
-			}
-		}
-		
-		public int getPid() {
-			return pid;
-		}
-		
-		public int getParentPid() {
-			return parentPid;
-		}
-		
-		public int getPriority() {
-			return priority;
-		}
-		
-		public String getName() {
-			return name;
-		}
-		
-		
-		public String getExePath() {
-			return exePath;
-		}
-		
-		public LocalDateTime getStartTime() {
-			return startTime;
-		}
-		
-		public int getThreadCount() {
-			return threadCount;
-		}
-		
-		public int getHandleCount() {
-			return handleCount;
-		}
-		
-		public long getUserModeMicroSec() {
-			return userModeMicroSec;
-		}
-		
-		public long getKernelModeMicroSec() {
-			return kernelModeMicroSec;
-		}
-		
-		public long getVirtualSize() {
-			return virtualSize;
-		}
-		
-		public long getWorkingSetSize() {
-			return workingSetSize;
-		}
-		
-		public long getPeakVirtualSize() {
-			return peakVirtualSize;
-		}
-		
-		public long getPeakWorkingSetSize() {
-			return peakWorkingSetSize;
 		}
 	}
 	

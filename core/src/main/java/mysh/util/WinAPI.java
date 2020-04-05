@@ -1,16 +1,28 @@
 package mysh.util;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.sun.jna.Native;
 import com.sun.jna.platform.DesktopWindow;
 import com.sun.jna.platform.WindowUtils;
 import com.sun.jna.platform.win32.*;
 import com.sun.jna.win32.W32APIOptions;
+import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Objects;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.Serializable;
+import java.nio.charset.Charset;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Windows Util.
@@ -39,6 +51,121 @@ public interface WinAPI {
 		 */
 		int ResumeThread(HANDLE hThread);
 		
+	}
+	
+	class ProcessInfo implements Serializable {
+		private static final long serialVersionUID = -2891053091206604968L;
+		
+		private static final DateTimeFormatter CREATION_DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+		private static Cache<Long, String> cmdLineCache = CacheBuilder.newBuilder()
+		                                                              .maximumSize(1000)
+		                                                              .expireAfterWrite(10, TimeUnit.HOURS)
+		                                                              .build();
+		@Getter
+		private int pid, parentPid, priority;
+		@Getter
+		private String name, exePath, cmdLine;
+		@Getter
+		private LocalDateTime startTime;
+		@Getter
+		private int threadCount, handleCount;
+		@Getter
+		private long userModeMicroSec, kernelModeMicroSec;
+		@Getter
+		private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
+		
+		private ProcessInfo(Map<String, String> m) {
+			name = m.get("Name");
+			pid = Integer.parseInt(m.get("ProcessId"));
+			parentPid = Integer.parseInt(m.get("ParentProcessId"));
+			
+			startTime = LocalDateTime.parse(m.get("CreationDate").substring(0, 14), CREATION_DATE_FMT);
+			exePath = m.get("ExecutablePath");
+			cmdLine = m.get("CommandLine");
+			priority = Integer.parseInt(m.get("Priority"));
+			threadCount = Integer.parseInt(m.get("ThreadCount"));
+			handleCount = Integer.parseInt(m.get("HandleCount"));
+			userModeMicroSec = Long.parseLong(m.get("UserModeTime")) / 10;
+			kernelModeMicroSec = Long.parseLong(m.get("KernelModeTime")) / 10;
+			virtualSize = Long.parseLong(m.get("VirtualSize"));
+			workingSetSize = Long.parseLong(m.get("WorkingSetSize"));
+			peakVirtualSize = Long.parseLong(m.get("PeakVirtualSize"));
+			peakWorkingSetSize = Long.parseLong(m.get("PeakWorkingSetSize"));
+		}
+		
+		@Override
+		public String toString() {
+			return "ProcessInfoWin32{" +
+					"pid=" + pid +
+					", parentPid=" + parentPid +
+					", name='" + name + '\'' +
+					", exePath='" + exePath + '\'' +
+					'}';
+		}
+		
+		/**
+		 * 取命令行(非常耗时), 并缓存
+		 */
+		public String getCmdLine() {
+			if (cmdLine != null)
+				return cmdLine;
+			
+			try {
+				return cmdLine = cmdLineCache.get(
+						((long) pid << 34) | startTime.toEpochSecond(ZoneOffset.UTC),
+						() -> {
+							byte[] infoBytes = Oss.readFromProcess("wmic process where processid=" + pid + " get CommandLine");
+							String info = new String(infoBytes, Oss.getOsCharset());
+							return info.startsWith("CommandLine") ? info.substring(11).trim() : "";
+						});
+			} catch (ExecutionException e) {
+				log.error("get cmd line error. " + this, e);
+				return null;
+			}
+		}
+	}
+	
+	/**
+	 * list all windows processes. it's a heavy operation.
+	 *
+	 * @param fetchCmdLine fetch cmd line or not. it's an expensive op, fetch them only if you need to iterate all processes' cmd lines.
+	 */
+	static List<ProcessInfo> getAllWinProcesses(boolean fetchCmdLine) throws Exception {
+		if (Oss.getOS() != Oss.OS.Windows) {
+			return Collections.emptyList();
+		}
+		Charset winCharset = Oss.getOsCharset();
+		String wmicGetProcs = "wmic process get Name,CreationDate,ExecutablePath,ParentProcessId,Priority,ProcessId,ThreadCount,HandleCount,UserModeTime,KernelModeTime,VirtualSize,WorkingSetSize,PeakVirtualSize,PeakWorkingSetSize";
+		if (fetchCmdLine)
+			wmicGetProcs += ",CommandLine";
+		Process p = Oss.executeCmd(wmicGetProcs, false, false);
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream(), winCharset))) {
+			String header = reader.readLine();
+			String[] cols = header.split("\\s+");
+			int[] colsIdx = new int[cols.length];
+			for (int i = 1; i < cols.length; i++) {
+				colsIdx[i] = header.indexOf(cols[i], colsIdx[i - 1]);
+			}
+			
+			List<ProcessInfo> processes = new ArrayList<>();
+			Map<String, String> infoMap = new HashMap<>();
+			reader.lines()
+			      .filter(line -> line.length() > 0)
+			      .forEach(line -> {
+				      byte[] lineBytes = line.getBytes(winCharset);
+				      for (int i = 0; i < cols.length; i++) {
+					      String key = cols[i];
+					      String value;
+					      if (i < cols.length - 1)
+						      value = new String(lineBytes, colsIdx[i], colsIdx[i + 1] - colsIdx[i], winCharset);
+					      else
+						      value = new String(lineBytes, colsIdx[i], lineBytes.length - colsIdx[i], winCharset);
+					      infoMap.put(key, value.trim());
+				      }
+				      processes.add(new ProcessInfo(infoMap));
+			      });
+			return processes;
+		}
 	}
 	
 	static String getForeGroundWindowTitle() {
@@ -98,6 +225,10 @@ public interface WinAPI {
 		return r;
 	}
 	
+	static Stream<DesktopWindow> getAllWindows(boolean onlyVisible) {
+		return WindowUtils.getAllWindows(true).stream();
+	}
+	
 	static void showOrHideWindow(Predicate<DesktopWindow> filter, boolean show) {
 		List<DesktopWindow> allWindows = WindowUtils.getAllWindows(!show);
 		allWindows.stream().filter(filter)
@@ -107,5 +238,20 @@ public interface WinAPI {
 	static void showOrHideHwnd(WinDef.HWND hwnd, boolean show) {
 		if (hwnd != null)
 			user32.ShowWindow(hwnd, show ? User32.SW_SHOW : User32.SW_HIDE);
+	}
+	
+	static boolean closeWindow(WinDef.HWND hwnd) {
+		return user32.DestroyWindow(hwnd);
+	}
+	
+	static boolean moveWindow(WinDef.HWND hWnd, int x, int y, int nWidth, int nHeight, boolean bRepaint) {
+		return WinAPI.user32.MoveWindow(hWnd, x, y, nWidth, nHeight, bRepaint);
+	}
+	
+	/**
+	 * @param nCmdShow see WinUser#SW_*
+	 */
+	static boolean showWindow(WinDef.HWND hWnd, int nCmdShow) {
+		return user32.ShowWindow(hWnd, nCmdShow);
 	}
 }

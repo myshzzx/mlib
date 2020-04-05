@@ -163,9 +163,11 @@ public class Htmls {
 	
 	public static Map<String, String> parseQuery(String rawQuery, Charset enc) {
 		Map<String, String> params = new HashMap<>();
-		Matcher matcher = paramsExp.matcher(rawQuery.replace('&', ' '));
-		while (matcher.find()) {
-			params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), enc));
+		if (Strings.isNotBlank(rawQuery)) {
+			Matcher matcher = paramsExp.matcher(rawQuery.replace('&', ' '));
+			while (matcher.find()) {
+				params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), enc));
+			}
 		}
 		return params;
 	}

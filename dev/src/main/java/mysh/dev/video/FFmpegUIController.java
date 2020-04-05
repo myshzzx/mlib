@@ -104,27 +104,27 @@ class FFmpegUIController {
 					
 					if (Oss.isWindows()) {
 						try {
-							Oss.getAllWinProcesses(true).stream()
-							   .filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
-							   .forEach(p -> {
-								   try {
-									   Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
+							WinAPI.getAllWinProcesses(true).stream()
+							      .filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
+							      .forEach(p -> {
+								      try {
+									      Oss.changePriority(p.getPid(), Oss.OsProcPriority.VeryLow);
 									
-									   int availableProcessors = Runtime.getRuntime().availableProcessors();
-									   Random rnd = new Random();
+									      int availableProcessors = Runtime.getRuntime().availableProcessors();
+									      Random rnd = new Random();
 									
-									   char[] maskChars = new char[availableProcessors];
-									   Arrays.fill(maskChars, '0');
-									   for (int i = 0; i < availableProcessors; i++) {
-										   if (rnd.nextDouble() > cpuUsage)
-											   maskChars[i] = '1';
-									   }
-									   long mask = Long.parseLong(new String(maskChars), 2);
-									   WinAPI.setProcessAffinityMask(p.getPid(), Math.max(1, mask));
-								   } catch (Exception e) {
-									   log.info("change process resource fail: " + p.getCmdLine(), e);
-								   }
-							   });
+									      char[] maskChars = new char[availableProcessors];
+									      Arrays.fill(maskChars, '0');
+									      for (int i = 0; i < availableProcessors; i++) {
+										      if (rnd.nextDouble() > cpuUsage)
+											      maskChars[i] = '1';
+									      }
+									      long mask = Long.parseLong(new String(maskChars), 2);
+									      WinAPI.setProcessAffinityMask(p.getPid(), Math.max(1, mask));
+								      } catch (Exception e) {
+									      log.info("change process resource fail: " + p.getCmdLine(), e);
+								      }
+							      });
 						} catch (Exception e) {
 							log.error("fetch-all-process-fail", e);
 						}
