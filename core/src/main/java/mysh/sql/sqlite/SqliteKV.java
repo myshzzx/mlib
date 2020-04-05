@@ -92,11 +92,39 @@ public class SqliteKV implements Closeable {
 	}
 	
 	/**
-	 * @param useLock about 10 times speed up on query, but the db file will be locked by the process.
+	 * @see #newDataSource
 	 */
 	public SqliteKV(Path file, boolean useLock) {
-		ds = SqliteUtil.newDataSource(file, useLock);
+		this(file, useLock, 0);
+	}
+	
+	/**
+	 * @see #newDataSource
+	 */
+	public SqliteKV(Path file, boolean useLock, int mmapSize) {
+		ds = newDataSource(file, useLock, Math.max(0, mmapSize));
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+		
+		// if (useLock)
+		// 	jdbcTemplate.queryForList("PRAGMA locking_mode=EXCLUSIVE", Collections.emptyMap());
+		// if (mmapSize > 0)
+		// 	jdbcTemplate.queryForList("PRAGMA mmap_size=" + mmapSize, Collections.emptyMap());
+	}
+	
+	/**
+	 * @param useLock  use lock to gain 10 times speed up IO performance, but this block file access from other processes.
+	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
+	 */
+	public static DruidDataSource newDataSource(Path file, boolean useLock, int mmapSize) {
+		DruidDataSource ds = new DruidDataSource(true);
+		ds.setUrl(String.format("jdbc:sqlite:%s?locking_mode=%s&mmap_size=%d",
+				file.toString(), useLock ? "EXCLUSIVE" : "NORMAL", mmapSize));
+		ds.setMaxActive(10);
+		ds.setTestWhileIdle(false);
+		ds.setTestOnBorrow(true);
+		ds.setTestOnReturn(false);
+		ds.setValidationQuery("select 1");
+		return ds;
 	}
 	
 	public SqliteKV(DataSource ds) {
