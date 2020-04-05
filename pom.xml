@@ -142,6 +142,7 @@
 			<dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-dependencies</artifactId>
+				<type>pom</type>
 				<scope>import</scope>
 				<version>${springbootVersion}</version>
 			</dependency>
@@ -356,6 +357,17 @@
 	
 	<build>
 		<finalName>mlib</finalName>
+		
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<!--https://www.mojohaus.org/exec-maven-plugin/exec-mojo.html-->
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>exec-maven-plugin</artifactId>
+					<version>1.6.0</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		
 		<plugins>
 			<plugin>
