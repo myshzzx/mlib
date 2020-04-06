@@ -224,7 +224,9 @@ public class SqliteKV implements Closeable {
 		public List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
 			ensureTable(group);
 			
-			String sql = "select " + cols + " from " + group + " where " + conditions + " " + ObjectUtils.firstNonNull(clauses, "");
+			String sql = "select " + cols + " from " + group
+					+ (conditions != null ? (" where " + conditions + " ") : " ")
+					+ ObjectUtils.firstNonNull(clauses, "");
 			params = params == null ? Collections.emptyMap() : params;
 			Tick tick = Tick.tick();
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(sql, params);

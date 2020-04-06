@@ -140,13 +140,6 @@
 				<version>${springVersion}</version>
 			</dependency>
 			<dependency>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-dependencies</artifactId>
-				<type>pom</type>
-				<scope>import</scope>
-				<version>${springbootVersion}</version>
-			</dependency>
-			<dependency>
 				<groupId>org.aspectj</groupId>
 				<artifactId>aspectjrt</artifactId>
 				<version>1.9.4</version>
@@ -351,7 +344,7 @@
 				<artifactId>selenium-java</artifactId>
 				<version>3.141.59</version>
 			</dependency>
-		
+			
 		</dependencies>
 	</dependencyManagement>
 	

@@ -140,9 +140,10 @@ public class Times {
 	}
 	
 	private static final ZoneId zoneSysDefault = ZoneId.systemDefault();
+	
 	public static final ZoneId zoneUTC = ZoneId.of("UTC");
 	/**
-	 * Beijing
+	 * Beijing UTC+8
 	 */
 	public static final ZoneId zoneBJ = ZoneId.of("Asia/Shanghai");
 	/**
@@ -162,7 +163,7 @@ public class Times {
 	 */
 	public static final ZoneId zoneCST = ZoneId.of("CST6CDT");
 	/**
-	 * Greenwich Mean Time, London
+	 * Greenwich Mean Time, London, UTC+0/UTC+1
 	 */
 	public static final ZoneId zoneGMT = ZoneId.of("Europe/London");
 	/**
@@ -231,7 +232,7 @@ public class Times {
 		return formatter.format(formatTime);
 	}
 	
-	private static DateTimeFormatter getProperFormatter(Object format) {
+	public static DateTimeFormatter getProperFormatter(Object format) {
 		requireNonNull(format, "need format");
 		if (format instanceof Formats)
 			return ((Formats) format).formatter;
@@ -265,5 +266,9 @@ public class Times {
 		requireNonNull(time, "need time");
 		DateTimeFormatter formatter = getProperFormatter(format);
 		return Instant.from(formatter.parse(time));
+	}
+	
+	public static LocalDateTime convert(LocalDateTime dt, ZoneId from, ZoneId to) {
+		return dt.atZone(from).toInstant().atZone(to).toLocalDateTime();
 	}
 }
