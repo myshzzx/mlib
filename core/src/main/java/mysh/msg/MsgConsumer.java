@@ -2,6 +2,8 @@ package mysh.msg;
 
 import lombok.extern.slf4j.Slf4j;
 import mysh.collect.Colls;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -22,8 +24,9 @@ import java.util.function.Consumer;
  *
  * @since 2019-11-06
  */
-@Slf4j
 public class MsgConsumer {
+	private static final Logger log = LoggerFactory.getLogger(MsgConsumer.class);
+	
 	public interface MsgReceiver   {
 		Msg<?> fetch() throws IOException;
 		

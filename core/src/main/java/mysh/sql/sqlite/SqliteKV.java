@@ -2,7 +2,6 @@ package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
 import mysh.util.Compresses;
@@ -10,6 +9,8 @@ import mysh.util.Serializer;
 import mysh.util.Tick;
 import mysh.util.Times;
 import org.apache.commons.lang3.ObjectUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
@@ -26,8 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * @since 2019-07-08
  */
-@Slf4j
 public class SqliteKV implements Closeable {
+	private static final Logger log = LoggerFactory.getLogger(SqliteKV.class);
+	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
 	private DruidDataSource ds;

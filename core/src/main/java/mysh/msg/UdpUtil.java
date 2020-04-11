@@ -6,6 +6,8 @@ import mysh.collect.Pair;
 import mysh.net.Nets;
 import mysh.util.Asserts;
 import mysh.util.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -20,8 +22,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @since 2019-11-06
  */
-@Slf4j
 public abstract class UdpUtil {
+	private static final Logger log = LoggerFactory.getLogger(UdpUtil.class);
 	
 	public static final int UDP_PACK_SIZE = 1200;
 	

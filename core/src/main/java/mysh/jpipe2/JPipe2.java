@@ -8,9 +8,10 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import mysh.util.Range;
 import mysh.util.Strings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -24,8 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author <pre>凯泓(zhixian.zzx@alibaba-inc.com)</pre>
  * @since 2019-12-20
  */
-@Slf4j
 public class JPipe2 implements Closeable {
+	private static final Logger log = LoggerFactory.getLogger(JPipe2.class);
+	
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup localGroup;
 	private EventLoopGroup remoteGroup;
