@@ -263,9 +263,8 @@ public class Times {
 	}
 	
 	public static Instant parseInstant(Object format, String time) {
-		requireNonNull(time, "need time");
-		DateTimeFormatter formatter = getProperFormatter(format);
-		return Instant.from(formatter.parse(time));
+		LocalDateTime dt = parseDayTime(format, time);
+		return dt.toInstant(OffsetDateTime.now().getOffset());
 	}
 	
 	public static LocalDateTime convert(LocalDateTime dt, ZoneId from, ZoneId to) {
