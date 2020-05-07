@@ -72,6 +72,7 @@ public class Images {
 		ImageReader reader = null;
 		ImageWriter writer = null;
 		File writeFile = FilesUtil.getWriteFile(target);
+		writeFile.getParentFile().mkdirs();
 		try (ImageInputStream in = ImageIO.createImageInputStream(source);
 		     ImageOutputStream out = ImageIO.createImageOutputStream(writeFile)) {
 			reader = ImageIO.getImageReaders(in).next();
