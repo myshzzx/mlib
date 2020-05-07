@@ -7,7 +7,10 @@ import org.openimaj.image.processing.resize.BilinearInterpolation;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -61,5 +64,35 @@ public class Images {
 		}
 	}
 	
-	
+	/**
+	 * @param quality [0,1], <code>0</code> represent to "most compressed", while <code>1</code> represent to best quality
+	 * @see ImageWriteParam#setCompressionQuality(float)
+	 */
+	public static void compressImg(File source, File target, float quality) throws IOException {
+		ImageReader reader = null;
+		ImageWriter writer = null;
+		File writeFile = FilesUtil.getWriteFile(target);
+		try (ImageInputStream in = ImageIO.createImageInputStream(source);
+		     ImageOutputStream out = ImageIO.createImageOutputStream(writeFile)) {
+			reader = ImageIO.getImageReaders(in).next();
+			reader.setInput(in);
+			writer = ImageIO.getImageWriter(reader);
+			writer.setOutput(out);
+			
+			ImageWriteParam param = writer.getDefaultWriteParam();
+			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+			param.setCompressionQuality(quality);
+			
+			writer.write(reader.getStreamMetadata(), reader.readAll(0, null), param);
+		} finally {
+			if (reader != null)
+				reader.dispose();
+			if (writer != null)
+				writer.dispose();
+		}
+		if (writeFile.exists() && writeFile.length() > 0) {
+			target.delete();
+			writeFile.renameTo(target);
+		}
+	}
 }
