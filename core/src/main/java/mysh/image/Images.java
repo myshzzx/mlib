@@ -1,19 +1,24 @@
 package mysh.image;
 
+import lombok.extern.slf4j.Slf4j;
 import mysh.util.FilesUtil;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
 import org.openimaj.image.processing.resize.BilinearInterpolation;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
+import javax.annotation.Nullable;
+import javax.imageio.*;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * Images
@@ -21,6 +26,7 @@ import java.util.Iterator;
  * @author mysh
  * @since 2019/1/26
  */
+@Slf4j
 public class Images {
 	public static MBFImage scale(MBFImage in, float scale) {
 		int width = (int) (in.getWidth() * scale);
@@ -65,6 +71,8 @@ public class Images {
 	}
 	
 	/**
+	 * compress using original format.
+	 *
 	 * @param quality [0,1], <code>0</code> represent to "most compressed", while <code>1</code> represent to best quality
 	 * @see ImageWriteParam#setCompressionQuality(float)
 	 */
@@ -84,7 +92,8 @@ public class Images {
 			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
 			param.setCompressionQuality(quality);
 			
-			writer.write(reader.getStreamMetadata(), reader.readAll(0, null), param);
+			IIOImage image = new IIOImage(reader.read(0), null, reader.getImageMetadata(0));
+			writer.write(null, image, param);
 		} finally {
 			if (reader != null)
 				reader.dispose();
@@ -95,5 +104,24 @@ public class Images {
 			target.delete();
 			writeFile.renameTo(target);
 		}
+	}
+	
+	public static void compressFolderImg(File sourceDir, @Nullable Predicate<Path> fileFilter, File targetDir, float quality) throws Exception {
+		ExecutorService ex = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+		Path src = sourceDir.toPath();
+		Files.walk(src)
+		     .filter(p -> Files.isRegularFile(p))
+		     .filter(fileFilter == null ? p -> true : fileFilter)
+		     .forEach(p -> {
+			     ex.execute(() -> {
+				     try {
+					     Images.compressImg(p.toFile(), new File(targetDir, src.relativize(p).toString()), quality);
+				     } catch (IOException e) {
+					     log.error("compress fail, p={}", p.toString(), e);
+				     }
+			     });
+		     });
+		ex.shutdown();
+		ex.awaitTermination(1, TimeUnit.HOURS);
 	}
 }
