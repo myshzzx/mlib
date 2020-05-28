@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 public class InvokeStatAspect {
 	private static final Logger log = LoggerFactory.getLogger(InvokeStatAspect.class);
 
-	@Around(value = "@annotation(InvokeStat)", argNames = "pjp, InvokeStat")
+	@Around(value = "@annotation(invokeStat)")
 	public Object recStat(final ProceedingJoinPoint pjp, InvokeStat invokeStat) throws Throwable {
 		MethodSignature signature = (MethodSignature) pjp.getSignature();
 		String recKey = StringUtils.isBlank(invokeStat.value()) ?

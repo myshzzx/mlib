@@ -18,8 +18,8 @@
 		<maven.compiler.target>1.8</maven.compiler.target>
 		<sourceEncoding>UTF-8</sourceEncoding>
 		
-		<springVersion>5.1.13.RELEASE</springVersion>
-		<springbootVersion>2.1.12.RELEASE</springbootVersion>
+		<springVersion>5.2.4.RELEASE</springVersion>
+		<springbootVersion>2.2.5.RELEASE</springbootVersion>
 		<junit.version>4.12</junit.version>
 		<javafx.version>12.0.1</javafx.version>
 		<libthrift.version>0.12.0</libthrift.version>

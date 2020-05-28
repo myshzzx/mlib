@@ -15,6 +15,7 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -33,18 +34,17 @@ import java.util.concurrent.atomic.AtomicReference;
  * @since 2016/7/22
  */
 @Aspect
-// @Component
+@Component
 public class LocalCacheAspect {
 	private static final Logger log = LoggerFactory.getLogger(LocalCacheAspect.class);
 
 	private static final Joiner keyJoiner = Joiner.on('\u0000');
 
-	@Around(value = "@annotation(LocalCache)", argNames = "pjp")
-	public Object getLocalCache(final ProceedingJoinPoint pjp) throws Throwable {
+	@Around(value = "@annotation(conf)")
+	public Object getLocalCache(final ProceedingJoinPoint pjp, LocalCache conf) throws Throwable {
 		MethodSignature signature = (MethodSignature) pjp.getSignature();
 		Method method = pjp.getTarget().getClass().getMethod(signature.getName(), signature.getMethod().getParameterTypes());
 		Object[] args = pjp.getArgs();
-		LocalCache conf = method.getAnnotation(LocalCache.class);
 		Cache<Object, AtomicReference<?>> cache = getCache(method, conf);
 
 		if (conf.isMultiKey()) { // multiple keys
