@@ -131,14 +131,18 @@ public class MethodMonitorAspect {
 				expValue = expression.getValue(ctx);
 			} catch (Throwable t) {
 				if (methodMonitor.elFailLog()) {
-					log.error("parse-elExpression-error,{},exp={}", invokeName, es, t);
+					log.error("parse-elExpression-error,{},el={},ex={}", invokeName, es, t);
 				}
 			} finally {
 				sj.add(String.valueOf(expValue));
 			}
 		}
 		sj.add("");
-		logger.info(sj.toString());
+		if (exp != null) {
+			logger.info(sj.toString(), exp);
+		} else {
+			logger.info(sj.toString());
+		}
 	}
 	
 }

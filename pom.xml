@@ -23,7 +23,7 @@
 		<junit.version>4.12</junit.version>
 		<javafx.version>12.0.1</javafx.version>
 		<libthrift.version>0.12.0</libthrift.version>
-		<netty.version>4.1.48.Final</netty.version>
+		<netty.version>4.1.50.Final</netty.version>
 	</properties>
 	
 	<dependencies>
@@ -221,6 +221,11 @@
 			<dependency>
 				<groupId>io.netty</groupId>
 				<artifactId>netty-all</artifactId>
+				<version>${netty.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>io.netty</groupId>
+				<artifactId>netty-example</artifactId>
 				<version>${netty.version}</version>
 			</dependency>
 			
