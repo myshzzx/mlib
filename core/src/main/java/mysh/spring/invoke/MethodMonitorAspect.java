@@ -64,7 +64,7 @@ public class MethodMonitorAspect {
 		try {
 			MethodSignature signature = (MethodSignature) pjp.getSignature();
 			Method method = pjp.getTarget().getClass().getMethod(signature.getName(), signature.getMethod().getParameterTypes());
-			isMethodReturnVoid = method.getReturnType() == Void.class;
+			isMethodReturnVoid = method.getReturnType() == void.class;
 			Object[] args = pjp.getArgs();
 			invokeName = pjp.getTarget().getClass().getSimpleName() + "." + method.getName();
 			
@@ -93,9 +93,14 @@ public class MethodMonitorAspect {
 			exp = t;
 		} finally {
 			long end = System.nanoTime();
+			
 			ctx.setVariable("_return", r);
+			ctx.setVariable("_this", pjp.getThis());
+			ctx.setVariable("_target", pjp.getTarget());
 			// ctx.setVariable("_traceId", EagleEye.getTraceId());
+			
 			ctx.registerFunction("_toJSON", toJSONMethod);
+			
 			printLog(logger, ctx, invokeName, methodMonitor, (end - start) / 1000_000, exp,
 					!isMethodReturnVoid && r == null);
 		}
@@ -131,7 +136,7 @@ public class MethodMonitorAspect {
 				expValue = expression.getValue(ctx);
 			} catch (Throwable t) {
 				if (methodMonitor.elFailLog()) {
-					log.error("parse-elExpression-error,{},el={},ex={}", invokeName, es, t);
+					log.error("parse-elExpression-error,{},el={},ex={}", invokeName, es, t.toString());
 				}
 			} finally {
 				sj.add(String.valueOf(expValue));

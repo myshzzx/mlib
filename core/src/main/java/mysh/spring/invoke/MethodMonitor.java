@@ -32,9 +32,13 @@ public @interface MethodMonitor {
 	 * <a href='http://itmyhome.com/spring/expressions.html'>翻译文档</a>
 	 * <a href='https://docs.spring.io/spring/docs/4.3.10.RELEASE/spring-framework-reference/html/expressions.html'>官方文档</a>
 	 * <p>
+	 *
 	 * 内置变量如下
 	 * _return: 方法返回值, 例如 #_return.isSuccess()
 	 * _traceId: 鹰眼id
+	 * _this: spring 代理的 AOP 实例
+	 * _target: 被代理的原始 bean 对象实例
+	 *
 	 * 内置函数如下
 	 * _toJSON(obj): 将对象转为json串返回
 	 */
