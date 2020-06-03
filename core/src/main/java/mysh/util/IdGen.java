@@ -63,6 +63,8 @@ public class IdGen {
 					if (ia instanceof Inet4Address) {
 						try {
 							byte[] hwa = nif.getHardwareAddress();
+							if (hwa == null)
+								continue;
 							int hwai = hwa.length - 1;
 							flag = hwa[hwai--] & 0xFF;
 							flag |= ((hwa[hwai--] << 8) & 0xFF00);
