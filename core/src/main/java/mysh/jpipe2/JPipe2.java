@@ -51,6 +51,7 @@ public class JPipe2 implements Closeable {
 		ServerBootstrap b = new ServerBootstrap()
 				.group(bossGroup, localGroup)
 				.channel(NioServerSocketChannel.class)
+				.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000)
 				.option(ChannelOption.SO_BACKLOG, 128)
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.childHandler(new ChannelInitializer<SocketChannel>() {
@@ -103,8 +104,13 @@ public class JPipe2 implements Closeable {
 													});
 												}
 											});
-											remoteChannel = b.connect(remoteHost, remotePort).addListener(
-													(ChannelFutureListener) future -> future.channel().writeAndFlush(localMsg));
+											remoteChannel = b.connect(remoteHost, remotePort)
+											                 .addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE)
+											                 .addListener(ChannelFutureListener.CLOSE_ON_FAILURE)
+											                 .addListener((ChannelFutureListener) future -> {
+												                 if (future.isSuccess())
+													                 future.channel().writeAndFlush(localMsg);
+											                 });
 										} else
 											remoteChannel.channel().writeAndFlush(localMsg);
 									}
