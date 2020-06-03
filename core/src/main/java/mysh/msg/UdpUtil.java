@@ -1,6 +1,5 @@
 package mysh.msg;
 
-import lombok.extern.slf4j.Slf4j;
 import mysh.collect.Colls;
 import mysh.collect.Pair;
 import mysh.net.Nets;
@@ -9,11 +8,13 @@ import mysh.util.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class UdpUtil {
 	private static final Logger log = LoggerFactory.getLogger(UdpUtil.class);
 	
-	public static final int UDP_PACK_SIZE = 1200;
+	public static final int UDP_PACK_SIZE = 1472;
+	public static final int UDP_PACK_SIZE_INTERNET = 508;
 	
 	public static MsgConsumer.MsgReceiver generateUdpReceiver(int port) throws SocketException {
 		return generateUdpReceiver(port, UDP_PACK_SIZE);
@@ -42,7 +44,7 @@ public abstract class UdpUtil {
 		
 		return new MsgConsumer.MsgReceiver() {
 			@Override
-			public void shutdown() {
+			public void close() {
 				sock.close();
 			}
 			
@@ -50,8 +52,16 @@ public abstract class UdpUtil {
 			public Msg<?> fetch() throws IOException {
 				DatagramPacket p = tp.get();
 				sock.receive(p);
-				Msg<?> msg = Serializer.BUILD_IN.deserialize(p.getData(), 0, p.getLength(), null);
-				msg.setSockAddr((InetSocketAddress) p.getSocketAddress());
+				Object m = Serializer.BUILD_IN.deserialize(p.getData(), p.getOffset(), p.getLength(), null);
+				Msg<?> msg;
+				if (m instanceof MsgRepeater.RMsg) {
+					MsgRepeater.RMsg rm = (MsgRepeater.RMsg) m;
+					msg = Serializer.BUILD_IN.deserialize(rm.getData());
+					msg.setSockAddr(rm.getSrc());
+				} else {
+					msg = (Msg<?>) m;
+					msg.setSockAddr(p.getSocketAddress());
+				}
 				return msg;
 			}
 		};
@@ -63,14 +73,16 @@ public abstract class UdpUtil {
 	
 	public static MsgProducer.MsgSender generateUdpSender(int broadcastPort, int maxUdpPackSize) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(null);
-		return generateUdpSender(sock, broadcastPort, maxUdpPackSize);
+		return generateUdpSender(sock, broadcastPort, maxUdpPackSize, null);
 	}
 	
-	private static MsgProducer.MsgSender generateUdpSender(DatagramSocket sock, int broadcastPort, int maxUdpPackSize) {
+	private static MsgProducer.MsgSender generateUdpSender(DatagramSocket sock, int broadcastPort, int maxUdpPackSize,
+	                                                       @Nullable List<SocketAddress> repeaters) {
 		Asserts.notNull(sock, "sock");
 		Asserts.require(broadcastPort > 0 && broadcastPort < 65536, "illegal-broadcastPort:" + broadcastPort);
 		Asserts.require(maxUdpPackSize > 0, "illegal-maxUdpPackSize:" + maxUdpPackSize);
 		
+		MsgRepeater.Client msgRepeater = Colls.isNotEmpty(repeaters) ? MsgRepeater.createClient(sock, repeaters) : null;
 		return new MsgProducer.MsgSender() {
 			@Override
 			public void send(Msg<?> msg) throws IOException {
@@ -81,8 +93,8 @@ public abstract class UdpUtil {
 				
 				if (msg.getSockAddr() == null) {
 					List<InetAddress> ba = getBroadcastAddress();
-					if (Colls.isEmpty(ba)) {
-						log.warn("sendMsg-canceled,no-broadcast-address");
+					if (Colls.isEmpty(ba) && msgRepeater == null) {
+						log.warn("sendMsg-canceled,no-broadcast-address-or-repeater");
 						return;
 					}
 					p.setPort(broadcastPort);
@@ -98,24 +110,29 @@ public abstract class UdpUtil {
 					p.setSocketAddress(msg.getSockAddr());
 					sock.send(p);
 				}
+				
+				if (msgRepeater != null)
+					msgRepeater.send(msg.getSockAddr(), buf);
 			}
 			
-			public void shutdown() {
+			public void close() {
+				if (msgRepeater != null)
+					msgRepeater.close();
 				sock.close();
 			}
 		};
 	}
 	
-	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender>
-	generateUdpReceiverSender(int port) throws SocketException {
-		return generateUdpReceiverSender(port, UDP_PACK_SIZE);
+	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
+			int port, @Nullable List<SocketAddress> repeaters) throws SocketException {
+		return generateUdpReceiverSender(port, UDP_PACK_SIZE, repeaters);
 	}
 	
 	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
-			int port, int udpPackBufSize) throws SocketException {
+			int port, int udpPackBufSize, @Nullable List<SocketAddress> repeaters) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(port);
 		MsgConsumer.MsgReceiver msgReceiver = generateUdpReceiver(sock, udpPackBufSize);
-		MsgProducer.MsgSender msgSender = generateUdpSender(sock, port, udpPackBufSize);
+		MsgProducer.MsgSender msgSender = generateUdpSender(sock, port, udpPackBufSize, repeaters);
 		return Pair.of(msgReceiver, msgSender);
 	}
 	

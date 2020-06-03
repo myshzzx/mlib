@@ -1,10 +1,12 @@
 package mysh.msg;
 
-import lombok.extern.slf4j.Slf4j;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import mysh.collect.Colls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.Collections;
@@ -24,13 +26,13 @@ import java.util.function.Consumer;
  *
  * @since 2019-11-06
  */
-public class MsgConsumer {
+public class MsgConsumer implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(MsgConsumer.class);
 	
-	public interface MsgReceiver   {
+	public interface MsgReceiver extends Closeable {
 		Msg<?> fetch() throws IOException;
 		
-		void shutdown();
+		void close();
 	}
 	
 	private static RejectedExecutionHandler DEFAULT_REJECTED_EXECUTION_HANDLER = (r, e) -> {
@@ -58,9 +60,14 @@ public class MsgConsumer {
 		exec.allowCoreThreadTimeOut(true);
 		exec.submit(() -> {
 			Thread t = Thread.currentThread();
+			Cache<Object, Object> msgIdCache =
+					Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.SECONDS).build();
 			while (!t.isInterrupted())
 				try {
 					Msg<?> msg = msgReceiver.fetch();
+					if (msgIdCache.asMap().putIfAbsent(msg.getId(), true) != null)
+						continue;
+					
 					String topic = msg.getTopic();
 					Set<Consumer<Msg<?>>> consumers = consumerMap.get(topic);
 					if (Colls.isNotEmpty(consumers))
@@ -85,7 +92,7 @@ public class MsgConsumer {
 		consumers.add(c);
 	}
 	
-	public void shutdown() {
+	public void close() {
 		exec.shutdownNow();
 	}
 	

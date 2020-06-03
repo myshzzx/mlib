@@ -1,13 +1,18 @@
 package mysh.image;
 
-import lombok.extern.slf4j.Slf4j;
 import mysh.util.FilesUtil;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
 import org.openimaj.image.processing.resize.BilinearInterpolation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.imageio.*;
+import javax.imageio.IIOImage;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.io.File;
@@ -26,8 +31,9 @@ import java.util.function.Predicate;
  * @author mysh
  * @since 2019/1/26
  */
-@Slf4j
 public class Images {
+	private static final Logger log = LoggerFactory.getLogger(Images.class);
+	
 	public static MBFImage scale(MBFImage in, float scale) {
 		int width = (int) (in.getWidth() * scale);
 		int height = (int) (in.getHeight() * scale);

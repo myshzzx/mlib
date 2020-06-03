@@ -1,34 +1,55 @@
 package mysh.msg;
 
+import mysh.collect.Pair;
+
+import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.IOException;
+import java.net.SocketAddress;
+import java.net.SocketException;
+import java.util.List;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.function.Consumer;
 
 /**
  * @since 2019-11-07
  */
-public class MsgConsumerProducer {
+public interface MsgConsumerProducer extends Closeable {
 	
-	private MsgConsumer consumer;
-	private MsgProducer producer;
+	void subscribe(String topic, Consumer<Msg<?>> c);
 	
-	public MsgConsumerProducer(
-			MsgConsumer.MsgReceiver msgReceiver, int consumerThreadPoolSize,
+	void produce(Msg<?> msg) throws IOException;
+	
+	void close();
+	
+	static MsgConsumerProducer createUdp(
+			int udpPort,
+			int consumerThreadPoolSize,
 			RejectedExecutionHandler consumerRejectedHandler,
-			MsgProducer.MsgSender msgSender) {
-		consumer = new MsgConsumer(msgReceiver, consumerThreadPoolSize, consumerRejectedHandler);
-		producer = new MsgProducer(msgSender);
+			@Nullable List<SocketAddress> repeaters) throws SocketException {
+		
+		Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> rsp = UdpUtil.generateUdpReceiverSender(udpPort, repeaters);
+		MsgConsumer consumer = new MsgConsumer(rsp.getL(), consumerThreadPoolSize, consumerRejectedHandler);
+		MsgProducer producer = new MsgProducer(rsp.getR());
+		
+		return new MsgConsumerProducer() {
+			@Override
+			public void subscribe(final String topic, final Consumer<Msg<?>> c) {
+				consumer.subscribe(topic, c);
+			}
+			
+			@Override
+			public void produce(final Msg<?> msg) throws IOException {
+				producer.produce(msg);
+			}
+			
+			@Override
+			public void close() {
+				consumer.close();
+				rsp.getL().close();
+				rsp.getR().close();
+			}
+		};
 	}
 	
-	public void subscribe(String topic, Consumer<Msg<?>> c) {
-		consumer.subscribe(topic, c);
-	}
-	
-	public void produce(Msg<?> msg) throws IOException {
-		producer.produce(msg);
-	}
-	
-	public void shutdown() {
-		consumer.shutdown();
-	}
 }

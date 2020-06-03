@@ -80,16 +80,6 @@
 				<artifactId>mlib-cluster</artifactId>
 				<version>X-SNAPSHOT</version>
 			</dependency>
-			<dependency>
-				<groupId>com.github.myshzzx</groupId>
-				<artifactId>mlib-dev</artifactId>
-				<version>X-SNAPSHOT</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.myshzzx</groupId>
-				<artifactId>mlib-media</artifactId>
-				<version>X-SNAPSHOT</version>
-			</dependency>
 			
 			<dependency>
 				<groupId>org.projectlombok</groupId>
