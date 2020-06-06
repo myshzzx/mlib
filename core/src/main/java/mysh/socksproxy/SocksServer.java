@@ -12,8 +12,18 @@ import java.io.Closeable;
 public final class SocksServer implements Closeable {
 	
 	private Channel mainChannel;
-	private EventLoopGroup bossGroup = new NioEventLoopGroup(1);
-	private EventLoopGroup workerGroup = new NioEventLoopGroup();
+	private final EventLoopGroup bossGroup;
+	private final EventLoopGroup workerGroup;
+	
+	public SocksServer() {
+		bossGroup = new NioEventLoopGroup(1);
+		workerGroup = new NioEventLoopGroup();
+	}
+	
+	public SocksServer(int dispatcherThreads, int workThreads) {
+		bossGroup = new NioEventLoopGroup(dispatcherThreads);
+		workerGroup = new NioEventLoopGroup(workThreads);
+	}
 	
 	public synchronized SocksServer start(int port) {
 		if (mainChannel != null)
