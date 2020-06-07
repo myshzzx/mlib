@@ -13,6 +13,7 @@ import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
+import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
 import java.io.File;
@@ -97,6 +98,9 @@ public class Images {
 			ImageWriteParam param = writer.getDefaultWriteParam();
 			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
 			param.setCompressionQuality(quality);
+			if (param instanceof JPEGImageWriteParam) {
+				((JPEGImageWriteParam) param).setOptimizeHuffmanTables(true);
+			}
 			
 			IIOImage image = new IIOImage(reader.read(0), null, reader.getImageMetadata(0));
 			writer.write(null, image, param);
