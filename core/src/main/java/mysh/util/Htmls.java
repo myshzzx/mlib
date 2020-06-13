@@ -1,6 +1,8 @@
 package mysh.util;
 
 
+import com.google.common.net.HttpHeaders;
+import com.sun.net.httpserver.Headers;
 import mysh.collect.Colls;
 import org.apache.commons.text.StringEscapeUtils;
 
@@ -179,5 +181,11 @@ public class Htmls {
 	 */
 	public static String getMimeType(String ext, String defaultType) {
 		return mimeTypes.getOrDefault(ext, Strings.firstNonBlank(defaultType, MIME_STREAM));
+	}
+	
+	public static void putDownloadRspHeader(Headers rspHeaders, String fileName) {
+		rspHeaders.set(HttpHeaders.CONTENT_TYPE, Htmls.MIME_STREAM);
+		rspHeaders.set(HttpHeaders.CONTENT_DISPOSITION,
+				"attachment; filename=\"" + Htmls.urlEncode(fileName, "UTF-8") + "\"");
 	}
 }
