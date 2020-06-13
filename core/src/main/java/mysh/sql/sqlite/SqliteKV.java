@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -66,9 +67,11 @@ public class SqliteKV implements Closeable {
 		
 		<V> V byKey(String key, V defaultValue);
 		
-		List<Item> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
+		List<Item> itemsByRawSql(
+				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 		
-		List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params);
+		List<Map<String, Object>> byRawSql(
+				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 		
 		Item infoByKey(String key, boolean queryValue, boolean queryTime);
 		
@@ -226,7 +229,7 @@ public class SqliteKV implements Closeable {
 		public List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
 			ensureTable(group);
 			
-			String sql = "select " + cols + " from " + group
+			String sql = "select " + ObjectUtils.firstNonNull(cols, "*") + " from " + group
 					+ (conditions != null ? (" where " + conditions + " ") : " ")
 					+ ObjectUtils.firstNonNull(clauses, "");
 			params = params == null ? Collections.emptyMap() : params;

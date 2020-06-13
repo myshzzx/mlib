@@ -31,7 +31,7 @@ public class HtmlsTest {
 	
 	@Test
 	public void getMimeType() {
-		Assert.assertEquals("text/html", Htmls.getMimeType(".html", Htmls.MIME_TEXT));
-		Assert.assertEquals(Htmls.MIME_TEXT, Htmls.getMimeType(".abc", Htmls.MIME_TEXT));
+		Assert.assertEquals("text/html", Htmls.getMimeType("html", Htmls.MIME_TEXT));
+		Assert.assertEquals(Htmls.MIME_TEXT, Htmls.getMimeType("abc", Htmls.MIME_TEXT));
 	}
 }

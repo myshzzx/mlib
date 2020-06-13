@@ -104,6 +104,7 @@ public class Compresses {
 				};
 				ZipOutputStream zos = new ZipOutputStream(cos)
 		) {
+			zos.setLevel(9);
 			ZipEntry ze = new ZipEntry(entry);
 			zos.putNextEntry(ze);
 			

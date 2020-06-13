@@ -5,10 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
-import mysh.util.Encodings;
-import mysh.util.FilesUtil;
-import mysh.util.Strings;
-import mysh.util.Times;
+import mysh.util.*;
 import okhttp3.*;
 import org.apache.commons.compress.compressors.brotli.BrotliCompressorInputStream;
 import org.apache.commons.lang3.ObjectUtils;
@@ -212,9 +209,8 @@ public class HttpClientAssist implements Closeable {
 			String url, @Nullable Map<String, ?> headers, String contentType, @Nullable byte[] buf) throws IOException {
 		Request.Builder rb = new Request.Builder().url(url);
 		if (buf != null) {
-			rb.post(RequestBody.create(
-					MediaType.get(ObjectUtils.firstNonNull(contentType, "application/octet-stream")),
-					buf));
+			rb.post(RequestBody.Companion.create(buf,
+					MediaType.get(ObjectUtils.firstNonNull(contentType, Htmls.MIME_STREAM))));
 		}
 		return access(rb, headers);
 		
