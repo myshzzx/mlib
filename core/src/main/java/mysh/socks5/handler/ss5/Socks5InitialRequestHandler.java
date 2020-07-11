@@ -23,7 +23,7 @@ public class Socks5InitialRequestHandler extends SimpleChannelInboundHandler<Def
 	protected void channelRead0(ChannelHandlerContext ctx, DefaultSocks5InitialRequest msg) throws Exception {
 		// logger.debug("init ss5 conn: " + msg);
 		if (msg.decoderResult().isFailure()) {
-			logger.debug("NOT socks5");
+			logger.debug("NOT socks5: {}", msg);
 			ctx.fireChannelRead(msg);
 		} else {
 			if (msg.version().equals(SocksVersion.SOCKS5)) {
