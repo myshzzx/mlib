@@ -1,6 +1,7 @@
 package mysh.image;
 
 import mysh.util.FilesUtil;
+import mysh.util.Try;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.MBFImage;
 import org.openimaj.image.processing.resize.BilinearInterpolation;
@@ -8,14 +9,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import javax.imageio.IIOImage;
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
+import javax.imageio.*;
 import javax.imageio.plugins.jpeg.JPEGImageWriteParam;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -95,6 +94,9 @@ public class Images {
 			writer = ImageIO.getImageWriter(reader);
 			writer.setOutput(out);
 			
+			BufferedImage bufferedImage = reader.read(0);
+			IIOImage image = new IIOImage(bufferedImage, null, reader.getImageMetadata(0));
+			
 			ImageWriteParam param = writer.getDefaultWriteParam();
 			param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
 			param.setCompressionQuality(quality);
@@ -102,21 +104,28 @@ public class Images {
 				((JPEGImageWriteParam) param).setOptimizeHuffmanTables(true);
 			}
 			
-			IIOImage image = new IIOImage(reader.read(0), null, reader.getImageMetadata(0));
 			writer.write(null, image, param);
+			
+			if (writeFile.exists() && writeFile.length() > 0) {
+				target.delete();
+				writeFile.renameTo(target);
+			}
+		} catch (IOException e) {
+			writeFile.delete();
+			throw e;
 		} finally {
 			if (reader != null)
 				reader.dispose();
 			if (writer != null)
 				writer.dispose();
 		}
-		if (writeFile.exists() && writeFile.length() > 0) {
-			target.delete();
-			writeFile.renameTo(target);
-		}
 	}
 	
-	public static void compressFolderImg(File sourceDir, @Nullable Predicate<Path> fileFilter, File targetDir, float quality) throws Exception {
+	/**
+	 * @param handler (src, dst)->{}
+	 */
+	public static void handleFolderImg(
+			File sourceDir, @Nullable Predicate<Path> fileFilter, File targetDir, Try.ExpBiConsumer<File, File> handler) throws Exception {
 		ExecutorService ex = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		Path src = sourceDir.toPath();
 		Files.walk(src)
@@ -125,13 +134,24 @@ public class Images {
 		     .forEach(p -> {
 			     ex.execute(() -> {
 				     try {
-					     Images.compressImg(p.toFile(), new File(targetDir, src.relativize(p).toString()), quality);
-				     } catch (IOException e) {
-					     log.error("compress fail, p={}", p.toString(), e);
+					     File file = new File(targetDir, src.relativize(p).toString());
+					     handler.accept(p.toFile(), file);
+				     } catch (Exception e) {
+					     log.error("handle fail, p={}", p.toString(), e);
 				     }
 			     });
 		     });
 		ex.shutdown();
 		ex.awaitTermination(1, TimeUnit.HOURS);
+	}
+	
+	public static void convertToJpg(File source, File target) throws IOException {
+		BufferedImage image = ImageIO.read(source);
+		BufferedImage result = new BufferedImage(
+				image.getWidth(),
+				image.getHeight(),
+				BufferedImage.TYPE_INT_RGB);
+		result.createGraphics().drawImage(image, 0, 0, Color.WHITE, null);
+		ImageIO.write(result, "jpg", target);
 	}
 }

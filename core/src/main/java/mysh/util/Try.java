@@ -15,23 +15,31 @@ import java.util.function.Function;
  */
 public class Try {
 	private static final Logger log = LoggerFactory.getLogger(Try.class);
-
-	public interface ExpRunnable  {
+	
+	public interface ExpRunnable {
 		void run() throws Exception;
 	}
-
+	
 	public interface ExpCallable<T> {
 		T call() throws Exception;
 	}
-
+	
 	public interface ExpFunction<P, T> {
 		T invoke(P p) throws Exception;
 	}
-
+	
+	public interface ExpBiFunction<A, B, R> {
+		R apply(A a, B b) throws Exception;
+	}
+	
 	public interface ExpConsumer<T> {
 		void accept(T t) throws Exception;
 	}
-
+	
+	public interface ExpBiConsumer<A, B> {
+		void accept(A a, B b) throws Exception;
+	}
+	
 	public static <T> Consumer<T> ofIgnoreExpConsumer(ExpConsumer<T> c) {
 		return t -> {
 			try {
@@ -42,7 +50,7 @@ public class Try {
 			}
 		};
 	}
-
+	
 	public static <P, T> Function<P, T> ofIgnoreExpFunc(ExpFunction<P, T> c) {
 		return t -> {
 			try {
@@ -53,7 +61,7 @@ public class Try {
 			}
 		};
 	}
-
+	
 	public static <T> T runWithCl(ClassLoader cl, Callable<T> c) throws Exception {
 		Thread thread = Thread.currentThread();
 		ClassLoader currCl = thread.getContextClassLoader();
@@ -64,7 +72,7 @@ public class Try {
 			thread.setContextClassLoader(currCl);
 		}
 	}
-
+	
 	public static void runWithCl(ClassLoader cl, Runnable c) throws Exception {
 		Thread thread = Thread.currentThread();
 		ClassLoader currCl = thread.getContextClassLoader();

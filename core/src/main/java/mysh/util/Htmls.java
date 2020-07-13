@@ -56,6 +56,7 @@ public class Htmls {
 				"js", "text/javascript",
 				"json", "application/json",
 				"jsonld", "application/ld+json",
+				"mht", "multipart/related",
 				"mid", "audio/midi",
 				"midi", "audio/midi",
 				"mjs", "text/javascript",
