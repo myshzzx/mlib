@@ -103,7 +103,8 @@ public class SysTrayNotifier implements Closeable {
 		icon.setToolTip(this.title);
 		
 		oriTrayImg = icon.getImage();
-		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank16.png"));
+		// https://png-pixel.com/
+		blankImg = ImageIO.read(Thread.currentThread().getContextClassLoader().getResource("mysh/ui/blank128.png"));
 		
 		Runnable notifyAction = () -> {
 			Set<Msg> t = this.unHandledMsgs;
@@ -146,7 +147,7 @@ public class SysTrayNotifier implements Closeable {
 		
 		// flash thread
 		flashThread = new Thread(this.getClass().getName() + "-flasher") {
-			int iconFlashTime = 400;
+			int iconFlashTime = 500;
 			
 			@Override
 			public void run() {
