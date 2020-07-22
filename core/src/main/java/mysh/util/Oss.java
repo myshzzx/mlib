@@ -270,17 +270,21 @@ public abstract class Oss {
 	 * read process output content.
 	 * this method will block until process terminate, so make sure the process will exit immediately.
 	 */
-	public static byte[] readFromProcess(String cmd) throws IOException {
-		Process process = executeCmd(cmd, false);
-		byte[] buf = new byte[1000];
-		ByteArrayOutputStream aos = new ByteArrayOutputStream(buf.length);
-		try (InputStream in = process.getInputStream()) {
-			int len;
-			while ((len = in.read(buf)) > -1) {
-				aos.write(buf, 0, len);
+	public static byte[] readFromProcess(String cmd) {
+		try {
+			Process process = executeCmd(cmd, false);
+			byte[] buf = new byte[1000];
+			ByteArrayOutputStream aos = new ByteArrayOutputStream(buf.length);
+			try (InputStream in = process.getInputStream()) {
+				int len;
+				while ((len = in.read(buf)) > -1) {
+					aos.write(buf, 0, len);
+				}
 			}
+			return aos.toByteArray();
+		} catch (Exception e) {
+			throw Exps.unchecked(e);
 		}
-		return aos.toByteArray();
 	}
 	
 	/**
@@ -295,5 +299,39 @@ public abstract class Oss {
 			return Oss.getOS() == OS.Windows ? Encodings.GBK : Encodings.UTF_8;
 		else
 			return Charset.forName(enc);
+	}
+	
+	private static volatile String cpuId, mainBoardSerialNumber;
+	
+	public static String getCpuId() {
+		if (cpuId != null)
+			return cpuId;
+		
+		switch (getOS()) {
+			case Windows:
+				String infos = new String(readFromProcess("wmic cpu get ProcessorId"));
+				cpuId = infos.split("\\s+")[1];
+				break;
+			default:
+				throw new UnsupportedOperationException("unsupported os: " + getOS());
+		}
+		
+		return cpuId;
+	}
+	
+	public static String getMainBoardSerialNumber() {
+		if (mainBoardSerialNumber != null)
+			return mainBoardSerialNumber;
+		
+		switch (getOS()) {
+			case Windows:
+				String infos = new String(readFromProcess("wmic baseboard get SerialNumber"));
+				mainBoardSerialNumber = infos.split("\\s+")[1];
+				break;
+			default:
+				throw new UnsupportedOperationException("unsupported os: " + getOS());
+		}
+		
+		return mainBoardSerialNumber;
 	}
 }
