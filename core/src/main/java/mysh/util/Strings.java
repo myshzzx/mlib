@@ -55,15 +55,13 @@ public class Strings {
 	 * return first non blank string, return blank string by default.
 	 */
 	public static String firstNonBlank(String... strs) {
-		if (strs == null || strs.length == 0) {
-			return "";
-		} else {
+		if (strs != null && strs.length != 0) {
 			for (String str : strs) {
 				if (isNotBlank(str)) {
 					return str;
 				}
 			}
-			return "";
 		}
+		return "";
 	}
 }
