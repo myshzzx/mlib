@@ -4,10 +4,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import lombok.Getter;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
-import mysh.util.Compresses;
-import mysh.util.Serializer;
-import mysh.util.Tick;
-import mysh.util.Times;
+import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,15 +12,12 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * @since 2019-07-08
@@ -88,6 +82,12 @@ public class SqliteKV implements Closeable {
 		void remove(String key);
 		
 		void save(String key, Object value);
+		
+		/**
+		 * @param compressionLevel valid within [0,9], the higher level, the harder compress.
+		 *                         a valid level will force compress.
+		 */
+		void save(String key, Object value, int compressionLevel);
 		
 		boolean exists(String key);
 	}
@@ -273,14 +273,10 @@ public class SqliteKV implements Closeable {
 					item.value = v;
 				} else {
 					byte[] blob = (byte[]) v;
-					if (blob.length > 2 && blob[0] == 'P' && blob[1] == 'K') {
-						AtomicReference<Object> vr = new AtomicReference<>();
-						Compresses.deCompress(
-								(entry, in) -> {
-									vr.set(SERIALIZER.deserialize(in));
-								},
-								new ByteArrayInputStream(blob));
-						item.value = vr.get();
+					if (Compresses.isZip(blob)) {
+						item.value = SERIALIZER.deserialize(Compresses.decompressZip(blob));
+					} else if (Compresses.isXz(blob)) {
+						item.value = SERIALIZER.deserialize(Compresses.decompressXz(blob));
 					} else if (Serializer.isBuildInStream(blob))
 						item.value = SERIALIZER.deserialize(blob);
 					else
@@ -335,14 +331,17 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public void save(String key, Object value) {
+			save(key, value, -1);
+		}
+		
+		@Override
+		public void save(String key, Object value, int compressionLevel) {
 			ensureTable(group);
 			
 			byte[] buf = SERIALIZER.serialize(value);
-			if (suggestCompressValue) {
-				ByteArrayOutputStream out = new ByteArrayOutputStream();
-				Compresses.compress("d", new ByteArrayInputStream(buf), buf.length, out, -1);
-				byte[] cb = out.toByteArray();
-				
+			if ((suggestCompressValue || Range.isWithin(0, 9, compressionLevel)) && buf.length > 256) {
+				byte[] cb = Range.isWithin(0, 9, compressionLevel) ?
+						Compresses.compressXz(buf, compressionLevel) : Compresses.compressXz(buf);
 				if (cb.length < buf.length)
 					buf = cb;
 			}

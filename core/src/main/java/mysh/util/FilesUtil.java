@@ -4,25 +4,10 @@ package mysh.util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.FileVisitOption;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.EnumSet;
 import java.util.LinkedList;
@@ -300,10 +285,7 @@ public class FilesUtil {
 	public static void compress2File(File file, Serializable obj) throws IOException {
 		file.getAbsoluteFile().getParentFile().mkdirs();
 		File writeFile = getWriteFile(file);
-		try (FileOutputStream out = new FileOutputStream(writeFile)) {
-			Compresses.compress("d", new ByteArrayInputStream(Serializer.BUILD_IN.serialize(obj)),
-					Long.MAX_VALUE, out, 100_000);
-		}
+		Files.write(writeFile.toPath(), Compresses.compressZip(Serializer.BUILD_IN.serialize(obj)));
 		file.delete();
 		if (!writeFile.renameTo(file))
 			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
@@ -322,7 +304,7 @@ public class FilesUtil {
 		try (FileOutputStream out = new FileOutputStream(writeFile)) {
 			AtomicReference<RunnableFuture<Object>> r = new AtomicReference<>();
 			try (OutputStream dataOut = Compresses.getCompressOutputStream("d", out, 1000_000, r)) {
-				Serializer.BUILD_IN.serialize((Serializable) obj, dataOut);
+				Serializer.BUILD_IN.serialize(obj, dataOut);
 			}
 			r.get().get();
 		}

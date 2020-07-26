@@ -100,7 +100,7 @@ public class SerializationPerformance {
 		System.gc();
 		Thread.sleep(3000);
 
-		tick.reset();
+		tick.resetNip();
 		ti.ds(o, times);
 		System.out.println(tick.nip());
 
