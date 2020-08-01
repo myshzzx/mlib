@@ -1,5 +1,6 @@
 package mysh.dev.video;
 
+import mysh.collect.Colls;
 import mysh.collect.Pair;
 import mysh.util.*;
 import org.slf4j.Logger;
@@ -234,6 +235,53 @@ class FFmpegUIController {
 				log.info("task terminated");
 			} catch (Exception e) {
 				log.error("merge error", e);
+			} finally {
+				taskComplete.run();
+				stopAction = null;
+			}
+		});
+	}
+	
+	void subtitle(String src, String target, boolean overwrite, Runnable taskStart, Runnable taskComplete) {
+		ForkJoinPool.commonPool().execute(() -> {
+			try {
+				Pair<List<File>, File> filePair = parseFiles(src, target, overwrite);
+				if (filePair == null)
+					filePair = parseFiles(src, target, overwrite);
+				if (filePair == null)
+					return;
+				
+				List<File> srcFiles = filePair.getL();
+				if (srcFiles.size() != 2) {
+					JOptionPane.showMessageDialog(parent, "请给定1个视频及其字幕文件");
+					return;
+				}
+				File video = null, subtitle = null;
+				Set<String> subExt = Colls.ofHashSet("srt", "ass", "sub", "sst");
+				for (File srcFile : srcFiles) {
+					if (subExt.contains(FilesUtil.getFileExtension(srcFile)))
+						subtitle = srcFile;
+					else
+						video = srcFile;
+				}
+				if (video == null || subtitle == null) {
+					JOptionPane.showMessageDialog(parent, "未识别的字幕格式");
+					return;
+				}
+				File targetFile = filePair.getR(), realTarget = targetFile;
+				if (targetFile.isDirectory())
+					realTarget = new File(targetFile,
+							FilesUtil.getFileNameWithoutExtension(video) + ".mkv");
+				if (!overwrite)
+					realTarget = FilesUtil.getWritableFile(realTarget);
+				
+				stopAction = renewStopAction();
+				taskStart.run();
+				FFmpegs.addSubtitle(video, subtitle, overwrite, realTarget).waitFor();
+			} catch (InterruptedException e) {
+				log.info("task terminated");
+			} catch (Exception e) {
+				log.error("subtitle error", e);
 			} finally {
 				taskComplete.run();
 				stopAction = null;

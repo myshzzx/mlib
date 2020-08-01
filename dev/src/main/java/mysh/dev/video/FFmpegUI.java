@@ -29,6 +29,7 @@ public class FFmpegUI extends javax.swing.JFrame {
         splitBtn.setEnabled(false);
         mergeBtn.setEnabled(false);
         h265Btn.setEnabled(false);
+        subtitleBtn.setEnabled(false);
         stopBtn.setEnabled(true);
     }
 
@@ -36,6 +37,7 @@ public class FFmpegUI extends javax.swing.JFrame {
         splitBtn.setEnabled(true);
         mergeBtn.setEnabled(true);
         h265Btn.setEnabled(true);
+        subtitleBtn.setEnabled(true);
         stopBtn.setEnabled(false);
     }
 
@@ -108,6 +110,7 @@ public class FFmpegUI extends javax.swing.JFrame {
         mergeBtn = new javax.swing.JButton();
         h265Btn = new javax.swing.JButton();
         stopBtn = new javax.swing.JButton();
+        subtitleBtn = new javax.swing.JButton();
         targetText = new mysh.ui.JTextFieldWithTips();
         overwriteChk = new javax.swing.JCheckBox();
         hwAccelChk = new javax.swing.JCheckBox();
@@ -160,6 +163,13 @@ public class FFmpegUI extends javax.swing.JFrame {
             }
         });
 
+        subtitleBtn.setText("subtitle");
+        subtitleBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                subtitleBtnActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -171,6 +181,8 @@ public class FFmpegUI extends javax.swing.JFrame {
                 .addComponent(mergeBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(18, 18, 18)
                 .addComponent(h265Btn, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(18, 18, 18)
+                .addComponent(subtitleBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(stopBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
@@ -181,7 +193,9 @@ public class FFmpegUI extends javax.swing.JFrame {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addComponent(stopBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 47, Short.MAX_VALUE)
-                    .addComponent(h265Btn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, 47, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(h265Btn, javax.swing.GroupLayout.DEFAULT_SIZE, 47, Short.MAX_VALUE)
+                        .addComponent(subtitleBtn, javax.swing.GroupLayout.DEFAULT_SIZE, 47, Short.MAX_VALUE))
                     .addComponent(mergeBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(splitBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
@@ -194,10 +208,9 @@ public class FFmpegUI extends javax.swing.JFrame {
         hwAccelChk.setSelected(true);
         hwAccelChk.setText("hw accelerate");
 
-        monoChk.setSelected(true);
         monoChk.setText("mono");
 
-        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(26, 0, 51, 1));
+        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(24, 0, 51, 1));
         crfSpinner.setToolTipText("0:lossless, 51:worst");
 
         jLabel1.setText("h265-crf =");
@@ -316,6 +329,12 @@ public class FFmpegUI extends javax.swing.JFrame {
         controller.stop();
     }//GEN-LAST:event_stopBtnActionPerformed
 
+    private void subtitleBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_subtitleBtnActionPerformed
+        controller.subtitle(srcText.getText(), targetText.getText(), 
+                overwriteChk.isSelected(),
+                this::taskStart, this::taskComplete);
+    }//GEN-LAST:event_subtitleBtnActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -371,6 +390,7 @@ public class FFmpegUI extends javax.swing.JFrame {
     private javax.swing.JButton splitBtn;
     private javax.swing.JTextArea srcText;
     private javax.swing.JButton stopBtn;
+    private javax.swing.JButton subtitleBtn;
     private mysh.ui.JTextFieldWithTips targetText;
     private mysh.ui.JTextFieldWithTips tempText;
     private mysh.ui.JTextFieldWithTips toText;

@@ -22,9 +22,9 @@ import java.util.List;
 @NotThreadSafe
 public class FFmpegs {
 	private static final Logger log = LoggerFactory.getLogger(FFmpegs.class);
-
+	
 	public static void h265(boolean accelerate, File file, int h265Crf, int audioChannel, File dst) throws IOException, InterruptedException {
-
+		
 		String cmd = String.format("ffmpeg -y %s -i \"%s\" -c:v libx265 -x265-params crf=%d -ac %d \"%s\"",
 				accelerate ? "-hwaccel auto" : "",
 				file.getAbsolutePath(),
@@ -34,7 +34,7 @@ public class FFmpegs {
 		System.out.println("execute: " + cmd);
 		Oss.executeCmd(cmd, true).waitFor();
 	}
-
+	
 	private String overwrite = "";
 	private String hardwareAccelerate = "";
 	private String input = "";
@@ -47,29 +47,29 @@ public class FFmpegs {
 	private String ss, to;
 	private String threads = "";
 	private String output = "";
-
+	
 	private FFmpegs() {
 	}
-
+	
 	public static FFmpegs create() {
 		return new FFmpegs();
 	}
-
+	
 	public FFmpegs overwrite() {
 		overwrite = " -y";
 		return this;
 	}
-
+	
 	public FFmpegs hardwareAccel() {
 		hardwareAccelerate = " -hwaccel auto";
 		return this;
 	}
-
+	
 	public FFmpegs input(File file) {
 		input = " -i \"" + file.getAbsolutePath() + "\"";
 		return this;
 	}
-
+	
 	public FFmpegs merge(List<File> files) {
 		if (Colls.isEmpty(files))
 			throw new RuntimeException("merge files can't be blank");
@@ -90,9 +90,9 @@ public class FFmpegs {
 		}
 		return this;
 	}
-
+	
 	private static final Joiner colonJoiner = Joiner.on(":");
-
+	
 	/**
 	 * set start time, expression can be separate using: [\s,.:/\\]+
 	 *
@@ -106,7 +106,7 @@ public class FFmpegs {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * set to time, expression can be separate using: [\s,.:/\\]+
 	 *
@@ -120,7 +120,7 @@ public class FFmpegs {
 		}
 		return this;
 	}
-
+	
 	/**
 	 * http://ffmpeg.org/ffmpeg-codecs.html#libx265
 	 */
@@ -128,17 +128,17 @@ public class FFmpegs {
 		videoOptions = " -c:v libx265 -x265-params crf=" + crf;
 		return this;
 	}
-
+	
 	public FFmpegs frameRate(int rate) {
 		videoFrameRate = " -r " + rate;
 		return this;
 	}
-
+	
 	public FFmpegs audioOpus() {
 		audioOptions = " -c:a libopus";
 		return this;
 	}
-
+	
 	/**
 	 * http://ffmpeg.org/ffmpeg-codecs.html#libopus-1
 	 */
@@ -146,17 +146,17 @@ public class FFmpegs {
 		audioOptions = " -c:a libopus -application voip";
 		return this;
 	}
-
+	
 	public FFmpegs audioKiloBitRate(int kbps) {
 		audioBitRate = " -b:a " + kbps + "k";
 		return this;
 	}
-
+	
 	public FFmpegs audioChannels(int channelCount) {
 		audioChannels = " -ac " + channelCount;
 		return this;
 	}
-
+	
 	@Deprecated
 	public FFmpegs threads(int t) {
 		if (t < 1)
@@ -164,21 +164,21 @@ public class FFmpegs {
 		//		threads = " -threads " + t;
 		return this;
 	}
-
+	
 	public FFmpegs output(File file) {
 		output = " \"" + file.getAbsolutePath() + "\"";
 		return this;
 	}
-
+	
 	/**
 	 * return immediately, not wait the process terminate
 	 */
-	public Process go() throws IOException, InterruptedException {
+	public Process go() throws IOException {
 		String cmd = getCmd();
 		log.info("execute: " + cmd);
 		return Oss.executeCmd(cmd, true);
 	}
-
+	
 	public String getCmd() {
 		return "ffmpeg"
 				+ overwrite + hardwareAccelerate
@@ -192,5 +192,12 @@ public class FFmpegs {
 				+ audioBitRate + audioChannels
 				+ threads
 				+ output;
+	}
+	
+	public static Process addSubtitle(File video, File subtitle, boolean overwrite, File target) throws IOException {
+		String cmd = String.format("ffmpeg -i \"%s\" -i \"%s\" -map 0 -map 1 -c copy -metadata:s:s:0 language=import -disposition:s:s 0 -disposition:s:s:0 default %s \"%s\"",
+				subtitle.getAbsolutePath(), video.getAbsolutePath(), overwrite ? "-y" : "", target.getAbsolutePath());
+		log.info("execute: " + cmd);
+		return Oss.executeCmd(cmd, true);
 	}
 }

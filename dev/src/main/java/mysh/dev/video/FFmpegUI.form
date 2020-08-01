@@ -138,6 +138,8 @@
                   <Component id="mergeBtn" min="-2" pref="100" max="-2" attributes="0"/>
                   <EmptySpace type="separate" max="-2" attributes="0"/>
                   <Component id="h265Btn" min="-2" pref="100" max="-2" attributes="0"/>
+                  <EmptySpace type="separate" max="-2" attributes="0"/>
+                  <Component id="subtitleBtn" min="-2" pref="100" max="-2" attributes="0"/>
                   <EmptySpace max="32767" attributes="0"/>
                   <Component id="stopBtn" min="-2" pref="100" max="-2" attributes="0"/>
                   <EmptySpace max="-2" attributes="0"/>
@@ -150,7 +152,10 @@
                   <EmptySpace max="32767" attributes="0"/>
                   <Group type="103" groupAlignment="1" max="-2" attributes="0">
                       <Component id="stopBtn" pref="47" max="32767" attributes="0"/>
-                      <Component id="h265Btn" alignment="0" pref="47" max="32767" attributes="0"/>
+                      <Group type="103" alignment="0" groupAlignment="3" attributes="0">
+                          <Component id="h265Btn" alignment="3" pref="47" max="32767" attributes="0"/>
+                          <Component id="subtitleBtn" alignment="3" pref="47" max="32767" attributes="0"/>
+                      </Group>
                       <Component id="mergeBtn" alignment="1" max="32767" attributes="0"/>
                       <Component id="splitBtn" alignment="1" max="32767" attributes="0"/>
                   </Group>
@@ -191,6 +196,14 @@
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="stopBtnActionPerformed"/>
+          </Events>
+        </Component>
+        <Component class="javax.swing.JButton" name="subtitleBtn">
+          <Properties>
+            <Property name="text" type="java.lang.String" value="subtitle"/>
+          </Properties>
+          <Events>
+            <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="subtitleBtnActionPerformed"/>
           </Events>
         </Component>
       </SubComponents>
