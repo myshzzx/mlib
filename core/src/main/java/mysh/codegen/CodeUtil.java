@@ -17,17 +17,17 @@ import java.util.regex.Pattern;
  */
 public class CodeUtil {
 	private static final Logger log = LoggerFactory.getLogger(CodeUtil.class);
-
+	
 	private static final int alphaStep = 'a' - 'A';
-
-
+	
+	
 	/**
 	 * underline to camel , e.g. MYSH_ZZX-> MyshZzx or myshZzx, depends on param <code>startLowerCase</code>
 	 */
 	public static String underline2camel(String underline, boolean startLowerCase) {
 		if (Strings.isBlank(underline)) return underline;
 		StringBuilder hump = new StringBuilder();
-
+		
 		char[] chars = underline.trim().toLowerCase().toCharArray();
 		boolean needUpperCase = !startLowerCase;
 		for (char c : chars) {
@@ -40,28 +40,28 @@ public class CodeUtil {
 		}
 		return hump.toString();
 	}
-
+	
 	/**
 	 * underline to camel , e.g. MYSH_ZZX-> MyshZzx
 	 */
 	public static String underline2camel(String underline) {
 		return underline2camel(underline, false);
 	}
-
+	
 	/**
 	 * underline to field camel , e.g. MYSH_ZZX-> myshZzx
 	 */
 	public static String underline2FieldCamel(String underline) {
 		return underline2camel(underline, true);
 	}
-
+	
 	/**
 	 * 驼峰命名转为下划线命名.
 	 */
 	public static String camel2underline(String hump) {
 		StringBuilder underline = new StringBuilder();
 		char[] chars = hump.trim().toCharArray();
-
+		
 		for (int i = 0; i < chars.length; i++) {
 			char c = chars[i];
 			if (i == 0)
@@ -74,22 +74,22 @@ public class CodeUtil {
 					underline.append(toUpperCase(c));
 			}
 		}
-
+		
 		return underline.toString();
 	}
-
+	
 	public static boolean isUpperCase(char c) {
 		return c >= 'A' && c <= 'Z';
 	}
-
+	
 	public static boolean isLowerCase(char c) {
 		return c >= 'a' && c <= 'z';
 	}
-
+	
 	public static char toUpperCase(char c) {
 		return isLowerCase(c) ? (char) (c - alphaStep) : c;
 	}
-
+	
 	/**
 	 * 方法签名转域签名: Method->method
 	 */
@@ -103,7 +103,7 @@ public class CodeUtil {
 			return new String(chars);
 		}
 	}
-
+	
 	/**
 	 * 域签名转方法签名: field->Field
 	 */
@@ -117,22 +117,24 @@ public class CodeUtil {
 			return new String(chars);
 		}
 	}
-
+	
 	private static final Pattern fieldsFullExp = Pattern.compile("(/\\*\\*.+?\\*/).+?(\\w+(<.+?>)?)\\s+(\\w+);", Pattern.DOTALL);
 	private static final Pattern fieldsExp = Pattern.compile("(\\w+(<.+?>)?)\\s+(\\w+);", Pattern.DOTALL);
-
+	
 	private static class FieldDef {
 		String comment, type, field;
-
+		
 		public FieldDef(String comment, String type, String field) {
 			this.comment = comment;
 			this.type = type;
 			this.field = field;
 		}
 	}
-
+	
 	private static List<FieldDef> parseFields(String fieldsCode) {
 		List<FieldDef> fields = new ArrayList<>();
+		if (Strings.isBlank(fieldsCode))
+			return fields;
 		Matcher matcher = fieldsExp.matcher(fieldsCode);
 		Map<String, FieldDef> fieldsMap = new HashMap<>();
 		while (matcher.find()) {
@@ -140,17 +142,17 @@ public class CodeUtil {
 			fields.add(def);
 			fieldsMap.put(def.field, def);
 		}
-
+		
 		Matcher matcherFull = fieldsFullExp.matcher(fieldsCode);
 		while (matcherFull.find()) {
 			FieldDef fieldDef = fieldsMap.get(matcherFull.group(4));
 			if (fieldDef != null)
 				fieldDef.comment = matcherFull.group(1);
 		}
-
+		
 		return fields;
 	}
-
+	
 	/**
 	 * 属性复制代码
 	 *
@@ -164,20 +166,19 @@ public class CodeUtil {
 		List<FieldDef> fieldDefs = parseFields(fieldsCode);
 		fieldDefs.forEach(def -> {
 			String comment = def.comment.replace("/**", "").replace("*/", "").trim()
-					.replaceAll("((\r)?\n)*\\s*?\\*\\s*", "//");
+			                            .replaceAll("((\r)?\n)*\\s*?\\*\\s*", "//");
 			if (Strings.isNotBlank(comment) && !comment.startsWith("//"))
 				comment = "//" + comment;
 			String type = def.type;
 			String getMethodPrefix = type.toLowerCase().equals("boolean") ? "is" : "get";
 			String field = def.field;
 			String fieldMethod = field2MethodSign(field);
-
+			
 			if (Strings.isNotBlank(comment)) {
 				sb.append(comment).append('\n');
 			}
-			sb
-					.append(dstVar).append(".set").append(fieldMethod).append('(')
-					.append(srcVar).append(".").append(getMethodPrefix).append(fieldMethod).append("());\n")
+			sb.append(dstVar).append(".set").append(fieldMethod).append('(')
+			  .append(srcVar).append(".").append(getMethodPrefix).append(fieldMethod).append("());\n")
 			;
 		});
 		return sb.toString();
