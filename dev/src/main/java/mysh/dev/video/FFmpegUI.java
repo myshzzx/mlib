@@ -210,7 +210,7 @@ public class FFmpegUI extends javax.swing.JFrame {
 
         monoChk.setText("mono");
 
-        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(24, 0, 51, 1));
+        crfSpinner.setModel(new javax.swing.SpinnerNumberModel(27, 0, 51, 1));
         crfSpinner.setToolTipText("0:lossless, 51:worst");
 
         jLabel1.setText("h265-crf =");
