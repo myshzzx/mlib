@@ -11,6 +11,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -23,18 +24,6 @@ import java.util.List;
 public class FFmpegs {
 	private static final Logger log = LoggerFactory.getLogger(FFmpegs.class);
 	
-	public static void h265(boolean accelerate, File file, int h265Crf, int audioChannel, File dst) throws IOException, InterruptedException {
-		
-		String cmd = String.format("ffmpeg -y %s -i \"%s\" -c:v libx265 -x265-params crf=%d -ac %d \"%s\"",
-				accelerate ? "-hwaccel auto" : "",
-				file.getAbsolutePath(),
-				h265Crf, audioChannel,
-				dst.getAbsolutePath()
-		);
-		System.out.println("execute: " + cmd);
-		Oss.executeCmd(cmd, true).waitFor();
-	}
-	
 	private String overwrite = "";
 	private String hardwareAccelerate = "";
 	private String input = "";
@@ -45,32 +34,168 @@ public class FFmpegs {
 	private String audioChannels = "";
 	private String audioBitRate = "";
 	private String ss, to;
-	private String threads = "";
 	private String output = "";
 	
-	private FFmpegs() {
-	}
+	private static Boolean hasNvSupport;
 	
-	public static FFmpegs create() {
-		return new FFmpegs();
+	public static boolean hasNvSupport() {
+		if (hasNvSupport == null)
+			hasNvSupport = new String(Oss.readFromProcess("ffmpeg -hwaccels")).contains("cuvid");
+		return hasNvSupport;
 	}
 	
 	public FFmpegs overwrite() {
+		cmd = null;
 		overwrite = " -y";
 		return this;
 	}
 	
 	public FFmpegs hardwareAccel() {
+		cmd = null;
 		hardwareAccelerate = " -hwaccel auto";
 		return this;
 	}
 	
 	public FFmpegs input(File file) {
+		cmd = null;
 		input = " -i \"" + file.getAbsolutePath() + "\"";
 		return this;
 	}
 	
+	private static final Joiner colonJoiner = Joiner.on(":");
+	
+	/**
+	 * set start time, expression can be separate using: [\s,.:/\\]+
+	 *
+	 * @param fromTime time exp, can be like -> 3:37 2/34/11 03.21
+	 */
+	public FFmpegs from(String fromTime) {
+		cmd = null;
+		if (Strings.isNotBlank(fromTime)) {
+			ss = colonJoiner.join(fromTime.trim().split("[\\s,.:/\\\\]+"));
+		} else {
+			ss = null;
+		}
+		return this;
+	}
+	
+	/**
+	 * set to time, expression can be separate using: [\s,.:/\\]+
+	 * negative time can be used: -3.20 indicate 3:20 to the end.
+	 *
+	 * @param toTime time exp, can be like -> 3:37 2/34/11 03.21
+	 */
+	public FFmpegs to(String toTime) {
+		cmd = null;
+		if (Strings.isNotBlank(toTime)) {
+			to = colonJoiner.join(toTime.trim().split("[\\s,.:/\\\\]+"));
+		} else {
+			to = null;
+		}
+		return this;
+	}
+	
+	/**
+	 * http://ffmpeg.org/ffmpeg-codecs.html#libx265
+	 * ffmpeg  -encoders
+	 * ffmpeg -h encoder=hevc_nvenc
+	 */
+	public FFmpegs videoH265Params(int crf) {
+		cmd = null;
+		videoOptions = Strings.isNotBlank(hardwareAccelerate) && hasNvSupport() ?
+				" -c:v hevc_nvenc -cq " + crf :
+				" -c:v libx265 -x265-params crf=" + crf;
+		return this;
+	}
+	
+	public FFmpegs frameRate(int rate) {
+		cmd = null;
+		videoFrameRate = " -r " + rate;
+		return this;
+	}
+	
+	public FFmpegs audioOpus() {
+		cmd = null;
+		audioOptions = " -c:a libopus";
+		return this;
+	}
+	
+	/**
+	 * http://ffmpeg.org/ffmpeg-codecs.html#libopus-1
+	 */
+	public FFmpegs audioOpusVoip() {
+		cmd = null;
+		audioOptions = " -c:a libopus -application voip";
+		return this;
+	}
+	
+	public FFmpegs audioKiloBitRate(int kbps) {
+		cmd = null;
+		audioBitRate = " -b:a " + kbps + "k";
+		return this;
+	}
+	
+	public FFmpegs audioChannels(int channelCount) {
+		cmd = null;
+		audioChannels = " -ac " + channelCount;
+		return this;
+	}
+	
+	public FFmpegs output(File file) {
+		cmd = null;
+		output = " \"" + file.getAbsolutePath() + "\"";
+		return this;
+	}
+	
+	/**
+	 * return immediately, not wait the process terminate
+	 */
+	public Process go() throws IOException {
+		String cmd = getCmd();
+		log.info("execute: " + cmd);
+		return Oss.executeCmd(cmd, true);
+	}
+	
+	private String cmd;
+	
+	public String getCmd() {
+		if (cmd == null) {
+			String realTo = to;
+			if (Strings.isNotBlank(to) && to.startsWith("-")) {
+				String info = new String(Oss.readFromProcess("ffprobe" + input + " -show_format"));
+				String len = Arrays.stream(info.split("[\\r\\n]+"))
+				                   .filter(line -> line.contains("duration="))
+				                   .findFirst()
+				                   .map(line -> line.substring(9, line.indexOf('.')))
+				                   .orElse(null);
+				if (len != null) {
+					int sec = Integer.parseInt(len);
+					String[] tt = to.substring(1).split(":");
+					for (int i = 0; i < tt.length; i++) {
+						sec -= Integer.parseInt(tt[tt.length - 1 - i]) * Math.pow(60, i);
+					}
+					realTo = String.format("%d:%02d:%02d", sec / 3600, (sec % 3600) / 60, sec % 60);
+				}
+			}
+			
+			cmd = "ffmpeg"
+					+ overwrite + hardwareAccelerate
+					+ input
+					+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
+					+ (Strings.isNotBlank(realTo) ? " -to " + realTo : "")
+					+ streams
+					+ videoOptions
+					+ videoFrameRate
+					+ audioOptions
+					+ audioBitRate + audioChannels
+					+ output;
+		}
+		
+		return cmd;
+	}
+	
 	public FFmpegs merge(List<File> files) {
+		cmd = null;
 		if (Colls.isEmpty(files))
 			throw new RuntimeException("merge files can't be blank");
 		try {
@@ -89,109 +214,6 @@ public class FFmpegs {
 			throw new RuntimeException("write list file error.", e);
 		}
 		return this;
-	}
-	
-	private static final Joiner colonJoiner = Joiner.on(":");
-	
-	/**
-	 * set start time, expression can be separate using: [\s,.:/\\]+
-	 *
-	 * @param fromTime time exp, can be like -> 3:37 2/34/11 03.21
-	 */
-	public FFmpegs from(String fromTime) {
-		if (Strings.isNotBlank(fromTime)) {
-			ss = colonJoiner.join(fromTime.trim().split("[\\s,.:/\\\\]+"));
-		} else {
-			ss = null;
-		}
-		return this;
-	}
-	
-	/**
-	 * set to time, expression can be separate using: [\s,.:/\\]+
-	 *
-	 * @param toTime time exp, can be like -> 3:37 2/34/11 03.21
-	 */
-	public FFmpegs to(String toTime) {
-		if (Strings.isNotBlank(toTime)) {
-			to = colonJoiner.join(toTime.trim().split("[\\s,.:/\\\\]+"));
-		} else {
-			to = null;
-		}
-		return this;
-	}
-	
-	/**
-	 * http://ffmpeg.org/ffmpeg-codecs.html#libx265
-	 */
-	public FFmpegs videoH265Params(int crf) {
-		videoOptions = " -c:v libx265 -x265-params crf=" + crf;
-		return this;
-	}
-	
-	public FFmpegs frameRate(int rate) {
-		videoFrameRate = " -r " + rate;
-		return this;
-	}
-	
-	public FFmpegs audioOpus() {
-		audioOptions = " -c:a libopus";
-		return this;
-	}
-	
-	/**
-	 * http://ffmpeg.org/ffmpeg-codecs.html#libopus-1
-	 */
-	public FFmpegs audioOpusVoip() {
-		audioOptions = " -c:a libopus -application voip";
-		return this;
-	}
-	
-	public FFmpegs audioKiloBitRate(int kbps) {
-		audioBitRate = " -b:a " + kbps + "k";
-		return this;
-	}
-	
-	public FFmpegs audioChannels(int channelCount) {
-		audioChannels = " -ac " + channelCount;
-		return this;
-	}
-	
-	@Deprecated
-	public FFmpegs threads(int t) {
-		if (t < 1)
-			throw new IllegalArgumentException("threads should be positive");
-		//		threads = " -threads " + t;
-		return this;
-	}
-	
-	public FFmpegs output(File file) {
-		output = " \"" + file.getAbsolutePath() + "\"";
-		return this;
-	}
-	
-	/**
-	 * return immediately, not wait the process terminate
-	 */
-	public Process go() throws IOException {
-		String cmd = getCmd();
-		log.info("execute: " + cmd);
-		return Oss.executeCmd(cmd, true);
-	}
-	
-	public String getCmd() {
-		return "ffmpeg"
-				+ overwrite + hardwareAccelerate
-				+ input
-				+ (Strings.isNotBlank(ss) ? " -ss " + ss : "")
-				+ (Strings.isNotBlank(to) ? " -to " + to : "")
-				+ streams
-				+ videoOptions
-				+ videoFrameRate
-				+ audioOptions
-				+ audioBitRate + audioChannels
-				+ threads
-				+ output;
 	}
 	
 	public static Process addSubtitle(File video, File subtitle, boolean overwrite, File target) throws IOException {

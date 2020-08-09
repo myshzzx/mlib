@@ -5,9 +5,7 @@
  */
 package mysh.dev.ui;
 
-import mysh.dev.codegen.ui.BeanPropCopy2;
 import mysh.dev.filesearch.FileSearchFrame;
-import mysh.dev.regexp.RegExpTestFrame;
 import mysh.dev.tcpportscanner.TcpPortScannerUI;
 import mysh.dev.video.FFmpegUI;
 import mysh.util.UIs;
@@ -46,25 +44,17 @@ public class ToolsIntegratedUI extends javax.swing.JFrame {
 	}
 	
 	private void initCards() {
-		BeanPropCopy2 beanPropCopy2 = new BeanPropCopy2();
-		this.tabPane.add("属性复制", beanPropCopy2.getContentPane());
-		frames.add(beanPropCopy2);
+		FFmpegUI ffmpegUI = new FFmpegUI();
+		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
+		frames.add(ffmpegUI);
 		
 		FileSearchFrame fileSearchFrame = new FileSearchFrame();
 		this.tabPane.add("文件搜索", fileSearchFrame.getContentPane());
 		frames.add(fileSearchFrame);
-		
-		RegExpTestFrame regExpTestFrame = new RegExpTestFrame();
-		this.tabPane.add("正则判断", regExpTestFrame.getContentPane());
-		frames.add(regExpTestFrame);
-		
+
 		TcpPortScannerUI tcpPortScannerUI = new TcpPortScannerUI();
 		this.tabPane.add("TCP端口扫描", tcpPortScannerUI.getContentPane());
 		frames.add(tcpPortScannerUI);
-		
-		FFmpegUI ffmpegUI = new FFmpegUI();
-		this.tabPane.add("FFmpeg", ffmpegUI.getContentPane());
-		frames.add(ffmpegUI);
 	}
 	
 	/**

@@ -63,7 +63,7 @@ class FFmpegUIController {
 					return;
 				}
 				
-				FFmpegs f = FFmpegs.create();
+				FFmpegs f = new FFmpegs();
 				if (overwrite)
 					f.overwrite();
 				if (hwAccel)
@@ -103,7 +103,7 @@ class FFmpegUIController {
 					} else
 						process = f.output(realTarget).go();
 					
-					if (Oss.isWindows()) {
+					if ((!hwAccel || !FFmpegs.hasNvSupport()) && Oss.isWindows()) {
 						try {
 							WinAPI.getAllWinProcesses(true).stream()
 							      .filter(p -> Objects.equals(f.getCmd(), p.getCmdLine()))
@@ -168,7 +168,7 @@ class FFmpegUIController {
 					return;
 				}
 				
-				FFmpegs f = FFmpegs.create();
+				FFmpegs f = new FFmpegs();
 				if (overwrite)
 					f.overwrite();
 				if (hwAccel)
@@ -220,7 +220,7 @@ class FFmpegUIController {
 				if (!overwrite && targetFile.exists())
 					targetFile = FilesUtil.getWritableFile(targetFile);
 				
-				FFmpegs f = FFmpegs.create();
+				FFmpegs f = new FFmpegs();
 				if (overwrite)
 					f.overwrite();
 				if (hwAccel)

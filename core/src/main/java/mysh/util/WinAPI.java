@@ -187,7 +187,6 @@ public interface WinAPI {
 		
 		try {
 			kernel32.SetProcessAffinityMask(processHandle, mask);
-			chkLastError();
 		} finally {
 			kernel32.CloseHandle(processHandle);
 		}

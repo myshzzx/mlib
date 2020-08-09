@@ -49,7 +49,7 @@ public class FFmpegUI extends javax.swing.JFrame {
         targetText.setLabel("target file/dir");
         tempText.setLabel("temp dir");
         fromText.setLabel("from time, split as U like");
-        toText.setLabel("to time, split as U like");
+        toText.setLabel("to time, split as U like, negative time can be used to indicate the time to the end");
 
         DropTargetAdapter fileDropListener = new DropTargetAdapter() {
             @Override
