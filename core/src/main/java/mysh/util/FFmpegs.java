@@ -195,7 +195,7 @@ public class FFmpegs {
 	}
 	
 	public static Process addSubtitle(File video, File subtitle, boolean overwrite, File target) throws IOException {
-		String cmd = String.format("ffmpeg -i \"%s\" -i \"%s\" -map 0 -map 1 -c copy -metadata:s:s:0 language=import -disposition:s:s 0 -disposition:s:s:0 default %s \"%s\"",
+		String cmd = String.format("ffmpeg -i \"%s\" -i \"%s\" -map 0 -map 1:v -map 1:a -c copy %s \"%s\"",
 				subtitle.getAbsolutePath(), video.getAbsolutePath(), overwrite ? "-y" : "", target.getAbsolutePath());
 		log.info("execute: " + cmd);
 		return Oss.executeCmd(cmd, true);
