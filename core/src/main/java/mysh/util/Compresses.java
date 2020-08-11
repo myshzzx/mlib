@@ -196,7 +196,7 @@ public class Compresses {
 			
 			byte[] a = bo.toByteArray();
 			if (tick.nip() > 1000)
-				log.debug("compressZip cost {} ms, cl={}, before/after={}/{}", tick.nip(), compressionLevel, data.length, a.length);
+				log.debug("compressZip cost {} ms, cl={}, before/after={}/{}", tick.lastNip(), compressionLevel, data.length, a.length);
 			return a;
 		} catch (Exception e) {
 			throw Exps.unchecked(e);
@@ -223,7 +223,7 @@ public class Compresses {
 			
 			byte[] a = bo.toByteArray();
 			if (tick.nip() > 1000)
-				log.debug("decompressZip cost {} ms, before/after={}/{}", tick.nip(), data.length, a.length);
+				log.debug("decompressZip cost {} ms, before/after={}/{}", tick.lastNip(), data.length, a.length);
 			return a;
 		} catch (Exception e) {
 			throw Exps.unchecked(e);
@@ -269,7 +269,7 @@ public class Compresses {
 		}
 		byte[] a = ro.toByteArray();
 		if (tick.nip() > 1000)
-			log.debug("compressXz cost {} ms, cl={}, before/after={}/{}", tick.nip(), compressionLevel, data.length, a.length);
+			log.debug("compressXz cost {} ms, cl={}, before/after={}/{}", tick.lastNip(), compressionLevel, data.length, a.length);
 		return a;
 	}
 	
@@ -291,7 +291,7 @@ public class Compresses {
 			
 			byte[] a = ro.toByteArray();
 			if (tick.nip() > 1000)
-				log.debug("decompressXz cost {} ms, before/after={}/{}", tick.nip(), data.length, a.length);
+				log.debug("decompressXz cost {} ms, before/after={}/{}", tick.lastNip(), data.length, a.length);
 			return a;
 		} catch (Exception e) {
 			throw Exps.unchecked(e);

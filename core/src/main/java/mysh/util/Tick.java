@@ -74,7 +74,7 @@ public final class Tick {
 	private long nipsCount;
 	
 	/**
-	 * time costs from creation/reset.
+	 * time costs from creation/reset/lastNip.
 	 */
 	public long nip() {
 		long now = System.nanoTime();
@@ -82,7 +82,13 @@ public final class Tick {
 		nipsTotal += nip;
 		nipsCount++;
 		lastFlag = now;
-		return nip;
+		return lastNip = nip;
+	}
+	
+	private long lastNip;
+	
+	public long lastNip() {
+		return lastNip;
 	}
 	
 	/**
