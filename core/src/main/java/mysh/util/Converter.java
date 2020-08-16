@@ -13,7 +13,10 @@ public abstract class Converter {
 		// 是基本类型
 		if (type == String.class) {
 			return value;
-		} else if (type == int.class || type == Integer.class) {
+		} else if (Strings.isBlank(value))
+			return null;
+		
+		if (type == int.class || type == Integer.class) {
 			return Integer.valueOf(value);
 		} else if (type == long.class || type == Long.class) {
 			return Long.valueOf(value);
