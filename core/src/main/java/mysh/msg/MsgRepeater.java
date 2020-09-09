@@ -155,13 +155,14 @@ public class MsgRepeater {
 					switch (msg.cmd) {
 						case HEARTBEAT:
 							listeners.put(src, now);
-							// log.debug("listener-heartbeat:{}", src);
+							log.debug("listener-heartbeat:{}", src);
 							break;
 						case DELIVER:
 							listeners.put(src, now);
 							msg.src = src;
 							exec.submit(() -> {
 								try {
+									log.debug("deliver-msg:{}", msg);
 									if (msg.dst != null) {
 										sendMsg(msg, sock, Collections.singletonList(msg.dst));
 									} else {

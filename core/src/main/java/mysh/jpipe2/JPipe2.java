@@ -87,7 +87,8 @@ public class JPipe2 implements Closeable {
 														@Override
 														public void exceptionCaught(ChannelHandlerContext remoteCtx, Throwable cause) throws Exception {
 															if (!Objects.equals("Connection reset", cause.getMessage()))
-																log.error("remote-channel-exp,{}:{}->local:{},exp={}", remoteHost, remotePort, port, cause.toString());
+																log.error("remote-channel-exp, local:{}->{}:{}, exp={}",
+																		port, remoteHost, remotePort, cause.toString());
 															remoteCtx.close();
 															localCtx.close();
 														}
@@ -118,7 +119,9 @@ public class JPipe2 implements Closeable {
 									@Override
 									public void exceptionCaught(ChannelHandlerContext localCtx, Throwable cause) throws Exception {
 										if (!Objects.equals("Connection reset", cause.getMessage()))
-											log.error("local-channel-exp,local:{}->{}:{},exp={}", port, remoteHost, remotePort, cause.toString());
+											log.error("local-channel-exp: {}->local:{}, remoteTarget={}:{}, exp={}",
+													localCtx.channel().remoteAddress(),
+													port, remoteHost, remotePort, cause.toString());
 										localCtx.close();
 										if (remoteChannel != null)
 											remoteChannel.channel().close();
