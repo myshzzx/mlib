@@ -9,7 +9,6 @@
 	<version>X-SNAPSHOT</version>
 	<modules>
 		<module>core</module>
-		<!--<module>dev</module>-->
 		<!--<module>cluster</module>-->
 	</modules>
 	
