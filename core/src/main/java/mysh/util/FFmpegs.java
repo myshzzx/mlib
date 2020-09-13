@@ -114,21 +114,12 @@ public class FFmpegs {
 		return this;
 	}
 	
+	/**
+	 * usable range ≥ 32Kbps. Recommended range ≥ 64Kbps
+	 */
 	public FFmpegs audioOpus() {
 		cmd = null;
 		audioOptions = " -c:a libopus";
-		return this;
-	}
-	
-	public FFmpegs audioAac() {
-		cmd = null;
-		audioOptions = " -c:a aac";
-		return this;
-	}
-	
-	public FFmpegs audioVerbis() {
-		cmd = null;
-		audioOptions = " -c:a libvorbis";
 		return this;
 	}
 	
@@ -138,6 +129,24 @@ public class FFmpegs {
 	public FFmpegs audioOpusVoip() {
 		cmd = null;
 		audioOptions = " -c:a libopus -application voip";
+		return this;
+	}
+	
+	/**
+	 * usable range ≥ 96Kbps. Recommended range -aq 4 (≥ 128Kbps)
+	 */
+	public FFmpegs audioVorbis() {
+		cmd = null;
+		audioOptions = " -c:a libvorbis";
+		return this;
+	}
+	
+	/**
+	 * usable range ≥ 32Kbps (depending on profile and audio). Recommended range ≥ 128Kbps
+	 */
+	public FFmpegs audioAac() {
+		cmd = null;
+		audioOptions = " -c:a aac";
 		return this;
 	}
 	
