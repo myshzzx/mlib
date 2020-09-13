@@ -120,6 +120,18 @@ public class FFmpegs {
 		return this;
 	}
 	
+	public FFmpegs audioAac() {
+		cmd = null;
+		audioOptions = " -c:a aac";
+		return this;
+	}
+	
+	public FFmpegs audioVerbis() {
+		cmd = null;
+		audioOptions = " -c:a libvorbis";
+		return this;
+	}
+	
 	/**
 	 * http://ffmpeg.org/ffmpeg-codecs.html#libopus-1
 	 */
