@@ -19,7 +19,7 @@
 		
 		<springVersion>5.2.4.RELEASE</springVersion>
 		<springbootVersion>2.2.5.RELEASE</springbootVersion>
-		<junit.version>4.12</junit.version>
+		<junit.version>4.13.1</junit.version>
 		<javafx.version>14.0.2.1</javafx.version>
 		<netty.version>4.1.51.Final</netty.version>
 	</properties>
