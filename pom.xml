@@ -174,6 +174,12 @@
 				<version>1.20</version>
 			</dependency>
 			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-csv</artifactId>
+				<version>1.8</version>
+			</dependency>
+			
+			<dependency>
 				<groupId>org.tukaani</groupId>
 				<artifactId>xz</artifactId>
 				<version>1.8</version>
