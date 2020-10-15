@@ -208,7 +208,7 @@ public class Compresses {
 	 */
 	public static byte[] decompressZip(byte[] data) {
 		if (!isZip(data))
-			throw new IllegalArgumentException("NOT xz data");
+			throw new IllegalArgumentException("NOT zip data");
 		
 		Tick tick = Tick.tick();
 		try (ZipInputStream zis = new ZipInputStream(new CheckedInputStream(new ByteArrayInputStream(data), new CRC32()))) {
