@@ -19,7 +19,6 @@
 		
 		<springVersion>5.2.4.RELEASE</springVersion>
 		<springbootVersion>2.2.5.RELEASE</springbootVersion>
-		<junit.version>4.12</junit.version>
 		<javafx.version>14.0.2.1</javafx.version>
 		<netty.version>4.1.51.Final</netty.version>
 	</properties>
@@ -49,7 +48,7 @@
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>${junit.version}</version>
+			<version>4.13.1</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
