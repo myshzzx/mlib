@@ -1,6 +1,7 @@
 
 package mysh.util;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -115,6 +116,7 @@ public class CompressesTest {
 	public void zip() {
 		byte[] data = "myshzzxmyshzzxmyshzzx".getBytes();
 		byte[] c = Compresses.compressZip(data);
+		System.out.println(DigestUtils.md5Hex(c));
 		byte[] d = Compresses.decompressZip(c);
 		assertArrayEquals(data, d);
 	}
@@ -123,6 +125,7 @@ public class CompressesTest {
 	public void xz() {
 		byte[] data = "myshzzxmyshzzxmyshzzx".getBytes();
 		byte[] c = Compresses.compressXz(data);
+		System.out.println(DigestUtils.md5Hex(c));
 		byte[] d = Compresses.decompressXz(c);
 		assertArrayEquals(data, d);
 	}
