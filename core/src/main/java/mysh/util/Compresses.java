@@ -192,7 +192,7 @@ public class Compresses {
 			zos.putNextEntry(ze);
 			zos.write(data);
 			zos.closeEntry();
-			zos.flush();
+			zos.close();
 			
 			byte[] a = bo.toByteArray();
 			if (tick.nip() > 1000)
