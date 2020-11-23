@@ -26,6 +26,10 @@ public abstract class Oss {
 		Windows, Linux, Mac, Unix, Unknown
 	}
 	
+	public enum GPU {
+		nVidia, AMD, Intel, Unknown;
+	}
+	
 	private static OS currOs;
 	
 	/**
@@ -334,4 +338,31 @@ public abstract class Oss {
 		
 		return mainBoardSerialNumber;
 	}
+	
+	public static String getGPUName() {
+		if (Oss.isWindows()) {
+			String nameInfo = new String(Oss.readFromProcess("powershell \"Get-WmiObject -Class CIM_PCVideoController | Select-Object -Property Name\""));
+			String[] is = nameInfo.trim().split("[\r\n]+");
+			return is[is.length - 1];
+		}
+		throw new UnsupportedOperationException("need dev");
+	}
+	
+	private static GPU currGPU;
+	
+	public static GPU getGPU() {
+		if (currGPU == null) {
+			String name = getGPUName().toUpperCase();
+			if (name.contains("NVIDIA"))
+				currGPU = GPU.nVidia;
+			else if (name.contains("AMD"))
+				currGPU = GPU.AMD;
+			else if (name.contains("INTEL"))
+				currGPU = GPU.Intel;
+			else
+				currGPU = GPU.Unknown;
+		}
+		return currGPU;
+	}
+	
 }

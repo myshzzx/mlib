@@ -36,14 +36,6 @@ public class FFmpegs {
 	private String ss, to;
 	private String output = "";
 	
-	private static Boolean hasNvSupport;
-	
-	public static boolean hasNvSupport() {
-		if (hasNvSupport == null)
-			hasNvSupport = new String(Oss.readFromProcess("ffmpeg -hwaccels")).contains("cuvid");
-		return hasNvSupport;
-	}
-	
 	public FFmpegs overwrite() {
 		cmd = null;
 		overwrite = " -y";
@@ -102,9 +94,17 @@ public class FFmpegs {
 	 */
 	public FFmpegs videoH265Params(int crf) {
 		cmd = null;
-		videoOptions = Strings.isNotBlank(hardwareAccelerate) && hasNvSupport() ?
-				" -c:v hevc_nvenc -cq " + crf :
-				" -c:v libx265 -x265-params crf=" + crf;
+		if (Strings.isNotBlank(hardwareAccelerate)) {
+			switch (Oss.getGPU()) {
+				case nVidia:
+					videoOptions = " -c:v hevc_nvenc -cq " + crf;
+					break;
+				case AMD:
+					videoOptions = " -c:v hevc_amf -qp_p " + crf + " -qp_i " + crf;
+					break;
+			}
+		} else
+			videoOptions = " -c:v libx265 -x265-params crf=" + crf;
 		return this;
 	}
 	
