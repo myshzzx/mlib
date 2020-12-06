@@ -358,6 +358,12 @@
 				<artifactId>ij</artifactId>
 				<version>1.53a</version>
 			</dependency>
+			
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-jdk15on</artifactId>
+				<version>1.67</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	
