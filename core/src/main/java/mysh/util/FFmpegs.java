@@ -97,7 +97,7 @@ public class FFmpegs {
 		if (Strings.isNotBlank(hardwareAccelerate)) {
 			switch (Oss.getGPU()) {
 				case nVidia:
-					videoOptions = " -c:v hevc_nvenc -cq " + crf;
+					videoOptions = " -c:v hevc_nvenc -qp " + crf;
 					break;
 				case AMD:
 					videoOptions = " -c:v hevc_amf -qp_p " + crf + " -qp_i " + crf;
