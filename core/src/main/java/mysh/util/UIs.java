@@ -40,8 +40,7 @@ public class UIs {
 					break;
 				}
 			}
-		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-				| UnsupportedLookAndFeelException ex) {
+		} catch (Throwable ex) {
 			log.error("use Nimbus L&F failed.", ex);
 		}
 	}
