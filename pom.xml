@@ -18,7 +18,7 @@
 		<sourceEncoding>UTF-8</sourceEncoding>
 		
 		<springVersion>5.2.10.RELEASE</springVersion>
-		<springbootVersion>2.2.5.RELEASE</springbootVersion>
+		<springbootVersion>2.3.5.RELEASE</springbootVersion>
 		<javafx.version>15.0.1</javafx.version>
 		<netty.version>4.1.53.Final</netty.version>
 	</properties>
@@ -70,11 +70,6 @@
 			<dependency>
 				<groupId>com.github.myshzzx</groupId>
 				<artifactId>mlib-core</artifactId>
-				<version>X-SNAPSHOT</version>
-			</dependency>
-			<dependency>
-				<groupId>com.github.myshzzx</groupId>
-				<artifactId>mlib-cluster</artifactId>
 				<version>X-SNAPSHOT</version>
 			</dependency>
 			
