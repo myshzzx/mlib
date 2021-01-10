@@ -30,7 +30,7 @@ public class IdGenTest {
 		while (n-- > 0) {
 			e.execute(() -> {
 				while (true) {
-					long id = IdGen.timeBasedDistId(3);
+					long id = IdGen.increasedDistId(4);
 					if (!m.add(id)) {
 						// System.out.println("conflict " + id);
 						conflict.increment();
@@ -46,5 +46,17 @@ public class IdGenTest {
 		System.out.println(String.format("result: %d/%d, %f", conflict.longValue(), total.longValue(),
 				conflict.longValue() * 1.0 / total.longValue()));
 		System.exit(0);
+	}
+	
+	@Test
+	public void increasedDistId() {
+		System.out.println(IdGen.increasedDistId(5));
+	}
+	
+	@Test
+	public void hashedDistId() {
+		System.out.println(IdGen.hashedDistId(15, 4));
+		System.out.println(IdGen.hashedDistId(90, 4));
+		System.out.println(IdGen.hashedDistId(900, 4));
 	}
 }
