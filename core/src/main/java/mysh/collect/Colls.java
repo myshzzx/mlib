@@ -3,6 +3,7 @@ package mysh.collect;
 import mysh.util.Asserts;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 /**
@@ -67,7 +68,7 @@ public abstract class Colls {
 	}
 	
 	public static <T> T random(List<T> lst) {
-		return lst.get(rnd.nextInt(lst.size()));
+		return lst.get((int) (rnd.nextDouble() * lst.size()));
 	}
 	
 	public static <T> List<T> fillNull(int len) {
@@ -79,18 +80,17 @@ public abstract class Colls {
 		return l;
 	}
 	
-	public static <OT> List<List<OT>> split(List<OT> entire, int splitCount) {
+	public static <OT> List<List<OT>> splitToParts(List<OT> entire, int parts) {
 		Objects.requireNonNull(entire, "entire-obj-should-not-be-null");
-		if (entire.size() < 1 || splitCount < 1) {
+		if (entire.size() < 1 || parts < 1) {
 			throw new IllegalArgumentException(
-					"can't split " + entire.size() + "-ele-array into " + splitCount + " parts.");
+					"can't split " + entire.size() + "-ele-array into " + parts + " parts.");
 		}
-		splitCount = Math.min(entire.size(), splitCount);
+		parts = Math.min(entire.size(), parts);
 		
-		@SuppressWarnings("unchecked")
 		List<List<OT>> s = new ArrayList<>();
 		
-		int start = 0, left = entire.size(), leftSplit = splitCount, step;
+		int start = 0, left = entire.size(), leftSplit = parts, step;
 		while (left > 0) {
 			step = left % leftSplit == 0 ?
 					left / leftSplit :
@@ -105,9 +105,31 @@ public abstract class Colls {
 		return s;
 	}
 	
-	public static <K, V> Map<K, V> filterNew(Map<K, V> m, Predicate<Map.Entry<K, V>> filter) {
-		Map<K, V> nm = new HashMap<>();
-		m.entrySet().stream().filter(filter).forEach(e -> nm.put(e.getKey(), e.getValue()));
+	public static <OT> List<List<OT>> splitBySize(List<OT> entire, int size) {
+		Objects.requireNonNull(entire, "entire-obj-should-not-be-null");
+		if (entire.size() < 1 || size < 1) {
+			throw new IllegalArgumentException(
+					"can't split " + entire.size() + "-ele-array by size: " + size);
+		}
+		
+		List<List<OT>> s = new ArrayList<>();
+		for (int i = 0, j; i < entire.size(); i = j) {
+			j = i + Math.min(size, entire.size() - i);
+			s.add(entire.subList(i, j));
+		}
+		
+		return s;
+	}
+	
+	public static <K, V> Map<K, V> filterNew(
+			Map<K, V> m, Predicate<Map.Entry<K, V>> filter) {
+		return filterNew(m, filter, e -> e);
+	}
+	
+	public static <K, V> Map<K, V> filterNew(
+			Map<K, V> m, Predicate<Map.Entry<K, V>> filter, Function<? super Map.Entry<K, V>, ? extends Map.Entry<K, V>> mapper) {
+		Map<K, V> nm = new HashMap<>(m.size());
+		m.entrySet().stream().filter(filter).map(mapper).forEach(e -> nm.put(e.getKey(), e.getValue()));
 		return nm;
 	}
 	
@@ -125,10 +147,9 @@ public abstract class Colls {
 		return m;
 	}
 	
-	
 	public static Map<Object, Integer> of2DRowHeader(Object[][] m) {
 		Object[] h = m[0];
-		Map<Object, Integer> hm = new HashMap<>();
+		Map<Object, Integer> hm = new HashMap<>(h.length);
 		for (int i = 1; i < h.length; i++) {
 			hm.put(h[i], i);
 		}
@@ -136,7 +157,7 @@ public abstract class Colls {
 	}
 	
 	public static Map<Object, Integer> of2DColHeader(Object[][] m) {
-		Map<Object, Integer> hm = new HashMap<>();
+		Map<Object, Integer> hm = new HashMap<>(m.length);
 		for (int i = 1; i < m.length; i++) {
 			hm.put(m[i][0], i);
 		}
