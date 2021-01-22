@@ -28,7 +28,7 @@ public @interface MethodMonitor {
 	String logger() default "MethodMonitorLogger";
 	
 	/**
-	 * spEl表达式.
+	 * spEl表达式. 形如 #param1.getProp1() <br/>
 	 * <a href='http://itmyhome.com/spring/expressions.html'>翻译文档</a>
 	 * <a href='https://docs.spring.io/spring/docs/4.3.10.RELEASE/spring-framework-reference/html/expressions.html'>官方文档</a>
 	 * <pre>
