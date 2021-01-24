@@ -1,6 +1,6 @@
 package mysh.appcontainer;
 
-import mysh.util.Oss;
+import mysh.os.Oss;
 import mysh.util.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -3,7 +3,7 @@ package mysh.cluster;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import mysh.util.FilesUtil;
-import mysh.util.Oss;
+import mysh.os.Oss;
 import mysh.util.Strings;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;

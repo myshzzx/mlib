@@ -1,4 +1,4 @@
-package mysh.util;
+package mysh.os;
 
 import mysh.tulskiy.keymaster.common.HotKeyListener;
 import mysh.tulskiy.keymaster.common.Provider;

@@ -1,4 +1,4 @@
-package mysh.util;
+package mysh.os;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -6,6 +6,7 @@ import com.sun.jna.Native;
 import com.sun.jna.platform.DesktopWindow;
 import com.sun.jna.platform.WindowUtils;
 import com.sun.jna.platform.win32.*;
+import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.win32.W32APIOptions;
 import lombok.Getter;
 import org.slf4j.Logger;
@@ -73,6 +74,9 @@ public interface WinAPI {
 		private long userModeMicroSec, kernelModeMicroSec;
 		@Getter
 		private long virtualSize, workingSetSize, peakVirtualSize, peakWorkingSetSize;
+		
+		private ProcessInfo() {
+		}
 		
 		private ProcessInfo(Map<String, String> m) {
 			name = m.get("Name");
@@ -168,12 +172,32 @@ public interface WinAPI {
 		}
 	}
 	
-	static String getForeGroundWindowTitle() {
-		WinDef.HWND hwnd = user32.GetForegroundWindow();
+	static WinDef.HWND getForeGroundWindow() {
+		return user32.GetForegroundWindow();
+	}
+	
+	static String getWindowTitle(WinDef.HWND hwnd) {
 		int len = user32.GetWindowTextLength(hwnd) + 1;
 		char[] title = new char[len];
 		user32.GetWindowText(hwnd, title, len);
 		return Native.toString(title);
+	}
+	
+	static ProcessInfo getWindowProcess(WinDef.HWND hwnd) {
+		IntByReference pidRef = new IntByReference();
+		user32.GetWindowThreadProcessId(hwnd, pidRef);
+		int pid = pidRef.getValue();
+		WinNT.HANDLE proc = kernel32.OpenProcess(
+				WinNT.PROCESS_QUERY_INFORMATION | WinNT.PROCESS_VM_READ, false, pid);
+		char[] name = new char[1024];
+		int len = Psapi.INSTANCE.GetModuleFileNameExW(proc, null, name, name.length);
+		String path = new String(name, 0, len);
+		kernel32.CloseHandle(proc);
+		
+		ProcessInfo processInfo = new ProcessInfo();
+		processInfo.pid = pid;
+		processInfo.exePath = path;
+		return processInfo;
 	}
 	
 	/**

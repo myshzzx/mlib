@@ -1,5 +1,5 @@
 
-package mysh.util;
+package mysh.os;
 
 import javax.annotation.concurrent.GuardedBy;
 import javax.swing.*;

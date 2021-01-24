@@ -1,5 +1,7 @@
-package mysh.util;
+package mysh.os;
 
+import mysh.util.Encodings;
+import mysh.util.Exps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -6,7 +6,7 @@ import mysh.cluster.rpc.thrift.RpcUtil;
 import mysh.net.Nets;
 import mysh.util.Exps;
 import mysh.util.FilesUtil;
-import mysh.util.Oss;
+import mysh.os.Oss;
 import mysh.util.Strings;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;

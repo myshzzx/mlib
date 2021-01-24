@@ -1,5 +1,6 @@
 package mysh.util;
 
+import mysh.os.HotKeysGlobal;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;

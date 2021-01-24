@@ -3,6 +3,7 @@ package mysh.util;
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
 import mysh.collect.Colls;
+import mysh.os.Oss;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,5 +1,6 @@
 package mysh.util;
 
+import mysh.os.Oss;
 import org.junit.Ignore;
 import org.junit.Test;
 

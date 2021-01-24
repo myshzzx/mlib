@@ -1,17 +1,21 @@
-package mysh.util;
+package mysh.os;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.sun.jna.Pointer;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.WinDef;
+import com.sun.jna.platform.win32.WinNT;
 import com.sun.jna.platform.win32.WinUser;
+import mysh.util.Times;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.concurrent.GuardedBy;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * bind global hot keys. this is OS relative.
@@ -20,44 +24,37 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author mysh
  * @since 2015/8/17
  */
-public class HotKeysGlobalWindows implements WinAPI {
-	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalWindows.class);
-
+public class WindowsHooker implements WinAPI {
+	private static final Logger log = LoggerFactory.getLogger(WindowsHooker.class);
+	
 	@GuardedBy("Class")
 	private static Thread msgPeekThread;
-	private static final List<KbAction> fullListeners = new CopyOnWriteArrayList<>();
-	private static final Multimap<Integer, KbAction> specialListeners = HashMultimap.create();
-	/**
-	 * a quick check flag
-	 */
-	private static volatile boolean hasListener;
-
+	private static final Set<KbAction> fullKbListeners = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	private static final Multimap<Integer, KbAction> specialKbListeners = Multimaps.synchronizedMultimap(HashMultimap.create());
+	private static final Set<WindowAction> windowListeners = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	
 	public static class KeyDown {
 		private boolean ctrl;
 		private boolean alt;
 		private boolean shift;
 		private int vkCode;
 		private String vkDesc;
-		private boolean winChanges;
-		private String winTitle;
-
-		private KeyDown(boolean ctrl, boolean alt, boolean shift, int vkCode, String vkDesc, boolean winChanges, String winTitle) {
+		
+		private KeyDown(boolean ctrl, boolean alt, boolean shift, int vkCode, String vkDesc) {
 			this.ctrl = ctrl;
 			this.alt = alt;
 			this.shift = shift;
 			this.vkCode = vkCode;
 			this.vkDesc = vkDesc;
-			this.winChanges = winChanges;
-			this.winTitle = winTitle;
 		}
-
+		
 		/**
 		 * whether current pressed key is modifiers only (ctrl or shift or alt, but not winKey)
 		 */
 		public boolean isModifiers() {
 			return vkCode > 15 && vkCode < 19 || vkCode > 159 && vkCode < 166;
 		}
-
+		
 		@Override
 		public String toString() {
 			if ((ctrl || alt || shift) && (vkCode < 16 || vkCode > 18 && vkCode < 160 || vkCode > 165)) {
@@ -70,19 +67,19 @@ public class HotKeysGlobalWindows implements WinAPI {
 			} else
 				return win32Vks[vkCode];
 		}
-
+		
 		public boolean isCtrl() {
 			return ctrl;
 		}
-
+		
 		public boolean isAlt() {
 			return alt;
 		}
-
+		
 		public boolean isShift() {
 			return shift;
 		}
-
+		
 		/**
 		 * A <a href='https://msdn.microsoft.com/en-us/library/windows/desktop/dd375731(v=vs.85).aspx'>virtual-key code</a>.
 		 * The code must be a value in the range 1 to 254. VKs in {@link java.awt.event.KeyEvent} can be used here.
@@ -90,71 +87,66 @@ public class HotKeysGlobalWindows implements WinAPI {
 		public int getVkCode() {
 			return vkCode;
 		}
-
+		
 		/**
 		 * description of the virtual key, or <i>null</i> if can't be mapped.
 		 */
 		public String getVkDesc() {
 			return vkDesc;
 		}
-
-		/**
-		 * whether window changes since last action. may not work properly when bind to a combination key.
-		 */
-		public boolean isWindowChanges() {
-			return winChanges;
-		}
-
-		public String getWinTitle() {
-			return winTitle;
-		}
 	}
-
+	
 	public interface KbAction {
-
+		
 		/**
 		 * key down event. need unblock implementation.
 		 */
 		void onKeyDown(KeyDown keyDown);
 	}
-
+	
+	/**
+	 * https://docs.microsoft.com/en-us/windows/win32/winauto/event-constants
+	 */
+	public interface WindowAction {
+		int EVENT_SYSTEM_FOREGROUND = 3;
+		
+		void onWindowForeground(WinDef.HWND hwnd);
+	}
+	
 	/**
 	 * listening all key actions
 	 */
 	public static synchronized void addWin32KeyboardListener(KbAction action) {
 		chkOS();
-		fullListeners.add(action);
+		fullKbListeners.add(action);
 		prepareHook();
 	}
-
+	
 	public static synchronized void removeWin32KeyboardListener(KbAction action) {
 		chkOS();
-		fullListeners.remove(action);
+		fullKbListeners.remove(action);
 		prepareHook();
 	}
-
+	
 	/**
 	 * listening to specific key action.
-	 *
-	 * @deprecated use {@link HotKeysGlobal#registerKeyListener}
 	 */
-	@Deprecated
 	public static synchronized void bindWin32KeyboardListener(
 			boolean ctrl, boolean alt, boolean shift, int vkCode, KbAction action) {
 		chkOS();
 		int key = genKey(ctrl, alt, shift, vkCode);
-		specialListeners.put(key, action);
+		specialKbListeners.put(key, action);
 		prepareHook();
 	}
-
+	
 	public static synchronized void unbindWin32KeyboardListener(
 			boolean ctrl, boolean alt, boolean shift, int vkCode, KbAction action) {
 		chkOS();
 		int key = genKey(ctrl, alt, shift, vkCode);
-		specialListeners.remove(key, action);
+		specialKbListeners.remove(key, action);
 		prepareHook();
 	}
-
+	
 	private static int genKey(boolean ctrl, boolean alt, boolean shift, int vkCode) {
 		if (vkCode < 1 || vkCode > 254) throw new IllegalArgumentException("vkCode should be in [1,254]");
 		if (ctrl) vkCode |= 0x8000;
@@ -162,142 +154,151 @@ public class HotKeysGlobalWindows implements WinAPI {
 		if (shift) vkCode |= 0x2000;
 		return vkCode;
 	}
-
+	
+	public static synchronized void addWindowListener(WindowAction action) {
+		chkOS();
+		windowListeners.add(action);
+		prepareHook();
+	}
+	
+	public static synchronized void removeWindowListener(WindowAction action) {
+		chkOS();
+		windowListeners.remove(action);
+		prepareHook();
+	}
+	
 	private static void chkOS() {
 		if (!Oss.isWindows())
 			throw new RuntimeException("current OS is: " + Oss.getOS());
 	}
-
+	
+	/**
+	 * hook 和 消费 必须在同一个线程里做
+	 */
 	private static synchronized void prepareHook() {
-		if (fullListeners.isEmpty() && specialListeners.isEmpty()) {
-			hasListener = false;
-
-			if (msgPeekThread != null) {
-				// the way to stop PeekMessage
-				//				msgPeekThread.interrupt();
-				//				msgPeekThread = null;
-
-				// no way to stop GetMessage, even though Thread.stop
-				//				msgPeekThread.stop();
-			}
-		} else {
-			hasListener = true;
-
-			if (msgPeekThread == null) {
-				msgPeekThread = new Thread("msgPeekThread") {
-					User32.HHOOK kbHook;
-
-					@Override
-					public void run() {
-						log.info(getName() + " start.");
-
-						User32.MSG msg = new User32.MSG();
-						try {
-							kbHook();
-							while (!this.isInterrupted()) {
-								Thread.sleep(27);
-								// peekMsg need a return flag, here I use thread interrupt
-								// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943
-								//								user32.PeekMessage(msg, null, 0, 0, 1);
-
-								// getMsg will never return, even though Thread.stop
-								// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644936
-								user32.GetMessage(msg, null, 0, 0);
-							}
-						} catch (Throwable e) {
-							log.error("peek msg error", e);
-						} finally {
-							kbUnHook();
+		hasKbListener = !fullKbListeners.isEmpty() || !specialKbListeners.isEmpty();
+		hasWinListener = !windowListeners.isEmpty();
+		
+		if ((hasKbListener || hasWinListener) && msgPeekThread == null) {
+			msgPeekThread = new Thread("msgPeekThread") {
+				@Override
+				public void run() {
+					log.info(getName() + " start.");
+					
+					User32.MSG msg = new User32.MSG();
+					try {
+						while (hooks()) {
+							// https://blog.csdn.net/hellokandy/article/details/52275366
+							
+							// peekMsg need a return flag, here I use thread interrupt
+							// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644943
+							while (user32.PeekMessage(msg, null, 0, 0, 1)) ;
+							
+							// getMsg will never return, even though Thread.stop
+							// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644936
+							// user32.GetMessage(msg, null, 0, 0);
+							
+							Times.sleepNoExp(15);
 						}
+					} catch (Throwable e) {
+						log.error("peek msg error", e);
 					}
-
-					private boolean isWindowChanges;
-					private long lastWindowPointer;
-					private String lastWindowTitle;
-
-					private void chkWindow() {
-						long winPtr = Pointer.nativeValue(user32.GetForegroundWindow().getPointer());
-						if (winPtr != lastWindowPointer) {
-							isWindowChanges = true;
-							lastWindowPointer = winPtr;
-							lastWindowTitle = WinAPI.getForeGroundWindowTitle();
-						} else {
-							isWindowChanges = false;
-						}
-					}
-
-					/**
-					 * https://msdn.microsoft.com/en-us/library/windows/desktop/ms644985
-					 */
-					private WinUser.LowLevelKeyboardProc kbProc =
-							(User32.LowLevelKeyboardProc) (int nCode, WinDef.WPARAM wp, User32.KBDLLHOOKSTRUCT kbStruct) -> {
-								if (hasListener &&
-										(wp.intValue() == User32.WM_KEYDOWN || wp.intValue() == User32.WM_SYSKEYDOWN)) {
-									boolean ctrl = (user32.GetAsyncKeyState(User32.VK_CONTROL) & 0x8000) != 0;
-									boolean alt = (user32.GetAsyncKeyState(User32.VK_MENU) & 0x8000) != 0;
-									boolean shift = (user32.GetAsyncKeyState(User32.VK_SHIFT) & 0x8000) != 0;
-									int vkCode = kbStruct.vkCode;
-									String vkDesc = (vkCode > 0 && vkCode < 255) ? win32Vks[vkCode] : null;
-									chkWindow();
-
-									KeyDown keyDown = new KeyDown(ctrl, alt, shift, vkCode, vkDesc,
-											isWindowChanges, lastWindowTitle);
-
-									for (KbAction listener : fullListeners) {
-										try {
-											listener.onKeyDown(keyDown);
-										} catch (Throwable t) {
-											log.error("handle full keyDown action error: " + keyDown, t);
-										}
-									}
-
-									int key = genKey(ctrl, alt, shift, vkCode);
-									if (specialListeners.containsKey(key)) {
-										for (KbAction listener : specialListeners.get(key)) {
-											try {
-												listener.onKeyDown(keyDown);
-											} catch (Throwable t) {
-												log.error("handle specific keyDown action error: " + keyDown, t);
-											}
-										}
-									}
-								}
-
-								return user32.CallNextHookEx(kbHook, nCode, wp,
-										new WinDef.LPARAM(Pointer.nativeValue(kbStruct.getPointer())));
-							};
-
-					private WinDef.HMODULE hMod = kernel32.GetModuleHandle(null);
-
-					/**
-					 * hook and msg peek need to be within the same thread
-					 */
-					private void kbHook() {
-						if (kbHook != null)
-							kbUnHook();
-
-						log.info("hook kb action");
-
-						// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990
-						kbHook = user32.SetWindowsHookEx(User32.WH_KEYBOARD_LL, kbProc, hMod, 0);
-					}
-
-					private void kbUnHook() {
-						if (kbHook != null) {
-							log.info("unhook kb action");
-							if (!user32.UnhookWindowsHookEx(kbHook)) {
-								log.error("UnhookWindowsHookEx fail");
-							}
-							kbHook = null;
-						}
-					}
-				};
-				msgPeekThread.setDaemon(true);
-				msgPeekThread.start();
-			}
+				}
+			};
+			
+			msgPeekThread.setDaemon(true);
+			msgPeekThread.start();
 		}
 	}
-
+	
+	private static boolean hooks() {
+		if (hasKbListener && kbHook == null) {
+			log.info("hook kb action");
+			// https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990
+			kbHook = user32.SetWindowsHookEx(User32.WH_KEYBOARD_LL, kbProc, hMod, 0);
+		} else if (!hasKbListener && kbHook != null) {
+			log.info("unhook kb action");
+			if (!user32.UnhookWindowsHookEx(kbHook)) {
+				log.error("UnhookWindowsHookEx fail");
+			}
+			kbHook = null;
+		}
+		
+		if (hasWinListener && winHook == null) {
+			log.info("hook winEvt action");
+			// https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwineventhook
+			winHook = user32.SetWinEventHook(WindowAction.EVENT_SYSTEM_FOREGROUND, WindowAction.EVENT_SYSTEM_FOREGROUND,
+					hMod, winEvtProc, 0, 0, 0);
+		} else if (!hasWinListener && winHook != null) {
+			log.info("unhook winEvt action");
+			if (!user32.UnhookWinEvent(winHook)) {
+				log.error("UnhookWinEvent fail");
+			}
+			winHook = null;
+		}
+		
+		return hasKbListener || hasWinListener;
+	}
+	
+	private static WinDef.HMODULE hMod = kernel32.GetModuleHandle(null);
+	
+	private static volatile boolean hasKbListener;
+	private static volatile User32.HHOOK kbHook;
+	/**
+	 * https://msdn.microsoft.com/en-us/library/windows/desktop/ms644985
+	 */
+	private static final WinUser.LowLevelKeyboardProc kbProc = new WinUser.LowLevelKeyboardProc() {
+		@Override
+		public WinDef.LRESULT callback(int nCode, WinDef.WPARAM wp, WinUser.KBDLLHOOKSTRUCT kbStruct) {
+			if (hasKbListener &&
+					(wp.intValue() == User32.WM_KEYDOWN || wp.intValue() == User32.WM_SYSKEYDOWN)) {
+				boolean ctrl = (user32.GetAsyncKeyState(User32.VK_CONTROL) & 0x8000) != 0;
+				boolean alt = (user32.GetAsyncKeyState(User32.VK_MENU) & 0x8000) != 0;
+				boolean shift = (user32.GetAsyncKeyState(User32.VK_SHIFT) & 0x8000) != 0;
+				int vkCode = kbStruct.vkCode;
+				String vkDesc = (vkCode > 0 && vkCode < 255) ? win32Vks[vkCode] : null;
+				
+				KeyDown keyDown = new KeyDown(ctrl, alt, shift, vkCode, vkDesc);
+				
+				for (KbAction listener : fullKbListeners) {
+					try {
+						listener.onKeyDown(keyDown);
+					} catch (Throwable t) {
+						log.error("handle full keyDown action error: " + keyDown, t);
+					}
+				}
+				
+				int key = genKey(ctrl, alt, shift, vkCode);
+				if (specialKbListeners.containsKey(key)) {
+					for (KbAction listener : specialKbListeners.get(key)) {
+						try {
+							listener.onKeyDown(keyDown);
+						} catch (Throwable t) {
+							log.error("handle specific keyDown action error: " + keyDown, t);
+						}
+					}
+				}
+			}
+			
+			return user32.CallNextHookEx(kbHook, nCode, wp,
+					new WinDef.LPARAM(Pointer.nativeValue(kbStruct.getPointer())));
+		}
+	};
+	
+	private static volatile boolean hasWinListener;
+	private static volatile WinNT.HANDLE winHook;
+	private static final WinUser.WinEventProc winEvtProc = new WinUser.WinEventProc() {
+		@Override
+		public void callback(WinNT.HANDLE hWinEventHook, WinDef.DWORD event, WinDef.HWND hwnd, WinDef.LONG idObject, WinDef.LONG idChild, WinDef.DWORD dwEventThread, WinDef.DWORD dwmsEventTime) {
+			int evt = event.intValue();
+			if (evt == WindowAction.EVENT_SYSTEM_FOREGROUND) {
+				for (WindowAction l : windowListeners) {
+					l.onWindowForeground(hwnd);
+				}
+			}
+		}
+	};
+	
 	private static String[] win32Vks = {
 			"0x0",
 			"Left mouse button",
