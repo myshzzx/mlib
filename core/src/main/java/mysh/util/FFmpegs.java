@@ -2,6 +2,8 @@ package mysh.util;
 
 import com.google.common.base.Joiner;
 import com.google.common.io.Files;
+import lombok.Data;
+import lombok.experimental.Accessors;
 import mysh.collect.Colls;
 import mysh.os.Oss;
 import org.slf4j.Logger;
@@ -12,8 +14,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 /**
  * Ffmpegs
@@ -37,6 +38,8 @@ public class FFmpegs {
 	private String ss, to;
 	private String output = "";
 	
+	private MetaInfo srcMetaInfo;
+	
 	public FFmpegs overwrite() {
 		cmd = null;
 		overwrite = " -y";
@@ -51,6 +54,7 @@ public class FFmpegs {
 	
 	public FFmpegs input(File file) {
 		cmd = null;
+		srcMetaInfo = null;
 		input = " -i \"" + file.getAbsolutePath() + "\"";
 		return this;
 	}
@@ -93,7 +97,7 @@ public class FFmpegs {
 	 * ffmpeg  -encoders
 	 * ffmpeg -h encoder=hevc_nvenc
 	 */
-	public FFmpegs videoH265Params(int crf) {
+	public FFmpegs videoH265Crf(int crf) {
 		cmd = null;
 		if (Strings.isNotBlank(hardwareAccelerate)) {
 			switch (Oss.getGPU()) {
@@ -107,6 +111,28 @@ public class FFmpegs {
 		} else
 			videoOptions = " -c:v libx265 -x265-params crf=" + crf;
 		return this;
+	}
+	
+	public FFmpegs videoH265Kbps(int kbps) {
+		if (Strings.isNotBlank(hardwareAccelerate)) {
+			switch (Oss.getGPU()) {
+				case nVidia:
+					videoOptions = " -c:v hevc_nvenc -b:v " + kbps + "k";
+					break;
+				case AMD:
+					videoOptions = " -c:v hevc_amf -b:v " + kbps + "k";
+					break;
+			}
+		} else
+			videoOptions = " -c:v libx265 -b:v " + kbps + "k";
+		return this;
+	}
+	
+	public FFmpegs videoH265CompressPercent(int percent) {
+		cmd = null;
+		MetaInfo mi = getMetaInfo();
+		int kbps = mi.getVideoKBitrate() * percent / 100;
+		return videoH265Kbps(kbps);
 	}
 	
 	public FFmpegs frameRate(int rate) {
@@ -184,14 +210,8 @@ public class FFmpegs {
 		if (cmd == null) {
 			String realTo = to;
 			if (Strings.isNotBlank(to) && to.startsWith("-")) {
-				String info = new String(Oss.readFromProcess("ffprobe" + input + " -show_format"));
-				String len = Arrays.stream(info.split("[\\r\\n]+"))
-				                   .filter(line -> line.contains("duration="))
-				                   .findFirst()
-				                   .map(line -> line.substring(9, line.indexOf('.')))
-				                   .orElse(null);
-				if (len != null) {
-					int sec = Integer.parseInt(len);
+				int sec = getMetaInfo().getDuration();
+				if (sec > 0) {
 					String[] tt = to.substring(1).split(":");
 					for (int i = 0; i < tt.length; i++) {
 						sec -= Integer.parseInt(tt[tt.length - 1 - i]) * Math.pow(60, i);
@@ -243,5 +263,67 @@ public class FFmpegs {
 				subtitle.getAbsolutePath(), video.getAbsolutePath(), overwrite ? "-y" : "", target.getAbsolutePath());
 		log.info("execute: " + cmd);
 		return Oss.executeCmd(cmd, true);
+	}
+	
+	@Data
+	@Accessors(chain = true)
+	public static class MetaInfo {
+		List<Map<String, String>> infos = new ArrayList<>();
+		
+		private String query(Map<String, String> req, String param) {
+			INFO:
+			for (Map<String, String> info : infos) {
+				for (Map.Entry<String, String> e : req.entrySet()) {
+					if (!Objects.equals(info.get(e.getKey()), e.getValue()))
+						continue INFO;
+				}
+				String value = info.get(param);
+				if ("N/A".equals(value))
+					continue;
+				return value;
+			}
+			return null;
+		}
+		
+		/**
+		 * media duration in seconds
+		 */
+		public int getDuration() {
+			String d = query(Colls.ofHashMap("_type", "[FORMAT]"), "duration");
+			if (d == null) {
+				d = query(Colls.ofHashMap("_type", "[STREAM]"), "duration");
+			}
+			return d != null ? Double.valueOf(d).intValue() : 0;
+		}
+		
+		public int getVideoKBitrate() {
+			String br = query(Colls.ofHashMap("_type", "[STREAM]", "codec_type", "video"), "bit_rate");
+			if (br == null) {
+				br = query(Colls.ofHashMap("_type", "[FORMAT]"), "bit_rate");
+			}
+			return br != null ? Integer.parseInt(br) / 1000 : 0;
+		}
+	}
+	
+	private MetaInfo getMetaInfo() {
+		if (srcMetaInfo == null) {
+			String output = new String(Oss.readFromProcess("ffprobe" + input + " -show_format -show_streams"));
+			srcMetaInfo = new MetaInfo();
+			
+			Map<String, String> t = new HashMap<>();
+			for (String kv : output.split("[\\r\\n]+")) {
+				if (kv.contains("=")) {
+					String[] kvs = kv.split("=", 2);
+					t.put(kvs[0], kvs[1]);
+				} else if (kv.startsWith("[/"))
+					srcMetaInfo.infos.add(t);
+				else if (kv.startsWith("[")) {
+					t = new HashMap<>();
+					t.put("_type", kv);
+				}
+			}
+		}
+		
+		return srcMetaInfo;
 	}
 }
