@@ -35,6 +35,7 @@ public class FFmpegs {
 	private String audioOptions = " -c:a copy";
 	private String audioChannels = "";
 	private String audioBitRate = "";
+	private String audioVolume = "";
 	private String ss, to;
 	private String output = "";
 	
@@ -189,6 +190,13 @@ public class FFmpegs {
 		return this;
 	}
 	
+	/** audio volume enlarge times, 1 for 100% of current volume */
+	public FFmpegs audioVolume(double volume) {
+		cmd = null;
+		audioVolume = " -filter:a \"volume=" + volume + "\"";
+		return this;
+	}
+	
 	public FFmpegs output(File file) {
 		cmd = null;
 		output = " \"" + file.getAbsolutePath() + "\"";
@@ -229,7 +237,7 @@ public class FFmpegs {
 					+ videoOptions
 					+ videoFrameRate
 					+ audioOptions
-					+ audioBitRate + audioChannels
+					+ audioBitRate + audioChannels + audioVolume
 					+ output;
 		}
 		
