@@ -250,18 +250,27 @@ public abstract class Oss {
 		}
 	}
 	
-	public static void terminateProcess(int pid, boolean force, boolean killTree) {
+	public static void terminateProcess(int pid, boolean force, boolean killTree, boolean wait) {
 		try {
 			switch (getOS()) {
 				case Windows:
-					executeCmd("TASKKILL " + (killTree ? "/T " : "") + (force ? "/F " : "") + "/PID " + pid, true).waitFor();
+					Process process = executeCmd("TASKKILL " + (killTree ? "/T " : "") + (force ? "/F " : "") + "/PID " + pid, true);
+					if (wait)
+						process.waitFor();
 					return;
 				case Linux:
 				case Mac:
 				case Unix:
-					if (killTree)
-						executeCmd("pkill " + (force ? "-9 " : "") + " -P " + pid, true).waitFor();
-					executeCmd("kill " + (force ? "-9 " : "") + pid, true).waitFor();
+					Process killSubs = null;
+					if (killTree) {
+						killSubs = executeCmd("pkill " + (force ? "-9 " : "") + " -P " + pid, true);
+					}
+					Process killSelf = executeCmd("kill " + (force ? "-9 " : "") + pid, true);
+					if (wait) {
+						if (killTree)
+							killSubs.waitFor();
+						killSelf.waitFor();
+					}
 					return;
 				case Unknown:
 				default:
