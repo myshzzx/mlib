@@ -28,7 +28,7 @@ public class UIs {
 	/**
 	 * 默认字体.
 	 */
-	public static final Font DefaultFont = new Font("Microsoft YaHei", Font.PLAIN, 13);
+	public static final Font DefaultFont = new Font("PingFang SC Medium", Font.PLAIN, 16);
 	
 	/**
 	 * 使用 Nimbus 皮肤.
