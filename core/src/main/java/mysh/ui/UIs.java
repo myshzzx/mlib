@@ -6,6 +6,8 @@ import mysh.util.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.plaf.FontUIResource;
 import java.awt.*;
@@ -21,6 +23,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URL;
 import java.util.Map;
 
 public class UIs {
@@ -67,6 +70,15 @@ public class UIs {
 				menu.setVisible(false);
 			}
 		});
+	}
+	
+	public static TrayIcon genTrayIcon(String imgSrc, @Nullable String toolTip) throws IOException {
+		URL iconRes = Thread.currentThread().getContextClassLoader().getResource(imgSrc);
+		TrayIcon icon = new TrayIcon(ImageIO.read(iconRes));
+		if (Strings.isNotBlank(toolTip))
+			icon.setToolTip(toolTip);
+		icon.setImageAutoSize(true);
+		return icon;
 	}
 	
 	/**
