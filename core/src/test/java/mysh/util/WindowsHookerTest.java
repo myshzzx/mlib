@@ -2,8 +2,8 @@ package mysh.util;
 
 import mysh.os.WinAPI;
 import mysh.os.WindowsHooker;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +16,7 @@ import java.util.concurrent.CountDownLatch;
  * @author mysh
  * @since 2015/8/17
  */
-@Ignore
+@Disabled
 public class WindowsHookerTest {
 	private static final Logger log = LoggerFactory.getLogger(WindowsHookerTest.class);
 	

@@ -1,8 +1,8 @@
 package mysh.sql;
 
 import com.google.common.collect.ImmutableMap;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
@@ -14,7 +14,7 @@ import java.util.Map;
  * @author mysh
  * @since 2016/1/22
  */
-@Ignore
+@Disabled
 public class SqlRepoTest {
 
 	@Autowired

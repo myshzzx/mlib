@@ -49,7 +49,16 @@ public class ServerEventHandlerImpl implements TServerEventHandler {
 	}
 
 	private static class SSLServerContext implements ServerContext {
-//		private HandshakeListener handshakeListener;
+		@Override
+		public <T> T unwrap(final Class<T> aClass) {
+			return null;
+		}
+		
+		@Override
+		public boolean isWrapperFor(final Class<?> aClass) {
+			return false;
+		}
+		//		private HandshakeListener handshakeListener;
 //
 //		private SSLServerContext(HandshakeListener handshakeListener) {
 //			this.handshakeListener = handshakeListener;

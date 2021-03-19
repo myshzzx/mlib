@@ -1,15 +1,18 @@
 
 package mysh.algorithm;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class Math2Test {
 
@@ -17,15 +20,15 @@ public class Math2Test {
 		int i = from;
 		for (int p : ps) {
 			while (i < p)
-				assertFalse(i + "", Math2.isPrime(i++));
+				assertFalse(Math2.isPrime(i++), i + "");
 
-			assertTrue(i + "", Math2.isPrime(i++));
+			assertTrue(Math2.isPrime(i++), i + "");
 		}
 
 		if (i < 0) return;
 
 		while (i <= to)
-			assertFalse(i + "", Math2.isPrime(i++));
+			assertFalse(Math2.isPrime(i++), i + "");
 	}
 
 	private void checkPrimeLong(long from, long to, long[] ps) {
@@ -34,13 +37,13 @@ public class Math2Test {
 			while (i < p)
 				assertFalse(Math2.isPrime(i++));
 
-			assertTrue(i + "", Math2.isPrime(i++));
+			assertTrue(Math2.isPrime(i++), i + "");
 		}
 
 		if (i < 0) return;
 
 		while (i <= to)
-			assertFalse(i + "", Math2.isPrime(i++));
+			assertFalse(Math2.isPrime(i++), i + "");
 	}
 
 	@Test
@@ -71,13 +74,13 @@ public class Math2Test {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void isPrimeLong() {
 		assertTrue(Math2.isPrime(9223372036854775139L));
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void genPrime1() throws InterruptedException {
 		long s = System.nanoTime();
 		int limit = 6_000_000;
@@ -115,7 +118,7 @@ public class Math2Test {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void genPrimeLong() throws InterruptedException {
 		long from, to;
 		from = 10;
@@ -133,7 +136,7 @@ public class Math2Test {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void genPrimeCost() throws InterruptedException {
 		int limit = 1_000_000;
 		Math2.genPrime(limit);

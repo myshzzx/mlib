@@ -1,8 +1,8 @@
 package mysh.util;
 
 import mysh.ui.UIs;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
 
@@ -12,7 +12,7 @@ import javax.swing.*;
  * @author mysh
  * @since 2016/4/9
  */
-@Ignore
+@Disabled
 public class UIsTest {
 	@Test
 	public void infoMsg() throws Exception {

@@ -1,7 +1,7 @@
 package mysh.spring.config;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,7 @@ public class ConfigLoaderTest {
 		String enc = ConfigLoader.aesEncrypt(holder, content);
 		String dec = ConfigLoader.aesDecrypt(holder, enc);
 		log.info("AES: 原文: " + content + ", 密文: " + enc + ", 解密文: " + dec);
-		Assert.assertEquals(content, dec);
+		Assertions.assertEquals(content, dec);
 	}
 
 

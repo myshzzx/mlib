@@ -1,8 +1,8 @@
 package mysh.benchmark;
 
 import mysh.util.Serializer;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 
 import java.io.Serializable;
@@ -26,8 +26,8 @@ public class FstTest {
 		t.b = 20;
 		final byte[] buf = Serializer.FST.serialize(t);
 		final T tt = Serializer.FST.deserialize(buf, null);
-		Assert.assertEquals(0, tt.a);
-		Assert.assertEquals(20, tt.b);
+		Assertions.assertEquals(0, tt.a);
+		Assertions.assertEquals(20, tt.b);
 	}
 
 	public void fstTest3() throws InterruptedException {
@@ -43,7 +43,7 @@ public class FstTest {
 						long a = r.nextLong();
 						byte[] buf = c.toByteArray(a);
 						long b = (long) c.toObject(buf);
-						Assert.assertEquals(a, b);
+						Assertions.assertEquals(a, b);
 					} catch (InterruptedException e) {
 					}
 				}
@@ -68,7 +68,7 @@ public class FstTest {
 						long a = r.nextLong();
 						byte[] buf = Serializer.FST.serialize(a);
 						long b = Serializer.FST.deserialize(buf);
-						Assert.assertEquals(a, b);
+						Assertions.assertEquals(a, b);
 					} catch (InterruptedException e) {
 					}
 				}

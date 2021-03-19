@@ -4,8 +4,9 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import mysh.collect.Colls;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.ConnectException;
@@ -14,13 +15,11 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
-
 /**
  * @author Mysh
  * @since 13-10-6 上午11:47
  */
-// @Ignore
+// @Disabled
 public class HttpClientAssistTest1 {
 	HttpClientAssist hca = new HttpClientAssist();
 	
@@ -57,12 +56,14 @@ public class HttpClientAssistTest1 {
 		}
 	}
 	
-	@Test(expected = SocketTimeoutException.class)
+	@Test
 	public void timeout() throws IOException {
-		HttpClientConfig hcc = new HttpClientConfig();
-		hcc.setConnectionTimeout(20);
-		HttpClientAssist hca = new HttpClientAssist(hcc);
-		hca.access("http://baidu.com");
+		Assertions.assertThrows(SocketTimeoutException.class, () -> {
+			HttpClientConfig hcc = new HttpClientConfig();
+			hcc.setConnectionTimeout(20);
+			HttpClientAssist hca = new HttpClientAssist(hcc);
+			hca.access("http://baidu.com");
+		});
 	}
 	
 	@Test
@@ -111,7 +112,7 @@ public class HttpClientAssistTest1 {
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void multiOps() throws IOException, InterruptedException {
 		while (true) {
 			try (HttpClientAssist.UrlEntity z = hca.access("http://baidu.com/")) {
@@ -122,12 +123,14 @@ public class HttpClientAssistTest1 {
 		}
 	}
 	
-	@Test(expected = ConnectException.class)
+	@Test
 	public void entityReadTest() throws IOException, InterruptedException {
-		try (HttpClientAssist.UrlEntity bigFile =
-				     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
-			System.out.println(bigFile.getContentLength());
-		}
+		Assertions.assertThrows(ConnectException.class, () -> {
+			try (HttpClientAssist.UrlEntity bigFile =
+					     hca.access("http://localhost/Adobe%20Acrobat%20XI.isz")) {
+				System.out.println(bigFile.getContentLength());
+			}
+		});
 	}
 	
 	@Test
@@ -158,15 +161,15 @@ public class HttpClientAssistTest1 {
 	
 	@Test
 	public void testGetShortURL() throws Exception {
-		assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a"));
-		assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/\\//a"));
-		assertEquals("http://dfso.com/a/", HttpClientAssist.getShortURL("http://dfso.com//./a/"));
-		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//a/../b"));
-		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//./a/../b"));
-		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com/\\./a/../b"));
-		assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com\\./a/../b"));
-		assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b"));
-		assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../b"));
+		Assertions.assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/////a"));
+		Assertions.assertEquals("http://dfso.com/faf/fe/a", HttpClientAssist.getShortURL("http://dfso.com//faf//fe/\\//a"));
+		Assertions.assertEquals("http://dfso.com/a/", HttpClientAssist.getShortURL("http://dfso.com//./a/"));
+		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//a/../b"));
+		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//./a/../b"));
+		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com/\\./a/../b"));
+		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com\\./a/../b"));
+		Assertions.assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b"));
+		Assertions.assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../b"));
 	}
 	
 }

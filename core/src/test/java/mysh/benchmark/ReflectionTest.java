@@ -1,8 +1,8 @@
 package mysh.benchmark;
 
 import mysh.util.Tick;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -14,7 +14,7 @@ import java.lang.reflect.Method;
  * @author mysh
  * @since 2015/7/16
  */
-@Ignore
+@Disabled
 public class ReflectionTest {
 
 	public static final int INVOKE_TIMES = 200_000_000;

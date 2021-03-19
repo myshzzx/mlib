@@ -1,13 +1,13 @@
 
 package mysh.ui;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
 import java.awt.*;
 
-@Ignore
+@Disabled
 public class JTextFieldWithTipsTest {
 
 	public static void main(String[] args) {

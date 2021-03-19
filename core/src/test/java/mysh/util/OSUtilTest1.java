@@ -1,17 +1,16 @@
 package mysh.util;
 
 import mysh.os.Oss;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import javax.swing.*;
 import java.util.Arrays;
 import java.util.StringTokenizer;
 
-import static org.junit.Assert.assertEquals;
-
-@Ignore
-public class OSUtilTest1 {
+@Disabled
+public class OSUtilTest1 extends Assertions {
 
 	@Test
 	public void testGetOS() throws Exception {

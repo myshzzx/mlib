@@ -1,6 +1,6 @@
 package mysh.collect;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -8,8 +8,8 @@ import java.util.Set;
 
 import static mysh.collect.Colls.ofHashMap;
 import static mysh.collect.Colls.ofHashSet;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * CollsTest

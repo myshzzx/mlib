@@ -3,8 +3,8 @@ package mysh.net;
 import jcifs.NameServiceClient;
 import jcifs.context.SingletonContext;
 import jcifs.netbios.NameServiceClientImpl;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.net.UnknownHostException;
 import java.util.Arrays;
@@ -12,7 +12,7 @@ import java.util.Arrays;
 /**
  * @since 2019-11-18
  */
-@Ignore
+@Disabled
 public class SMBHelperTest {
 	@Test
 	public void getHostAddressByName() throws UnknownHostException {

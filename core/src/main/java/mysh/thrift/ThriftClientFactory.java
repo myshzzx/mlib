@@ -5,14 +5,15 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
+import org.apache.thrift.TConfiguration;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TProtocol;
-import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
+import org.apache.thrift.transport.layered.TFramedTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +69,8 @@ public class ThriftClientFactory<TI> {
 						conf.serverHost, conf.serverPort, conf.clientSocketTimeout, transportParams);
 			} else {
 				transport = new TFramedTransport(
-						new TSocket(conf.serverHost, conf.serverPort, conf.clientSocketTimeout),
+						new TSocket(new TConfiguration(),
+								conf.serverHost, conf.serverPort, conf.clientSocketTimeout),
 						conf.nonTLSServerMaxFrameSize
 				);
 				transport.open();

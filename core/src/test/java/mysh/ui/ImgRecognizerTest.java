@@ -1,11 +1,11 @@
 package mysh.ui;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Base64;
 
-@Ignore
+@Disabled
 public class ImgRecognizerTest {
 
 	@Test

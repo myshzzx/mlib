@@ -2,14 +2,21 @@ package mysh.codegen;
 
 
 import mysh.util.Encodings;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static mysh.codegen.CodeUtil.*;
+import static mysh.codegen.CodeUtil.camel2underline;
+import static mysh.codegen.CodeUtil.field2MethodSign;
+import static mysh.codegen.CodeUtil.isLowerCase;
+import static mysh.codegen.CodeUtil.isUpperCase;
+import static mysh.codegen.CodeUtil.method2FieldSign;
+import static mysh.codegen.CodeUtil.toUpperCase;
+import static mysh.codegen.CodeUtil.underline2FieldCamel;
+import static mysh.codegen.CodeUtil.underline2camel;
 
 
 /**
@@ -18,7 +25,7 @@ import static mysh.codegen.CodeUtil.*;
  */
 public class CodeUtilTest {
     @Test
-    @Ignore
+    @Disabled
     public void genPropCopy() throws Exception {
         byte[] bytes = Files.readAllBytes(Paths.get("e:/temp/code.txt"));
         String fieldsDefine = Encodings.isUTF8Bytes(bytes) ?
@@ -29,84 +36,84 @@ public class CodeUtilTest {
 
     @Test
     public void testUnderline2camel() {
-        Assert.assertEquals("MyshZzx", underline2camel("mysh_zzx"));
-        Assert.assertEquals("MyshZZX", underline2camel("mysh_z_z_x"));
-        Assert.assertEquals("Mysh", underline2camel("MYSH"));
-        Assert.assertEquals("MZZx", underline2camel("M_Z_ZX"));
+        Assertions.assertEquals("MyshZzx", underline2camel("mysh_zzx"));
+        Assertions.assertEquals("MyshZZX", underline2camel("mysh_z_z_x"));
+        Assertions.assertEquals("Mysh", underline2camel("MYSH"));
+        Assertions.assertEquals("MZZx", underline2camel("M_Z_ZX"));
     }
 
     @Test
     public void testUnderline2FieldCamel() {
-        Assert.assertEquals("myshZzx", underline2FieldCamel("mysh_zzx"));
-        Assert.assertEquals("myshZZX", underline2FieldCamel("mysh_z_z_x"));
-        Assert.assertEquals("mysh", underline2FieldCamel("MYSH"));
-        Assert.assertEquals("mZZx", underline2FieldCamel("M_Z_ZX"));
+        Assertions.assertEquals("myshZzx", underline2FieldCamel("mysh_zzx"));
+        Assertions.assertEquals("myshZZX", underline2FieldCamel("mysh_z_z_x"));
+        Assertions.assertEquals("mysh", underline2FieldCamel("MYSH"));
+        Assertions.assertEquals("mZZx", underline2FieldCamel("M_Z_ZX"));
     }
 
     @Test
     public void testCamel2underline() {
-        Assert.assertEquals("MYSH_ZZX", camel2underline("MyshZzx"));
-        Assert.assertEquals("MYSH_Z_Z_X", camel2underline("MyshZZX"));
-        Assert.assertEquals("M_Y_S_H_ZZX", camel2underline("MYSHZzx"));
-        Assert.assertEquals("M_YSH_Z_ZX", camel2underline("MYshZZx"));
-        Assert.assertEquals("MYSH_Z_ZX", camel2underline("myshZZx"));
-        Assert.assertEquals("MY_Z_ZX", camel2underline("myZZx"));
-        Assert.assertEquals("M_Z_ZX", camel2underline("mZZx"));
-        Assert.assertEquals("M_Z_X", camel2underline("mZX"));
-        Assert.assertEquals("MY_Z", camel2underline("myZ"));
+        Assertions.assertEquals("MYSH_ZZX", camel2underline("MyshZzx"));
+        Assertions.assertEquals("MYSH_Z_Z_X", camel2underline("MyshZZX"));
+        Assertions.assertEquals("M_Y_S_H_ZZX", camel2underline("MYSHZzx"));
+        Assertions.assertEquals("M_YSH_Z_ZX", camel2underline("MYshZZx"));
+        Assertions.assertEquals("MYSH_Z_ZX", camel2underline("myshZZx"));
+        Assertions.assertEquals("MY_Z_ZX", camel2underline("myZZx"));
+        Assertions.assertEquals("M_Z_ZX", camel2underline("mZZx"));
+        Assertions.assertEquals("M_Z_X", camel2underline("mZX"));
+        Assertions.assertEquals("MY_Z", camel2underline("myZ"));
     }
 
     @Test
     public void testIsUpperCase() {
-        Assert.assertTrue(isUpperCase('A'));
-        Assert.assertTrue(isUpperCase('R'));
-        Assert.assertTrue(isUpperCase('Z'));
+        Assertions.assertTrue(isUpperCase('A'));
+        Assertions.assertTrue(isUpperCase('R'));
+        Assertions.assertTrue(isUpperCase('Z'));
 
-        Assert.assertFalse(isUpperCase('a'));
-        Assert.assertFalse(isUpperCase('k'));
-        Assert.assertFalse(isUpperCase('z'));
-        Assert.assertFalse(isUpperCase('\r'));
+        Assertions.assertFalse(isUpperCase('a'));
+        Assertions.assertFalse(isUpperCase('k'));
+        Assertions.assertFalse(isUpperCase('z'));
+        Assertions.assertFalse(isUpperCase('\r'));
     }
 
     @Test
     public void testIsLowerCase() {
 
-        Assert.assertTrue(isLowerCase('a'));
-        Assert.assertTrue(isLowerCase('d'));
-        Assert.assertTrue(isLowerCase('z'));
+        Assertions.assertTrue(isLowerCase('a'));
+        Assertions.assertTrue(isLowerCase('d'));
+        Assertions.assertTrue(isLowerCase('z'));
 
-        Assert.assertFalse(isLowerCase('A'));
-        Assert.assertFalse(isLowerCase('R'));
-        Assert.assertFalse(isLowerCase('Z'));
-        Assert.assertFalse(isUpperCase('\r'));
+        Assertions.assertFalse(isLowerCase('A'));
+        Assertions.assertFalse(isLowerCase('R'));
+        Assertions.assertFalse(isLowerCase('Z'));
+        Assertions.assertFalse(isUpperCase('\r'));
     }
 
     @Test
     public void testToUpperCase() {
-        Assert.assertEquals('A', toUpperCase('a'));
-        Assert.assertEquals('H', toUpperCase('h'));
-        Assert.assertEquals('Z', toUpperCase('z'));
-        Assert.assertEquals('B', toUpperCase('B'));
-        Assert.assertEquals('\n', toUpperCase('\n'));
+        Assertions.assertEquals('A', toUpperCase('a'));
+        Assertions.assertEquals('H', toUpperCase('h'));
+        Assertions.assertEquals('Z', toUpperCase('z'));
+        Assertions.assertEquals('B', toUpperCase('B'));
+        Assertions.assertEquals('\n', toUpperCase('\n'));
     }
 
     @Test
     public void testMethod2FieldSign() throws Exception {
-        Assert.assertEquals("field", method2FieldSign("Field"));
-        Assert.assertEquals("array", method2FieldSign("Array"));
-        Assert.assertEquals("zzx", method2FieldSign("Zzx"));
-        Assert.assertEquals("field", method2FieldSign("field"));
-        Assert.assertEquals("array", method2FieldSign("array"));
-        Assert.assertEquals("zzx", method2FieldSign("zzx"));
+        Assertions.assertEquals("field", method2FieldSign("Field"));
+        Assertions.assertEquals("array", method2FieldSign("Array"));
+        Assertions.assertEquals("zzx", method2FieldSign("Zzx"));
+        Assertions.assertEquals("field", method2FieldSign("field"));
+        Assertions.assertEquals("array", method2FieldSign("array"));
+        Assertions.assertEquals("zzx", method2FieldSign("zzx"));
     }
 
     @Test
     public void testField2MethodSign() throws Exception {
-        Assert.assertEquals("Method", field2MethodSign("method"));
-        Assert.assertEquals("Array", field2MethodSign("array"));
-        Assert.assertEquals("Zzx", field2MethodSign("zzx"));
-        Assert.assertEquals("Method", field2MethodSign("Method"));
-        Assert.assertEquals("Array", field2MethodSign("Array"));
-        Assert.assertEquals("Zzx", field2MethodSign("Zzx"));
+        Assertions.assertEquals("Method", field2MethodSign("method"));
+        Assertions.assertEquals("Array", field2MethodSign("array"));
+        Assertions.assertEquals("Zzx", field2MethodSign("zzx"));
+        Assertions.assertEquals("Method", field2MethodSign("Method"));
+        Assertions.assertEquals("Array", field2MethodSign("Array"));
+        Assertions.assertEquals("Zzx", field2MethodSign("Zzx"));
     }
 }

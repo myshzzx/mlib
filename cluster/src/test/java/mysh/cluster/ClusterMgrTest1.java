@@ -4,7 +4,7 @@ import mysh.cluster.ClusterClient.SRTarget;
 import mysh.cluster.ClusterClient.SRType;
 import mysh.cluster.FilesMgr.FileType;
 import mysh.cluster.FilesMgr.UpdateType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.util.ArrayList;

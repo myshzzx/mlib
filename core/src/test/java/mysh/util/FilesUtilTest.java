@@ -1,9 +1,9 @@
 
 package mysh.util;
 
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,9 +14,8 @@ import static mysh.util.FilesUtil.folderSize;
 import static mysh.util.FilesUtil.getFileExtension;
 import static mysh.util.FilesUtil.getFileNameWithoutExtension;
 import static mysh.util.FilesUtil.writeFile;
-import static org.junit.Assert.assertEquals;
 
-public class FilesUtilTest {
+public class FilesUtilTest extends Assertions {
 	
 	@Test
 	public void getFileExtensionTest() {
@@ -67,14 +66,14 @@ public class FilesUtilTest {
 	@Test
 	public void getWritableFileTest1() {
 		
-		Assert.assertNotNull(new File("").getAbsoluteFile().getParent());
+		assertNotNull(new File("").getAbsoluteFile().getParent());
 		System.out.println(new File("").getAbsoluteFile().getParent());
-		Assert.assertNotNull(new File("abc/def").getAbsoluteFile().getParent());
+		assertNotNull(new File("abc/def").getAbsoluteFile().getParent());
 		System.out.println((new File("abc/def").getAbsoluteFile().getParent()));
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void pathTest() throws IOException {
 		String file = "pom.xml";
 		System.out.println(Paths.get(file).toFile().getAbsolutePath());
@@ -82,32 +81,32 @@ public class FilesUtilTest {
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void writeTest() throws IOException {
 		java.nio.file.Files.write(Paths.get("l:/aa/b/c.txt"), "mysh".getBytes(),
 				StandardOpenOption.CREATE, StandardOpenOption.APPEND);
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void writeTest2() throws IOException {
 		writeFile(new File("l:/aa/b/c.txt"), "mysh".getBytes());
 	}
 	
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testFolderSize() throws Exception {
 		System.out.println(folderSize(new File("l:/temp")));
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testGetObjectFromFileWithBuf() throws Exception {
 		File f = File.createTempFile("test", ".txt");
 		String obj = "mysh";
 		FilesUtil.writeObjectToFile(f, obj);
 		Object obj1 = FilesUtil.getObjectFromFileWithFileMap(f);
-		Assert.assertEquals(obj, obj1);
+		assertEquals(obj, obj1);
 	}
 }

@@ -1,7 +1,7 @@
 package mysh.util;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -13,14 +13,14 @@ public class TimesTest {
 	
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testZone() throws Exception {
 		ZoneId.getAvailableZoneIds().stream().forEach(System.out::println);
 		System.out.println(Times.zoneAE);
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testIsTime() throws Exception {
 		System.out.println(Times.isNow(19, 40, -1));
 		System.out.println(Times.isNow(Times.zoneEST, 6, 41, -1));
@@ -28,7 +28,7 @@ public class TimesTest {
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testIsTimeBefore() throws Exception {
 		System.out.println(Times.isNowBefore(20, 18, 0));
 		System.out.println(Times.isNowBefore(Times.zoneEST, 7, 18, 0));
@@ -36,7 +36,7 @@ public class TimesTest {
 	}
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void testIsTimeAfter() throws Exception {
 		System.out.println(Times.isNowAfter(20, 14, 0));
 		System.out.println(Times.isNowAfter(Times.zoneEST, 7, 14, 0));

@@ -3,16 +3,22 @@ package mysh.util;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.nustaq.serialization.FSTObjectInput;
 import org.nustaq.serialization.FSTObjectOutput;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -23,8 +29,8 @@ import java.util.concurrent.ThreadLocalRandom;
  * @author mysh
  * @since 2015/7/15.
  */
-@Ignore
-public class SerializerTest {
+@Disabled
+public class SerializerTest extends Assertions {
 	private static final Logger log = LoggerFactory.getLogger(SerializerTest.class);
 
 	public static class T implements Serializable {
@@ -87,7 +93,7 @@ public class SerializerTest {
 
 		for (Object o : os) {
 			Object obj = Serializer.BUILD_IN.deserialize(in);
-			Assert.assertEquals(o, obj);
+			assertEquals(o, obj);
 		}
 	}
 
@@ -109,18 +115,18 @@ public class SerializerTest {
 		FSTObjectInput foi = new FSTObjectInput(in);
 		for (Object o : os) {
 			Object obj = foi.readObject();
-			Assert.assertEquals(o, obj);
+			assertEquals(o, obj);
 		}
 
 		foi = new FSTObjectInput(in);
 		for (Object o : os) {
 			Object obj = foi.readObject();
-			Assert.assertEquals(o, obj);
+			assertEquals(o, obj);
 		}
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void fstMemTest() throws Exception {
 		OutputStream out = new ByteArrayOutputStream();
 
@@ -141,7 +147,7 @@ public class SerializerTest {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void testFst() throws Exception {
 
 		Random r = new Random();
@@ -159,27 +165,27 @@ public class SerializerTest {
 			if (r.nextBoolean()) {
 				b = s.serialize(s1);
 				ds1 = s.deserialize(b);
-				Assert.assertEquals(s1, ds1);
+				assertEquals(s1, ds1);
 			}
 
 			if (r.nextBoolean()) {
 				buf = new ByteArrayOutputStream();
 				s.serialize(s2, buf);
 				ds2 = s.deserialize(new ByteArrayInputStream(buf.toByteArray()));
-				Assert.assertArrayEquals(s2, ds2);
+				assertArrayEquals(s2, ds2);
 			}
 
 			if (r.nextBoolean()) {
 				buf = new ByteArrayOutputStream();
 				s.serialize(s1, buf);
 				ds1 = s.deserialize(new ByteArrayInputStream(buf.toByteArray()));
-				Assert.assertEquals(s1, ds1);
+				assertEquals(s1, ds1);
 			}
 
 			if (r.nextBoolean()) {
 				b = s.serialize(s2);
 				ds2 = s.deserialize(b);
-				Assert.assertArrayEquals(s2, ds2);
+				assertArrayEquals(s2, ds2);
 			}
 		}
 

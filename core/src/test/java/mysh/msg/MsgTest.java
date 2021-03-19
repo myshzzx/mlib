@@ -1,8 +1,8 @@
 package mysh.msg;
 
 import mysh.util.Times;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.SocketException;
@@ -11,7 +11,7 @@ import java.util.concurrent.CountDownLatch;
 /**
  * @since 2019-11-06
  */
-@Ignore
+@Disabled
 public class MsgTest {
 	
 	@Test

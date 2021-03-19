@@ -3,9 +3,9 @@ package mysh.benchmark;
 import com.alibaba.fastjson.JSON;
 import mysh.util.Serializer;
 import mysh.util.Tick;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 
 import java.io.IOException;
@@ -45,7 +45,7 @@ public class SerializationPerformance {
 	private static byte[] tb;
 
 	@Test
-	@Ignore
+	@Disabled
 	public void benchmarkSuite() throws Exception {
 		test(new FST(), t);
 //		test(new Java(), t); // 87% slower than fst
@@ -72,7 +72,7 @@ public class SerializationPerformance {
 		// common test
 		byte[] bb = Serializer.FST.serialize(tt);
 		TC ftt = Serializer.FST.deserialize(bb);
-		Assert.assertEquals(tt.name, ftt.name);
+		Assertions.assertEquals(tt.name, ftt.name);
 
 		// lambda test
 		String msg = "ok";

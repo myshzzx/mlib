@@ -2,9 +2,13 @@
 package mysh.util;
 
 import mysh.net.httpclient.HttpClientConfig;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileChannel.MapMode;
@@ -28,7 +32,7 @@ public class FileIOTest {
 		out.writeObject(list);
 	}
 
-	@Ignore
+	@Disabled
 	public void memoryMapTest() throws IOException {
 
 		File f = new File("test1");

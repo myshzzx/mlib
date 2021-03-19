@@ -1,22 +1,22 @@
 package mysh.sql.sqlite;
 
 import mysh.util.Times;
-import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.nio.file.Paths;
 
 /**
  * @since 2019-07-08
  */
-@Ignore
+@Disabled
 public class SqliteKVTest1 {
 	
 	SqliteKV kv = new SqliteKV(Paths.get("l:/a.db"));
 	SqliteKV.DAO dao = kv.genDAO("test_group", true, false);
 	
-	@After
+	@AfterEach
 	public void end() {
 		kv.close();
 	}

@@ -1,7 +1,8 @@
 package mysh.sql;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import jdk.nashorn.internal.ir.annotations.Ignore;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -18,7 +19,7 @@ import java.util.Map;
  * @author mysh
  * @since 2016/1/22
  */
-@Ignore
+@Disabled
 public class SqlHelperTest {
 
 	@Autowired
@@ -51,7 +52,7 @@ public class SqlHelperTest {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void dynamicSqlCache() throws Exception {
 		TableCols.UmOrgCols t = TableCols.UmOrgCols;
 		while (true) {

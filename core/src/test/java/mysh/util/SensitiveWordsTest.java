@@ -1,24 +1,22 @@
 package mysh.util;
 
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 /**
  * @author Mysh
  * @since 14-3-13 下午5:37
  */
-@Ignore
-public class SensitiveWordsTest {
+@Disabled
+public class SensitiveWordsTest extends Assertions {
 
 	private static SensitiveWords sw = new SensitiveWords();
 
-	@BeforeClass
+	@BeforeAll
 	public static void init() throws Exception {
 		Arrays.asList("小泽玛莉亚", "武腾兰", "三級").forEach(sw::insert);
 	}

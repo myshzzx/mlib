@@ -1,13 +1,16 @@
 
 package mysh.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 
-import static org.junit.Assert.assertEquals;
-
-public class BytesTest {
+public class BytesTest extends Assertions {
 
 	@Test
 	public void findBytesIndexTest() {

@@ -1,14 +1,19 @@
 
 package mysh.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.io.UnsupportedEncodingException;
 
-import static mysh.util.Encodings.*;
-import static org.junit.Assert.*;
+import static mysh.util.Encodings.encodeTrans;
+import static mysh.util.Encodings.hasPureJapanese;
+import static mysh.util.Encodings.isChinese;
+import static mysh.util.Encodings.isPureJapanese;
+import static mysh.util.Encodings.isPureKorean;
+import static mysh.util.Encodings.isUTF8Bytes;
 
-public class EncodingsTest {
+public class EncodingsTest extends Assertions {
 
 	byte[] utf8NoBOM = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF, 0x6d, 0x79, 0x73,
 					0x68, (byte) 0xE4, (byte) 0xBC, (byte) 0x9F, (byte) 0xE4, (byte) 0xBA,

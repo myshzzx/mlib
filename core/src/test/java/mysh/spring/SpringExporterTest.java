@@ -1,9 +1,9 @@
 package mysh.spring;
 
 import mysh.util.Serializer;
-import org.junit.Assert;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -12,13 +12,11 @@ import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import static org.junit.Assert.*;
-
 /**
  * @since 2019-02-19
  */
-@Ignore
-public class SpringExporterTest extends Assert {
+@Disabled
+public class SpringExporterTest extends Assertions {
 
     @Test
     public void fstIO() {

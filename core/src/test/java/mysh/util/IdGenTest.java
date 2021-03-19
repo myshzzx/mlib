@@ -1,7 +1,7 @@
 package mysh.util;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Set;
@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.LongAdder;
 public class IdGenTest {
 	
 	@Test
-	@Ignore
+	@Disabled
 	public void gen() throws InterruptedException {
 		final Set<Long> m = Collections.newSetFromMap(new ConcurrentHashMap<>(8_000_000));
 		int n = 7;

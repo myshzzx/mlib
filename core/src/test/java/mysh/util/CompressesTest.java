@@ -2,21 +2,20 @@
 package mysh.util;
 
 import org.apache.commons.codec.digest.DigestUtils;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.*;
 
-public class CompressesTest {
+public class CompressesTest extends Assertions {
 	
 	private byte[][] datas;
 	
-	@Before
+	@BeforeEach
 	public void prepare() {
 		
 		this.datas = new byte[][]{new byte[0], new byte[1000], new byte[2000]};
@@ -38,7 +37,7 @@ public class CompressesTest {
 			ByteArrayInputStream singleDataReader = new ByteArrayInputStream(this.datas[i]);
 			Compresses.compress("" + i, singleDataReader, this.datas[i].length / 2,
 					compressOut, 0);
-			Assert.assertEquals(this.datas[i].length / 2, singleDataReader.available());
+			assertEquals(this.datas[i].length / 2, singleDataReader.available());
 		}
 		
 		// CompressUtil.finishCompress(compressOut);
@@ -67,7 +66,7 @@ public class CompressesTest {
 				}
 				byte[] oriData = CompressesTest.this.datas[Integer.parseInt(entry.getName())];
 				
-				Assert.assertArrayEquals(
+				assertArrayEquals(
 						Arrays.copyOf(oriData, oriData.length / 2),
 						deCompOut.toByteArray());
 			} catch (Exception e) {
@@ -80,12 +79,12 @@ public class CompressesTest {
 		
 		// 无限制解压范围测试
 		Compresses.deCompress(picker, compressedDataReader);
-		Assert.assertTrue(extraDataLength != compressedDataReader.available());
+		assertTrue(extraDataLength != compressedDataReader.available());
 		
 		// 限制解压范围测试
 //		compressedDataReader.reset();
 //		CompressUtil.deCompress(picker, compressedDataReader, compresssedDataLength);
-//		Assert.assertTrue(extraDataLength == compressedDataReader.available());
+//		assertTrue(extraDataLength == compressedDataReader.available());
 	
 	}
 	

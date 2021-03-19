@@ -1,7 +1,8 @@
 package mysh.util;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -12,10 +13,16 @@ import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
-import static mysh.util.RSAs.*;
-import static org.junit.Assert.*;
+import static mysh.util.RSAs.KPair;
+import static mysh.util.RSAs.doCipher;
+import static mysh.util.RSAs.enc;
+import static mysh.util.RSAs.genKeyPair;
+import static mysh.util.RSAs.sign;
+import static mysh.util.RSAs.trans;
+import static mysh.util.RSAs.unEnc;
+import static mysh.util.RSAs.unSign;
 
-public class RSAsTest {
+public class RSAsTest extends Assertions {
 
 	byte[] kPairByte;
 	byte[] c = "mysh is a great man".getBytes();
@@ -25,7 +32,7 @@ public class RSAsTest {
 
 	byte[] rsaSign;
 
-	@Before
+	@BeforeEach
 	public void init() throws IOException, NoSuchAlgorithmException, BadPaddingException, NoSuchPaddingException, IllegalBlockSizeException, InvalidKeyException, InvalidKeySpecException {
 		KPair kp = genKeyPair(1034);
 		kPairByte = Serializer.BUILD_IN.serialize(kp);

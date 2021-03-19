@@ -1,7 +1,7 @@
 package mysh.classloader;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.JarURLConnection;
@@ -18,7 +18,7 @@ public class JarTest1 {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void t1() throws IOException {
 		final URL url = new URL("jar:file:///L:/mx.jar!/");
 		final JarURLConnection jar = (JarURLConnection) url.openConnection();

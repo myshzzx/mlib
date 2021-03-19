@@ -1,7 +1,7 @@
 package mysh.net.httpclient;
 
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -12,7 +12,7 @@ import java.net.Proxy;
  * @author mysh
  * @since 2016/1/9
  */
-@Ignore
+@Disabled
 public class ProxyTest {
 
 	@Test

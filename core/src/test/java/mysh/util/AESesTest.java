@@ -1,7 +1,7 @@
 package mysh.util;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +24,7 @@ public class AESesTest {
 		log.debug("content[" + content + "], encrypt[" + encrypt + "]");
 		byte[] decrypt = AESes.decrypt(encrypt, pw, salt);
 
-		Assert.assertEquals(content, new String(decrypt));
+		Assertions.assertEquals(content, new String(decrypt));
 	}
 
 	@Test
