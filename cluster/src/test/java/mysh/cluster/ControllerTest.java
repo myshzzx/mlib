@@ -1,6 +1,6 @@
 package mysh.cluster;
 
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 
 import java.util.Map;
 import java.util.Scanner;
@@ -9,7 +9,7 @@ import java.util.Scanner;
  * @author Mysh
  * @since 14-1-27 下午11:05
  */
-@Ignore
+@Disabled
 public class ControllerTest {
 
 	public static void main(String[] args) throws Throwable {

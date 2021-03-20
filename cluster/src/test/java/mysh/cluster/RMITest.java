@@ -1,6 +1,6 @@
 package mysh.cluster;
 
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Mysh
  * @since 14-1-28 下午5:26
  */
-@Ignore
+@Disabled
 public class RMITest implements Serializable {
 	private static final Logger log = LoggerFactory.getLogger(RMITest.class);
 	private static final long serialVersionUID = -2777633205201793307L;

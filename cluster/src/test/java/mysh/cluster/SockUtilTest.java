@@ -1,7 +1,7 @@
 package mysh.cluster;
 
 import mysh.net.Nets;
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.net.SocketException;
@@ -11,7 +11,7 @@ import java.util.Arrays;
  * @author Mysh
  * @since 14-2-25 下午5:56
  */
-@Ignore
+@Disabled
 public class SockUtilTest {
     @Test
     public void testIsInTheSameBroadcastDomain() throws Exception {

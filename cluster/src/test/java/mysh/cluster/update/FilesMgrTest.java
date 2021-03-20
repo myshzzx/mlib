@@ -1,6 +1,6 @@
 package mysh.cluster.update;
 
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -12,7 +12,7 @@ import java.security.ProtectionDomain;
 public class FilesMgrTest {
 
 	@Test
-	@Ignore
+	@Disabled
 	public void file1() throws IOException {
 		System.setSecurityManager(new SecurityManager());
 
@@ -30,7 +30,7 @@ public class FilesMgrTest {
 	}
 
 	@Test
-	@Ignore
+	@Disabled
 	public void file2(){
 		System.setSecurityManager(new SecurityManager());
 

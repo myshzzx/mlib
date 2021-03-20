@@ -1,13 +1,13 @@
 package mysh.cluster;
 
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
  * @author Mysh
  * @since 14-2-25 下午11:26
  */
-@Ignore
+@Disabled
 public class ClusterTest1 {
 
 	private static final int cmdPort = 8030;
