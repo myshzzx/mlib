@@ -4,7 +4,11 @@ import com.alibaba.druid.pool.DruidDataSource;
 import lombok.Getter;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
-import mysh.util.*;
+import mysh.util.Compresses;
+import mysh.util.Range;
+import mysh.util.Serializer;
+import mysh.util.Tick;
+import mysh.util.Times;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,10 +17,15 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.Closeable;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,7 +36,7 @@ public class SqliteKV implements Closeable {
 	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
-	private DruidDataSource ds;
+	private DataSource ds;
 	@Getter
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	private Set<String> tableExist = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -116,14 +125,23 @@ public class SqliteKV implements Closeable {
 		// 	jdbcTemplate.queryForList("PRAGMA mmap_size=" + mmapSize, Collections.emptyMap());
 	}
 	
+	public SqliteKV(DataSource ds) {
+		this.ds = ds;
+		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+	}
+	
 	/**
 	 * @param useLock  use lock to gain 10 times speed up IO performance, but this block file access from other processes.
 	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
 	 */
-	public static DruidDataSource newDataSource(Path file, boolean useLock, int mmapSize) {
+	public static DataSource newDataSource(Path file, boolean useLock, int mmapSize) {
+		if (!file.toFile().getParentFile().exists())
+			file.toFile().getParentFile().mkdirs();
+		
+		String url = String.format("jdbc:sqlite:%s?locking_mode=%s&mmap_size=%d",
+				file.toString(), useLock ? "EXCLUSIVE" : "NORMAL", mmapSize);
 		DruidDataSource ds = new DruidDataSource(true);
-		ds.setUrl(String.format("jdbc:sqlite:%s?locking_mode=%s&mmap_size=%d",
-				file.toString(), useLock ? "EXCLUSIVE" : "NORMAL", mmapSize));
+		ds.setUrl(url);
 		ds.setMaxActive(10);
 		ds.setTestWhileIdle(false);
 		ds.setTestOnBorrow(true);
@@ -132,14 +150,15 @@ public class SqliteKV implements Closeable {
 		return ds;
 	}
 	
-	public SqliteKV(DataSource ds) {
-		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-	}
-	
 	@Override
 	public void close() {
-		if (ds != null)
-			ds.close();
+		if (ds instanceof Closeable) {
+			try {
+				((Closeable) ds).close();
+			} catch (IOException e) {
+				log.error("close-DS-fail", e);
+			}
+		}
 	}
 	
 	private class DAOImpl implements DAO {

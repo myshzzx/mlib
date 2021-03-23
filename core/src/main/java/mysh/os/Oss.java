@@ -25,7 +25,7 @@ public abstract class Oss {
 	public static final String lineSep = System.getProperty("line.separator");
 	
 	public enum OS {
-		Windows, Linux, Mac, Unix, Unknown
+		Windows, Linux, Mac, Unix, Android, Solaris, Unknown
 	}
 	
 	public enum GPU {
@@ -41,18 +41,23 @@ public abstract class Oss {
 		if (currOs != null)
 			return currOs;
 		
-		OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-		String osName = osBean.getName().toLowerCase();
-		if (osName.contains("windows"))
-			currOs = OS.Windows;
-		else if (osName.contains("linux"))
-			currOs = OS.Linux;
-		else if (osName.contains("mac"))
-			currOs = OS.Mac;
-		else if (osName.contains("unix"))
-			currOs = OS.Unix;
-		else
-			currOs = OS.Unknown;
+		if (System.getProperty("java.runtime.name", "").toLowerCase().contains("android"))
+			currOs = OS.Android;
+		else {
+			String osName = System.getProperty("os.name").toLowerCase();
+			if (osName.contains("win"))
+				currOs = OS.Windows;
+			else if (osName.contains("linux"))
+				currOs = OS.Linux;
+			else if (osName.contains("mac"))
+				currOs = OS.Mac;
+			else if (osName.contains("unix"))
+				currOs = OS.Unix;
+			else if (osName.contains("sunos"))
+				currOs = OS.Solaris;
+			else
+				currOs = OS.Unknown;
+		}
 		
 		return currOs;
 	}
@@ -67,6 +72,10 @@ public abstract class Oss {
 	
 	public static boolean isMac() {
 		return getOS() == OS.Mac;
+	}
+	
+	public static boolean isAndroid() {
+		return getOS() == OS.Android;
 	}
 	
 	/**
