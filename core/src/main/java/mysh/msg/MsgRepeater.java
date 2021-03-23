@@ -74,10 +74,6 @@ public class MsgRepeater {
 		if (Colls.isEmpty(targets))
 			return;
 		byte[] buf = Serializer.BUILD_IN.serialize(msg);
-		if (buf.length > UdpUtil.UDP_PACK_SIZE) {
-			log.error("sendMsg-dataTooBig,serializationSize-exceeds:" + UdpUtil.UDP_PACK_SIZE);
-			return;
-		}
 		DatagramPacket p = new DatagramPacket(buf, buf.length);
 		for (SocketAddress target : targets) {
 			if (sock.isClosed())
@@ -126,7 +122,7 @@ public class MsgRepeater {
 		void close();
 	}
 	
-	public static Server createServer(int port, int dispatchThreads, int udpPackBufSize) throws SocketException {
+	public static Server createServer(int port, int dispatchThreads) throws SocketException {
 		DatagramSocket sock = new DatagramSocket(port);
 		ThreadPoolExecutor exec =
 				new ThreadPoolExecutor(dispatchThreads + 1, dispatchThreads + 1, 1, TimeUnit.MINUTES,
@@ -139,7 +135,7 @@ public class MsgRepeater {
 						new ThreadPoolExecutor.DiscardOldestPolicy());
 		exec.allowCoreThreadTimeOut(true);
 		
-		DatagramPacket p = new DatagramPacket(new byte[udpPackBufSize], udpPackBufSize);
+		DatagramPacket p = new DatagramPacket(new byte[UdpUtil.UDP_PACK_BUF], UdpUtil.UDP_PACK_BUF);
 		Cache<SocketAddress, Long> listeners =
 				Caffeine.newBuilder()
 				        .expireAfterWrite(heartBeatInterval * 3, TimeUnit.MILLISECONDS)

@@ -38,11 +38,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public abstract class UdpUtil {
 	private static final Logger log = LoggerFactory.getLogger(UdpUtil.class);
 	
-	private static final int UDP_PACK_SIZE = 65535;
+	public static final int UDP_PACK_BUF = 65535;
 	
 	public static MsgConsumer.MsgReceiver generateUdpReceiver(int port) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(port);
-		return generateUdpReceiver(sock, UDP_PACK_SIZE);
+		return generateUdpReceiver(sock, UDP_PACK_BUF);
 	}
 	
 	private static MsgConsumer.MsgReceiver generateUdpReceiver(DatagramSocket sock, int bufSize) {
@@ -76,7 +76,7 @@ public abstract class UdpUtil {
 	
 	public static MsgProducer.MsgSender generateUdpSender(int broadcastPort) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(null);
-		return generateUdpSender(sock, broadcastPort, UDP_PACK_SIZE, null);
+		return generateUdpSender(sock, broadcastPort, UDP_PACK_BUF, null);
 	}
 	
 	private static MsgProducer.MsgSender generateUdpSender(DatagramSocket sock, int broadcastPort, int maxUdpPackSize,
@@ -128,7 +128,7 @@ public abstract class UdpUtil {
 	
 	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
 			int port, @Nullable List<SocketAddress> repeaters) throws SocketException {
-		return generateUdpReceiverSender(port, UDP_PACK_SIZE, repeaters);
+		return generateUdpReceiverSender(port, UDP_PACK_BUF, repeaters);
 	}
 	
 	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
