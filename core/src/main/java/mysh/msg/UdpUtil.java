@@ -21,21 +21,28 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
+ * 以太网EthernetII最大的数据帧是1518B, 其中最大承载数据量是1500B(MTU)
+ * <p>
+ * 单帧UDP包最大可承载数据 = MTU - IP头(20) - UDP头(8) = 1472B
+ * <p>
+ * MTU(PPPoE) = 1492B, 相应单帧UDP包最大承载 1464B
+ * <p>
+ * MTU(Internet) = 576B, 相应单帧UDP包最大承载 548B
+ * <p>
+ * UDP数据报包含报头在内最大64kB(OS底层函数一次可发的最大UDP包尺寸),
+ * 超过MTU时将被拆分成多帧发送, 接收方再进行重组, 只要有一个分片重组失败,
+ * 则整个数据报作废丢弃
+ *
  * @since 2019-11-06
  */
 public abstract class UdpUtil {
 	private static final Logger log = LoggerFactory.getLogger(UdpUtil.class);
 	
-	public static final int UDP_PACK_SIZE = 1472;
-	public static final int UDP_PACK_SIZE_INTERNET = 508;
+	private static final int UDP_PACK_SIZE = 65535;
 	
 	public static MsgConsumer.MsgReceiver generateUdpReceiver(int port) throws SocketException {
-		return generateUdpReceiver(port, UDP_PACK_SIZE);
-	}
-	
-	public static MsgConsumer.MsgReceiver generateUdpReceiver(int port, int bufSize) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(port);
-		return generateUdpReceiver(sock, bufSize);
+		return generateUdpReceiver(sock, UDP_PACK_SIZE);
 	}
 	
 	private static MsgConsumer.MsgReceiver generateUdpReceiver(DatagramSocket sock, int bufSize) {
@@ -68,12 +75,8 @@ public abstract class UdpUtil {
 	}
 	
 	public static MsgProducer.MsgSender generateUdpSender(int broadcastPort) throws SocketException {
-		return generateUdpSender(broadcastPort, UDP_PACK_SIZE);
-	}
-	
-	public static MsgProducer.MsgSender generateUdpSender(int broadcastPort, int maxUdpPackSize) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(null);
-		return generateUdpSender(sock, broadcastPort, maxUdpPackSize, null);
+		return generateUdpSender(sock, broadcastPort, UDP_PACK_SIZE, null);
 	}
 	
 	private static MsgProducer.MsgSender generateUdpSender(DatagramSocket sock, int broadcastPort, int maxUdpPackSize,
