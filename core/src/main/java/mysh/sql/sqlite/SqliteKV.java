@@ -4,6 +4,7 @@ import com.alibaba.druid.pool.DruidDataSource;
 import lombok.Getter;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
+import mysh.os.Oss;
 import mysh.util.Compresses;
 import mysh.util.Range;
 import mysh.util.Serializer;
@@ -13,6 +14,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.sqlite.SQLiteConfig;
+import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
@@ -140,14 +143,24 @@ public class SqliteKV implements Closeable {
 		
 		String url = String.format("jdbc:sqlite:%s?locking_mode=%s&mmap_size=%d",
 				file.toString(), useLock ? "EXCLUSIVE" : "NORMAL", mmapSize);
-		DruidDataSource ds = new DruidDataSource(true);
-		ds.setUrl(url);
-		ds.setMaxActive(10);
-		ds.setTestWhileIdle(false);
-		ds.setTestOnBorrow(true);
-		ds.setTestOnReturn(false);
-		ds.setValidationQuery("select 1");
-		return ds;
+		if (Oss.isAndroid()) {
+			SQLiteConnectionPoolDataSource ds = new SQLiteConnectionPoolDataSource();
+			ds.setUrl(url);
+			// https://www.runoob.com/sqlite/sqlite-pragma.html
+			ds.setPageSize(4096); //in bytes
+			ds.setSynchronous(SQLiteConfig.SynchronousMode.OFF.getValue());
+			ds.setJournalMode(SQLiteConfig.JournalMode.OFF.getValue());
+			return ds;
+		} else {
+			DruidDataSource ds = new DruidDataSource(true);
+			ds.setUrl(url);
+			ds.setMaxActive(10);
+			ds.setTestWhileIdle(false);
+			ds.setTestOnBorrow(true);
+			ds.setTestOnReturn(false);
+			ds.setValidationQuery("select 1");
+			return ds;
+		}
 	}
 	
 	@Override
