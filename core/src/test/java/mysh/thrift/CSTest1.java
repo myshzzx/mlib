@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  * @since 2014/11/11 1:39
  */
 @Disabled
-public class CommonTest1 {
+public class CSTest1 {
 	@Test
 	public void server() {
 		try {

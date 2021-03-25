@@ -323,14 +323,14 @@ public class ThriftClientFactory<TI> {
 	 */
 	@SuppressWarnings("unchecked")
 	public ClientHolder<TI> buildPooled() {
-		GenericObjectPoolConfig poolConf = new GenericObjectPoolConfig();
+		GenericObjectPoolConfig<ThriftClient> poolConf = new GenericObjectPoolConfig<>();
 		poolConf.setMinIdle(0);
 		poolConf.setMaxTotal(conf.maxPoolSize);
 		poolConf.setMaxWaitMillis(conf.maxWaitMillis);
 		poolConf.setTimeBetweenEvictionRunsMillis(POOL_IDLE_OBJ_TIMEOUT);
 		poolConf.setTestWhileIdle(true);
 
-		GenericObjectPool<ThriftClient> pool = new GenericObjectPool(new PoolObjMaker(), poolConf);
+		GenericObjectPool<ThriftClient> pool = new GenericObjectPool<>(new PoolObjMaker(), poolConf);
 
 		TI client = (TI) Proxy.newProxyInstance(this.getClass().getClassLoader(), new Class<?>[]{conf.iface},
 				(obj, method, args) -> {
@@ -342,7 +342,7 @@ public class ThriftClientFactory<TI> {
 						pool.returnObject(tc);
 					}
 				});
-		return new ClientHolder<>(client, pool::close);
+		return new ClientHolder<>(client, pool);
 	}
 
 }
