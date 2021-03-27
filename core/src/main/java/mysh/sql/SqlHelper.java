@@ -1,7 +1,7 @@
 package mysh.sql;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import mysh.codegen.CodeUtil;
 import mysh.codegen.DynamicSql;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -217,10 +217,10 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		// 初始化缓存
 		for (CacheLevel cl : CacheLevel.values()) {
 			caches.put(cl,
-					Caffeine.newBuilder()
-							.maximumSize(1024)
-							.expireAfterWrite(cl.seconds, TimeUnit.SECONDS)
-							.build()
+					CacheBuilder.newBuilder()
+					            .maximumSize(1024)
+					            .expireAfterWrite(cl.seconds, TimeUnit.SECONDS)
+					            .build()
 			);
 		}
 	}
@@ -293,7 +293,7 @@ public class SqlHelper extends DynamicSql<SqlHelper> {
 		if (this.cacheLevel != null) {
 			final String finalSql = sql;
 			result = caches.get(this.cacheLevel)
-					         .get(new CacheKey(sql, param, ks), ck -> {
+					         .get(new CacheKey(sql, param, ks), () -> {
 						         List<Map<String, Object>> r = jdbc.queryForList(finalSql, param);
 						         r = SqlHelper.this.handleResult(r, ks);
 						         return r;

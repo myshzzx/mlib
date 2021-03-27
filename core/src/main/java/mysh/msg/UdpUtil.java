@@ -10,13 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
-import java.net.SocketException;
+import java.net.*;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -80,7 +76,7 @@ public abstract class UdpUtil {
 	}
 	
 	private static MsgProducer.MsgSender generateUdpSender(DatagramSocket sock, int broadcastPort, int maxUdpPackSize,
-	                                                       @Nullable List<SocketAddress> repeaters) {
+	                                                       @Nullable Collection<SocketAddress> repeaters) {
 		Asserts.notNull(sock, "sock");
 		Asserts.require(broadcastPort > 0 && broadcastPort < 65536, "illegal-broadcastPort:" + broadcastPort);
 		Asserts.require(maxUdpPackSize > 0, "illegal-maxUdpPackSize:" + maxUdpPackSize);
@@ -127,12 +123,12 @@ public abstract class UdpUtil {
 	}
 	
 	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
-			int port, @Nullable List<SocketAddress> repeaters) throws SocketException {
+			int port, @Nullable Collection<SocketAddress> repeaters) throws SocketException {
 		return generateUdpReceiverSender(port, UDP_PACK_BUF, repeaters);
 	}
 	
 	public static Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> generateUdpReceiverSender(
-			int port, int udpPackBufSize, @Nullable List<SocketAddress> repeaters) throws SocketException {
+			int port, int udpPackBufSize, @Nullable Collection<SocketAddress> repeaters) throws SocketException {
 		DatagramSocket sock = bindBroadcastUdpSock(port);
 		MsgConsumer.MsgReceiver msgReceiver = generateUdpReceiver(sock, udpPackBufSize);
 		MsgProducer.MsgSender msgSender = generateUdpSender(sock, port, udpPackBufSize, repeaters);

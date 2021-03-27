@@ -7,7 +7,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.util.List;
+import java.util.Collection;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.function.Consumer;
 
@@ -26,7 +26,7 @@ public interface MsgConsumerProducer extends Closeable {
 			int udpPort,
 			int consumerThreadPoolSize,
 			RejectedExecutionHandler consumerRejectedHandler,
-			@Nullable List<SocketAddress> repeaters) throws SocketException {
+			@Nullable Collection<SocketAddress> repeaters) throws SocketException {
 		
 		Pair<MsgConsumer.MsgReceiver, MsgProducer.MsgSender> rsp = UdpUtil.generateUdpReceiverSender(udpPort, repeaters);
 		MsgConsumer consumer = new MsgConsumer(rsp.getL(), consumerThreadPoolSize, consumerRejectedHandler);

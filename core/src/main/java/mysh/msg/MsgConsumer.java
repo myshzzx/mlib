@@ -1,7 +1,7 @@
 package mysh.msg;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import mysh.collect.Colls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,11 +13,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -59,31 +55,34 @@ public class MsgConsumer implements Closeable {
 				msgRejectedHandler == null ? DEFAULT_REJECTED_EXECUTION_HANDLER : msgRejectedHandler);
 		exec.allowCoreThreadTimeOut(true);
 		exec.submit(() -> {
-			Thread t = Thread.currentThread();
-			Cache<Object, Object> msgIdCache =
-					Caffeine.newBuilder().expireAfterWrite(5, TimeUnit.SECONDS).build();
-			while (!t.isInterrupted())
-				try {
-					Msg<?> msg = msgReceiver.fetch();
-					if (msgIdCache.asMap().putIfAbsent(msg.getId(), true) != null)
-						continue;
-					
-					String topic = msg.getTopic();
-					Set<Consumer<Msg<?>>> consumers = consumerMap.get(topic);
-					if (Colls.isNotEmpty(consumers))
-						exec.submit(() -> {
-							for (Consumer<Msg<?>> consumer : consumers) {
-								try {
-									consumer.accept(msg);
-								} catch (Exception e) {
-									log.error("consume-msg-fail", e);
+			try {
+				Thread t = Thread.currentThread();
+				Cache<Object, Object> msgIdCache = CacheBuilder.newBuilder().expireAfterWrite(5, TimeUnit.SECONDS).build();
+				while (!t.isInterrupted())
+					try {
+						Msg<?> msg = msgReceiver.fetch();
+						if (msgIdCache.asMap().putIfAbsent(msg.getId(), true) != null)
+							continue;
+						
+						String topic = msg.getTopic();
+						Set<Consumer<Msg<?>>> consumers = consumerMap.get(topic);
+						if (Colls.isNotEmpty(consumers))
+							exec.submit(() -> {
+								for (Consumer<Msg<?>> consumer : consumers) {
+									try {
+										consumer.accept(msg);
+									} catch (Exception e) {
+										log.error("consume-msg-fail", e);
+									}
 								}
-							}
-						});
-				} catch (Exception e) {
-					if (!(e instanceof SocketException && Objects.equals(e.getMessage(), "socket closed")))
-						log.error("fail-on-getMsg", e);
-				}
+							});
+					} catch (Exception e) {
+						if (!(e instanceof SocketException && Objects.equals(e.getMessage(), "socket closed")))
+							log.error("fail-on-getMsg", e);
+					}
+			} catch (Throwable t) {
+				log.error("consume-msg-error", t);
+			}
 		});
 	}
 	

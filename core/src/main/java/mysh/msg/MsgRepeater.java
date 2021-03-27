@@ -1,7 +1,7 @@
 package mysh.msg;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import mysh.collect.Colls;
@@ -17,14 +17,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 /**
@@ -36,11 +32,17 @@ public class MsgRepeater {
 	private static final int heartBeatInterval = 3 * 60_000;
 	
 	private enum Cmd {
-		/** 心跳 */
+		/**
+		 * 心跳
+		 */
 		HEARTBEAT,
-		/** 单发 */
+		/**
+		 * 单发
+		 */
 		DELIVER,
-		/** 中继间转发 */
+		/**
+		 * 中继间转发
+		 */
 		REPEAT;
 	}
 	
@@ -70,7 +72,7 @@ public class MsgRepeater {
 		void close();
 	}
 	
-	private static void sendMsg(RMsg msg, DatagramSocket sock, List<SocketAddress> targets) {
+	private static void sendMsg(RMsg msg, DatagramSocket sock, Collection<SocketAddress> targets) {
 		if (Colls.isEmpty(targets))
 			return;
 		byte[] buf = Serializer.BUILD_IN.serialize(msg);
@@ -87,7 +89,7 @@ public class MsgRepeater {
 		}
 	}
 	
-	public static Client createClient(DatagramSocket sock, List<SocketAddress> repeaters) {
+	public static Client createClient(DatagramSocket sock, Collection<SocketAddress> repeaters) {
 		Asserts.notNull(sock, "sock");
 		Asserts.require(Colls.isNotEmpty(repeaters), "repeaters can't be blank");
 		
@@ -137,9 +139,9 @@ public class MsgRepeater {
 		
 		DatagramPacket p = new DatagramPacket(new byte[UdpUtil.UDP_PACK_BUF], UdpUtil.UDP_PACK_BUF);
 		Cache<SocketAddress, Long> listeners =
-				Caffeine.newBuilder()
-				        .expireAfterWrite(heartBeatInterval * 3, TimeUnit.MILLISECONDS)
-				        .build();
+				CacheBuilder.newBuilder()
+				            .expireAfterWrite(heartBeatInterval * 3, TimeUnit.MILLISECONDS)
+				            .build();
 		exec.submit(() -> {
 			Thread thread = Thread.currentThread();
 			while (!thread.isInterrupted()) {
@@ -162,7 +164,7 @@ public class MsgRepeater {
 									if (msg.dst != null) {
 										sendMsg(msg, sock, Collections.singletonList(msg.dst));
 									} else {
-										List<SocketAddress> targets =
+										Collection<SocketAddress> targets =
 												listeners.asMap().keySet().stream()
 												         .filter(listener -> !Objects.equals(msg.src, listener))
 												         .collect(Collectors.toList());
