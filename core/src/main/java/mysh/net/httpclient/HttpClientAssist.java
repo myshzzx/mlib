@@ -1,6 +1,7 @@
 package mysh.net.httpclient;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
@@ -638,6 +639,15 @@ public class HttpClientAssist implements Closeable {
 			}
 			
 			return JSON.parseObject(entityStr);
+		}
+		
+		public synchronized JSONArray getJsonArray() throws IOException {
+			if (entityStr == null) {
+				downloadEntityAndParseEncoding();
+				entityStr = new String(entityBuf, entityEncoding);
+			}
+			
+			return JSON.parseArray(entityStr);
 		}
 		
 		private void downloadEntityAndParseEncoding() throws IOException {

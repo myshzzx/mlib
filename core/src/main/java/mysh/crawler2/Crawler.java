@@ -234,8 +234,6 @@ public class Crawler<CTX extends UrlContext> {
 		try {
 			classifiers.values().forEach(ClassifiedUrlCrawler::stop);
 			classifiers.values().forEach(c -> c.awaitTermination(2, TimeUnit.MINUTES));
-			if (autoStopChkThread != null)
-				autoStopChkThread.interrupt();
 		} finally {
 			try {
 				List<UrlCtxHolder<CTX>> tasks = unhandledTasks.stream().distinct().collect(Collectors.toList());
@@ -244,6 +242,8 @@ public class Crawler<CTX extends UrlContext> {
 			} finally {
 				status.set(Status.STOPPED);
 				waitStopLatch.countDown();
+				if (autoStopChkThread != null)
+					autoStopChkThread.interrupt();
 			}
 		}
 	}

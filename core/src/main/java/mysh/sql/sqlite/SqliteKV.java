@@ -1,6 +1,7 @@
 package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.alibaba.druid.pool.DruidPooledConnection;
 import lombok.Getter;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
@@ -22,6 +23,7 @@ import javax.sql.DataSource;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -134,6 +136,9 @@ public class SqliteKV implements Closeable {
 	}
 	
 	/**
+	 * PRAGMA 优化配置见: <a href='https://www.cnblogs.com/cchust/p/4754619.html'>日志模式</a>
+	 * 和 <a href='https://www.runoob.com/sqlite/sqlite-pragma.html'>pragma 说明</a>
+	 *
 	 * @param useLock  use lock to gain 10 times speed up IO performance, but this block file access from other processes.
 	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
 	 */
@@ -146,7 +151,6 @@ public class SqliteKV implements Closeable {
 		if (Oss.isAndroid()) {
 			SQLiteConnectionPoolDataSource ds = new SQLiteConnectionPoolDataSource();
 			ds.setUrl(url);
-			// https://www.runoob.com/sqlite/sqlite-pragma.html
 			ds.setPageSize(4096); //in bytes
 			ds.setSynchronous(SQLiteConfig.SynchronousMode.OFF.getValue());
 			ds.setJournalMode(SQLiteConfig.JournalMode.OFF.getValue());
@@ -159,6 +163,15 @@ public class SqliteKV implements Closeable {
 			ds.setTestOnBorrow(true);
 			ds.setTestOnReturn(false);
 			ds.setValidationQuery("select 1");
+			try (DruidPooledConnection conn = ds.getConnection()) {
+				try (Statement stat = conn.createStatement()) {
+					stat.execute("PRAGMA synchronous = OFF");
+					stat.execute("PRAGMA journal_mode = OFF");
+				}
+			} catch (Exception e) {
+				log.error("init-sqlite-db-fail", e);
+			}
+			
 			return ds;
 		}
 	}
