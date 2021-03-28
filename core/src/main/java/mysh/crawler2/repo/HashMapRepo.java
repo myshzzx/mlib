@@ -9,6 +9,7 @@ import mysh.util.FilesUtil;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -27,6 +28,7 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	private File file;
 	private SqliteKV.DAO sqliteDao;
 	private String sqliteItemName;
+	private DAO<Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>>> dao;
 	
 	public HashMapRepo(File file) {
 		this.file = Objects.requireNonNull(file, "file can't be null");
@@ -35,6 +37,16 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	public HashMapRepo(SqliteKV.DAO sqliteDao, String sqliteItemName) {
 		this.sqliteDao = sqliteDao;
 		this.sqliteItemName = sqliteItemName;
+	}
+	
+	public interface DAO<T extends Serializable> {
+		T load();
+		
+		void save(T data);
+	}
+	
+	public HashMapRepo(DAO dao) {
+		this.dao = dao;
 	}
 	
 	@Override
@@ -48,6 +60,8 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 			}
 		} else if (sqliteDao != null) {
 			data = sqliteDao.byKey(sqliteItemName);
+		} else if (dao != null) {
+			data = dao.load();
 		}
 		
 		if (data != null) {
@@ -70,6 +84,8 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 			}
 		} else if (sqliteDao != null) {
 			sqliteDao.save(sqliteItemName, data);
+		} else if (dao != null) {
+			dao.save(data);
 		}
 	}
 	
