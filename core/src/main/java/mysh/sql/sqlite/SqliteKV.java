@@ -140,7 +140,7 @@ public class SqliteKV implements Closeable {
 	 * 和 <a href='https://www.runoob.com/sqlite/sqlite-pragma.html'>pragma 说明</a>
 	 *
 	 * @param useLock  use lock to gain 10 times speed up IO performance, but this block file access from other processes.
-	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
+	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. usually 268435456 or more. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
 	 */
 	public static DataSource newDataSource(Path file, boolean useLock, int mmapSize) {
 		if (!file.toFile().getParentFile().exists())
