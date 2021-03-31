@@ -11,14 +11,14 @@ import java.nio.file.Paths;
  * @since 2019-07-08
  */
 @Disabled
-public class SqliteKVTest1 {
+public class SqliteDBTest1 {
 	
-	SqliteKV kv = new SqliteKV(Paths.get("l:/a.db"));
-	SqliteKV.DAO dao = kv.genDAO("test_group", true, false);
+	SqliteDB db = new SqliteDB(Paths.get("l:/a.db"));
+	SqliteDB.KvDAO dao = db.genKvDAO("test_group", true, false);
 	
 	@AfterEach
 	public void end() {
-		kv.close();
+		db.close();
 	}
 	
 	@Test

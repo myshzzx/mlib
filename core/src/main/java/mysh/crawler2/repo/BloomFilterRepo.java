@@ -5,7 +5,7 @@ import com.google.common.hash.Funnels;
 import mysh.collect.Pair;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
-import mysh.sql.sqlite.SqliteKV;
+import mysh.sql.sqlite.SqliteDB;
 import mysh.util.Encodings;
 import mysh.util.FilesUtil;
 
@@ -28,7 +28,7 @@ public class BloomFilterRepo<CTX extends UrlContext> implements Repo<CTX> {
 	private double fpp;
 	
 	private File file;
-	private SqliteKV.DAO sqliteDao;
+	private SqliteDB.KvDAO sqliteDao;
 	private String sqliteItemName;
 	
 	/**
@@ -45,7 +45,7 @@ public class BloomFilterRepo<CTX extends UrlContext> implements Repo<CTX> {
 	 * @param expectedInsertions 预期插入数.
 	 * @param fpp                误报率 (0~1).
 	 */
-	public BloomFilterRepo(SqliteKV.DAO sqliteDao, String sqliteItemName, int expectedInsertions, double fpp) {
+	public BloomFilterRepo(SqliteDB.KvDAO sqliteDao, String sqliteItemName, int expectedInsertions, double fpp) {
 		this.expectedInsertions = expectedInsertions;
 		this.fpp = fpp;
 		this.sqliteDao = Objects.requireNonNull(sqliteDao, "dao is null");

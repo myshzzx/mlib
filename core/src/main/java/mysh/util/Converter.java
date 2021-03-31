@@ -1,7 +1,13 @@
 package mysh.util;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import mysh.codegen.CodeUtil;
+
 import java.time.ZoneOffset;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author mysh
@@ -41,4 +47,36 @@ public abstract class Converter {
 		
 		return null;
 	}
+	
+	public static Map<String, Object> object2Map(Object obj) {
+		return object2Map(obj, false);
+	}
+	
+	public static Map<String, Object> object2Map(Object obj, boolean toUnderlineKey) {
+		JSONObject json = (JSONObject) JSON.toJSON(obj);
+		if (toUnderlineKey) {
+			Map<String, Object> map = new HashMap<>();
+			for (Map.Entry<String, Object> je : json.entrySet()) {
+				map.put(CodeUtil.camel2underline(je.getKey()).toLowerCase(), je.getValue());
+			}
+			return map;
+		} else
+			return json;
+	}
+	
+	public static <T> T map2Object(Map<String, ?> map, Class<T> type) {
+		return map2Object(map, false, type);
+	}
+	
+	public static <T> T map2Object(Map<String, ?> map, boolean isUnderlineKey, Class<T> type) {
+		if (isUnderlineKey) {
+			Map<String, Object> newMap = new HashMap<>();
+			for (Map.Entry<String, ?> me : map.entrySet()) {
+				newMap.put(CodeUtil.underline2camel(me.getKey(), true), me.getValue());
+			}
+			map = newMap;
+		}
+		return JSON.toJavaObject((JSONObject) JSON.toJSON(map), type);
+	}
+	
 }

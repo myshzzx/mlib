@@ -2,8 +2,8 @@ package mysh.sql.sqlite;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.druid.pool.DruidPooledConnection;
+import com.google.common.base.Joiner;
 import lombok.Getter;
-import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
 import mysh.os.Oss;
 import mysh.util.Compresses;
@@ -36,8 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * @since 2019-07-08
  */
-public class SqliteKV implements Closeable {
-	private static final Logger log = LoggerFactory.getLogger(SqliteKV.class);
+public class SqliteDB implements Closeable {
+	private static final Logger log = LoggerFactory.getLogger(SqliteDB.class);
 	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
@@ -69,6 +69,17 @@ public class SqliteKV implements Closeable {
 	}
 	
 	public interface DAO {
+		String getTableName();
+		
+		int update(String namedSql, Map<String, ?> params);
+		
+		int insertOrReplace(Map<String, Object> tableColValues);
+		
+		List<Map<String, Object>> byRawSql(
+				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
+	}
+	
+	public interface KvDAO extends DAO {
 		boolean containsKey(String key);
 		
 		<V> V byKey(String key);
@@ -76,9 +87,6 @@ public class SqliteKV implements Closeable {
 		<V> V byKey(String key, V defaultValue);
 		
 		List<Item> itemsByRawSql(
-				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
-		
-		List<Map<String, Object>> byRawSql(
 				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 		
 		Item infoByKey(String key, boolean queryValue, boolean queryTime);
@@ -106,21 +114,21 @@ public class SqliteKV implements Closeable {
 		boolean exists(String key);
 	}
 	
-	public SqliteKV(Path file) {
+	public SqliteDB(Path file) {
 		this(file, false);
 	}
 	
 	/**
 	 * @see #newDataSource
 	 */
-	public SqliteKV(Path file, boolean useLock) {
+	public SqliteDB(Path file, boolean useLock) {
 		this(file, useLock, 0);
 	}
 	
 	/**
 	 * @see #newDataSource
 	 */
-	public SqliteKV(Path file, boolean useLock, int mmapSize) {
+	public SqliteDB(Path file, boolean useLock, int mmapSize) {
 		ds = newDataSource(file, useLock, Math.max(0, mmapSize));
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 		
@@ -130,7 +138,7 @@ public class SqliteKV implements Closeable {
 		// 	jdbcTemplate.queryForList("PRAGMA mmap_size=" + mmapSize, Collections.emptyMap());
 	}
 	
-	public SqliteKV(DataSource ds) {
+	public SqliteDB(DataSource ds) {
 		this.ds = ds;
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 	}
@@ -187,53 +195,102 @@ public class SqliteKV implements Closeable {
 		}
 	}
 	
-	private class DAOImpl implements DAO {
-		final String group;
+	private class DAOImpl implements KvDAO {
+		final String table;
 		final boolean suggestCompressValue;
 		final boolean updateReadTime;
 		
 		/**
-		 * @param group                snake_case_group
+		 * {@link DAO} implementation
+		 *
+		 * @param table snake_case_group
+		 */
+		DAOImpl(String table) {
+			this.table = table;
+			this.suggestCompressValue = false;
+			this.updateReadTime = false;
+		}
+		
+		/**
+		 * {@link KvDAO} implementation
+		 *
+		 * @param table                snake_case_group
 		 * @param suggestCompressValue value may be zip compress before save, depends on reducing size or not
 		 * @param updateReadTime       update rt on each read
 		 */
-		DAOImpl(String group, boolean suggestCompressValue, boolean updateReadTime) {
-			this.group = group;
+		DAOImpl(String table, boolean suggestCompressValue, boolean updateReadTime) {
+			this.table = table;
 			this.suggestCompressValue = suggestCompressValue;
 			this.updateReadTime = updateReadTime;
+			this.ensureKvTable(table);
 		}
 		
-		private void ensureTable(String group) {
-			if (!tableExist.contains(group)) {
-				synchronized (group.intern()) {
-					if (tableExist.contains(group))
+		private void ensureKvTable(String table) {
+			if (!tableExist.contains(table)) {
+				synchronized (table.intern()) {
+					if (tableExist.contains(table))
 						return;
 					
 					int tableCount = jdbcTemplate.queryForObject(
 							"select count(2) from sqlite_master where type='table' and tbl_name=:name",
-							Colls.ofHashMap("name", group), Integer.class
+							Colls.ofHashMap("name", table), Integer.class
 					);
 					if (tableCount < 1) {
-						String sql = "CREATE TABLE " + group +
+						String sql = "CREATE TABLE " + table +
 								"(\n" +
-								"k text constraint " + group + "_pk primary key,\n" +
+								"k text constraint " + table + "_pk primary key,\n" +
 								"v blob,\n" +
 								"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
 								"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
 								")";
 						jdbcTemplate.update(sql, Collections.emptyMap());
 					}
-					tableExist.add(group);
+					tableExist.add(table);
 				}
 			}
 		}
 		
 		@Override
+		public String getTableName() {
+			return this.table;
+		}
+		
+		@Override
+		public int update(final String namedSql, final Map<String, ?> params) {
+			return jdbcTemplate.update(namedSql, params);
+		}
+		
+		@Override
+		public int insertOrReplace(Map<String, Object> tableColValues) {
+			Set<String> cols = tableColValues.keySet();
+			Joiner cj = Joiner.on(",");
+			Joiner vj = Joiner.on(",:");
+			return jdbcTemplate.update(
+					"insert or replace into " + table
+							+ "(" + cj.join(cols) + ") values(:" + vj.join(cols) + ")",
+					tableColValues
+			);
+		}
+		
+		@Override
+		public List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
+			String sql = "select " + ObjectUtils.firstNonNull(cols, "*") + " from " + table
+					+ (conditions != null ? (" where " + conditions + " ") : " ")
+					+ ObjectUtils.firstNonNull(clauses, "");
+			params = params == null ? Collections.emptyMap() : params;
+			Tick tick = Tick.tick();
+			List<Map<String, Object>> lst = jdbcTemplate.queryForList(sql, params);
+			if (tick.nip() > 30) {
+				log.warn("sql-need-optimize,cost={}ms, sql={}, params={}", tick.lastNip(), sql, params);
+			}
+			return lst == null ? Collections.emptyList() : lst;
+		}
+		
+		
+		@Override
 		public boolean containsKey(String key) {
-			ensureTable(group);
-			
 			Integer count = jdbcTemplate.queryForObject(
-					"select count(1) from " + group + " where k=:key",
+					"select count(1) from " + table + " where k=:key",
 					Colls.ofHashMap("key", key), Integer.class);
 			return count > 0;
 		}
@@ -245,8 +302,6 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public <V> V byKey(String key, V defaultValue) {
-			ensureTable(group);
-			
 			Item item = infoByKey(key, true, false);
 			return item == null ? defaultValue : item.getValue();
 		}
@@ -271,27 +326,9 @@ public class SqliteKV implements Closeable {
 		}
 		
 		@Override
-		public List<Map<String, Object>> byRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
-			ensureTable(group);
-			
-			String sql = "select " + ObjectUtils.firstNonNull(cols, "*") + " from " + group
-					+ (conditions != null ? (" where " + conditions + " ") : " ")
-					+ ObjectUtils.firstNonNull(clauses, "");
-			params = params == null ? Collections.emptyMap() : params;
-			Tick tick = Tick.tick();
-			List<Map<String, Object>> lst = jdbcTemplate.queryForList(sql, params);
-			if (tick.nip() > 30) {
-				log.warn("sql-need-optimize,cost={}ms, sql={}, params={}", tick.lastNip(), sql, params);
-			}
-			return lst == null ? Collections.emptyList() : lst;
-		}
-		
-		@Override
 		public Item infoByKey(String key, boolean queryValue, boolean queryTime) {
-			ensureTable(group);
-			
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
-					"select " + (queryValue ? "v," : "") + (queryTime ? "wt,rt," : "") + "1 from " + group + " where k=:key",
+					"select " + (queryValue ? "v," : "") + (queryTime ? "wt,rt," : "") + "1 from " + table + " where k=:key",
 					Colls.ofHashMap("key", key));
 			if (Colls.isEmpty(lst))
 				return null;
@@ -304,7 +341,7 @@ public class SqliteKV implements Closeable {
 				
 				if (updateReadTime) {
 					jdbcTemplate.update(
-							"update " + group + " set rt=:now where k=:key",
+							"update " + table + " set rt=:now where k=:key",
 							Colls.ofHashMap("key", key, "now", Times.formatNow(Times.Formats.DayTime)));
 				}
 				return item;
@@ -344,8 +381,6 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public <V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter) {
-			ensureTable(group);
-			
 			Item item = infoByKey(key, true, true);
 			if (item != null) {
 				if (item.writeTime.compareTo(validAfter) < 0) {
@@ -359,18 +394,15 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public void removeReadExpired(LocalDateTime validAfter) {
-			ensureTable(group);
-			
 			jdbcTemplate.update(
-					"delete from " + group + " where rt<:va",
+					"delete from " + table + " where rt<:va",
 					Colls.ofHashMap("va", Times.format(Times.Formats.DayTime, validAfter)));
 		}
 		
 		@Override
 		public void remove(String key) {
-			ensureTable(group);
 			jdbcTemplate.update(
-					"delete from " + group + " where k=:key",
+					"delete from " + table + " where k=:key",
 					Colls.ofHashMap("key", key));
 		}
 		
@@ -381,8 +413,6 @@ public class SqliteKV implements Closeable {
 		
 		@Override
 		public void save(String key, Object value, int compressionLevel) {
-			ensureTable(group);
-			
 			byte[] buf = SERIALIZER.serialize(value);
 			if ((suggestCompressValue || Range.isWithin(0, 9, compressionLevel)) && buf.length > 256) {
 				byte[] cb = Range.isWithin(0, 9, compressionLevel) ?
@@ -392,39 +422,30 @@ public class SqliteKV implements Closeable {
 			}
 			// wt and rt will always be the default value
 			jdbcTemplate.update(
-					"insert or replace into " + group + "(k,v) values(:key,:value)",
+					"insert or replace into " + table + "(k,v) values(:key,:value)",
 					Colls.ofHashMap("key", key, "value", buf)
 			);
 		}
 		
 		@Override
 		public boolean exists(String key) {
-			ensureTable(group);
-			return jdbcTemplate.queryForObject("select count(1) from " + group + " where k=:key",
+			return jdbcTemplate.queryForObject("select count(1) from " + table + " where k=:key",
 					Colls.ofHashMap("key", key), Integer.class) > 0;
 		}
 	}
 	
 	/**
-	 * @param group snake_case_group style
+	 * @param table snake_case_group style
 	 */
-	public DAO genDAO(String group) {
-		return new DAOImpl(group, false, false);
+	public DAO genDAO(String table) {
+		return new DAOImpl(table);
 	}
 	
 	/**
-	 * @param group snake_case_group style
+	 * @param table snake_case_group style
 	 */
-	public DAO genDAO(String group, boolean suggestCompressValue, boolean updateReadTime) {
-		return new DAOImpl(group, suggestCompressValue, updateReadTime);
-	}
-	
-	/**
-	 * @param daoName use snake_case style
-	 */
-	public DAO genDAO(Class<?> c, String daoName, boolean suggestCompressValue, boolean updateReadTime) {
-		String group = CodeUtil.camel2underline(c.getSimpleName()).toLowerCase() + "_" + daoName;
-		return new DAOImpl(group, suggestCompressValue, updateReadTime);
+	public KvDAO genKvDAO(String table, boolean suggestCompressValue, boolean updateReadTime) {
+		return new DAOImpl(table, suggestCompressValue, updateReadTime);
 	}
 	
 	/**

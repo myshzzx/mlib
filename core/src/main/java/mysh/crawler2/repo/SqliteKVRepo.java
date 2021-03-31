@@ -2,7 +2,7 @@ package mysh.crawler2.repo;
 
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
-import mysh.sql.sqlite.SqliteKV;
+import mysh.sql.sqlite.SqliteDB;
 
 import java.util.Collection;
 
@@ -12,9 +12,9 @@ import java.util.Collection;
  * @since 2019-08-20
  */
 public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
-	private SqliteKV.DAO dao;
+	private SqliteDB.KvDAO dao;
 	
-	public SqliteKVRepo(SqliteKV.DAO dao) {
+	public SqliteKVRepo(SqliteDB.KvDAO dao) {
 		this.dao = dao;
 	}
 	

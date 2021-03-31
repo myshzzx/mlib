@@ -3,7 +3,7 @@ package mysh.crawler2.repo;
 import mysh.collect.Pair;
 import mysh.crawler2.UrlContext;
 import mysh.crawler2.UrlCtxHolder;
-import mysh.sql.sqlite.SqliteKV;
+import mysh.sql.sqlite.SqliteDB;
 import mysh.util.FilesUtil;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -26,7 +26,7 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	public Map<String, Object> urls;
 	
 	private File file;
-	private SqliteKV.DAO sqliteDao;
+	private SqliteDB.KvDAO sqliteDao;
 	private String sqliteItemName;
 	private DAO<Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>>> dao;
 	
@@ -34,7 +34,7 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 		this.file = Objects.requireNonNull(file, "file can't be null");
 	}
 	
-	public HashMapRepo(SqliteKV.DAO sqliteDao, String sqliteItemName) {
+	public HashMapRepo(SqliteDB.KvDAO sqliteDao, String sqliteItemName) {
 		this.sqliteDao = sqliteDao;
 		this.sqliteItemName = sqliteItemName;
 	}
