@@ -44,7 +44,7 @@ public class SqliteDB implements Closeable {
 	private DataSource ds;
 	@Getter
 	private NamedParameterJdbcTemplate jdbcTemplate;
-	private Set<String> tableExist = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	private Set<String> existTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	public static class Item {
 		private String key;
@@ -70,6 +70,8 @@ public class SqliteDB implements Closeable {
 	
 	public interface DAO {
 		String getTableName();
+		
+		boolean tableExists();
 		
 		int update(String namedSql, Map<String, ?> params);
 		
@@ -222,30 +224,38 @@ public class SqliteDB implements Closeable {
 			this.table = table;
 			this.suggestCompressValue = suggestCompressValue;
 			this.updateReadTime = updateReadTime;
-			this.ensureKvTable(table);
+			this.ensureKvTable();
 		}
 		
-		private void ensureKvTable(String table) {
-			if (!tableExist.contains(table)) {
+		public boolean tableExists() {
+			if (existTables.contains(table))
+				return true;
+			Integer tableCount = jdbcTemplate.queryForObject(
+					"select count(1) from sqlite_master where type='table' and tbl_name=:name",
+					Colls.ofHashMap("name", table), Integer.class
+			);
+			if (tableCount != null && tableCount > 0) {
+				existTables.add(table);
+				return true;
+			} else
+				return false;
+		}
+		
+		private void ensureKvTable() {
+			if (!tableExists()) {
 				synchronized (table.intern()) {
-					if (tableExist.contains(table))
+					if (tableExists())
 						return;
 					
-					int tableCount = jdbcTemplate.queryForObject(
-							"select count(2) from sqlite_master where type='table' and tbl_name=:name",
-							Colls.ofHashMap("name", table), Integer.class
-					);
-					if (tableCount < 1) {
-						String sql = "CREATE TABLE " + table +
-								"(\n" +
-								"k text constraint " + table + "_pk primary key,\n" +
-								"v blob,\n" +
-								"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
-								"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
-								")";
-						jdbcTemplate.update(sql, Collections.emptyMap());
-					}
-					tableExist.add(table);
+					String sql = "CREATE TABLE " + table +
+							"(\n" +
+							"k text constraint " + table + "_pk primary key,\n" +
+							"v blob,\n" +
+							"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
+							"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
+							")";
+					jdbcTemplate.update(sql, Collections.emptyMap());
+					existTables.add(table);
 				}
 			}
 		}
