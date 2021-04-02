@@ -76,7 +76,7 @@
 			<dependency>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok</artifactId>
-				<version>edge-SNAPSHOT</version>
+				<version>1.18.20</version>
 				<scope>provided</scope>
 			</dependency>
 			<dependency>
@@ -278,19 +278,6 @@
 			</dependency>
 			
 			
-			<!--for captcha-->
-			<dependency>
-				<groupId>com.jhlabs</groupId>
-				<artifactId>filters</artifactId>
-				<version>2.0.235-1</version>
-			</dependency>
-			
-			<dependency>
-				<groupId>com.aparapi</groupId>
-				<artifactId>aparapi</artifactId>
-				<version>2.0.0</version>
-			</dependency>
-			
 			<dependency>
 				<groupId>com.squareup.okhttp3</groupId>
 				<artifactId>okhttp</artifactId>
@@ -351,12 +338,6 @@
 				<groupId>org.seleniumhq.selenium</groupId>
 				<artifactId>selenium-java</artifactId>
 				<version>3.141.59</version>
-			</dependency>
-			
-			<dependency>
-				<groupId>net.imagej</groupId>
-				<artifactId>ij</artifactId>
-				<version>1.53h</version>
 			</dependency>
 			
 			<dependency>
@@ -443,11 +424,13 @@
 			<plugin>
 				<groupId>org.projectlombok</groupId>
 				<artifactId>lombok-maven-plugin</artifactId>
-				<version>1.18.18.0</version>
+				<version>1.18.20.0</version>
 			</plugin>
 			
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
+				<version>3.1.2</version>
 			</plugin>
 		
 		</plugins>

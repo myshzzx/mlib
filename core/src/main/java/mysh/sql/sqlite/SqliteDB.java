@@ -249,7 +249,7 @@ public class SqliteDB implements Closeable {
 					
 					String sql = "CREATE TABLE " + table +
 							"(\n" +
-							"k text constraint " + table + "_pk primary key,\n" +
+							"k text not null constraint " + table + "_pk primary key,\n" +
 							"v blob,\n" +
 							"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
 							"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
