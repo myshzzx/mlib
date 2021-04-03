@@ -247,7 +247,7 @@ public class SqliteDB implements Closeable {
 					if (tableExists())
 						return;
 					
-					String sql = "CREATE TABLE " + table +
+					String sql = "create table " + table +
 							"(\n" +
 							"k text not null constraint " + table + "_pk primary key,\n" +
 							"v blob,\n" +
