@@ -165,7 +165,7 @@ public class SqliteDB implements Closeable {
 			SQLiteConnectionPoolDataSource ds = new SQLiteConnectionPoolDataSource();
 			ds.setUrl(url);
 			ds.setPageSize(4096); //in bytes
-			ds.setSynchronous(SQLiteConfig.SynchronousMode.OFF.getValue());
+			ds.setSynchronous(SQLiteConfig.SynchronousMode.NORMAL.getValue());
 			ds.setJournalMode(SQLiteConfig.JournalMode.OFF.getValue());
 			return ds;
 		} else {
@@ -178,7 +178,7 @@ public class SqliteDB implements Closeable {
 			ds.setValidationQuery("select 1");
 			try (DruidPooledConnection conn = ds.getConnection()) {
 				try (Statement stat = conn.createStatement()) {
-					stat.execute("PRAGMA synchronous = OFF");
+					stat.execute("PRAGMA synchronous = NORMAL");
 					stat.execute("PRAGMA journal_mode = OFF");
 				}
 			} catch (Exception e) {
