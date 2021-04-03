@@ -14,6 +14,7 @@ import mysh.util.Times;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sqlite.SQLiteConfig;
 import org.sqlite.javax.SQLiteConnectionPoolDataSource;
@@ -72,6 +73,8 @@ public class SqliteDB implements Closeable {
 		String getTableName();
 		
 		boolean tableExists();
+		
+		JdbcTemplate getJdbcTemplate();
 		
 		int update(String namedSql, Map<String, ?> params);
 		
@@ -241,6 +244,11 @@ public class SqliteDB implements Closeable {
 				return false;
 		}
 		
+		@Override
+		public JdbcTemplate getJdbcTemplate() {
+			return jdbcTemplate.getJdbcTemplate();
+		}
+		
 		private void ensureKvTable() {
 			if (!tableExists()) {
 				synchronized (table.intern()) {
@@ -380,12 +388,12 @@ public class SqliteDB implements Closeable {
 				String wt = (String) r.get("wt");
 				if (wt != null)
 					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, wt)
-					                      .atZone(ZoneId.systemDefault()).toLocalDateTime();
+							.atZone(ZoneId.systemDefault()).toLocalDateTime();
 				
 				String rt = (String) r.get("rt");
 				if (rt != null)
 					item.readTime = Times.parseDayTime(Times.Formats.DayTime, rt)
-					                     .atZone(ZoneId.systemDefault()).toLocalDateTime();
+							.atZone(ZoneId.systemDefault()).toLocalDateTime();
 			}
 		}
 		
