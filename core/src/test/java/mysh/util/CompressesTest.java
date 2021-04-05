@@ -28,7 +28,7 @@ public class CompressesTest extends Assertions {
 	}
 	
 	@Test
-	public void commonTest() throws IOException {
+	public void cpTest() throws IOException {
 		
 		// compress
 		ByteArrayOutputStream compressOut = new ByteArrayOutputStream();
