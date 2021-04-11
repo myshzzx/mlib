@@ -65,17 +65,19 @@ public class Socks5Proxy implements Closeable {
 	}
 	
 	private Channel mainChannel;
+	private int port;
 	private EventLoopGroup dispatcherGroup;
 	private EventLoopGroup workerGroup;
 	private EventLoopGroup connGroup;
 	
-	public Socks5Proxy start(int port) throws Exception {
+	public synchronized Socks5Proxy start(int port) throws Exception {
 		if (mainChannel != null)
 			throw new RuntimeException(Socks5Proxy.class.getSimpleName() + " can't be started again");
 		
 		dispatcherGroup = new NioEventLoopGroup(1);
 		workerGroup = new NioEventLoopGroup();
 		connGroup = new NioEventLoopGroup();
+		this.port = port;
 		
 		try {
 			ServerBootstrap bootstrap = new ServerBootstrap();
@@ -118,7 +120,7 @@ public class Socks5Proxy implements Closeable {
 			         });
 			
 			mainChannel = bootstrap.bind(port).sync().channel();
-			logger.info("{}-bind-port: {}", Socks5Proxy.class.getSimpleName(), port);
+			logger.info("Socks5Proxy-bind-port: {}", port);
 			return this;
 		} catch (Exception e) {
 			close();
@@ -129,8 +131,10 @@ public class Socks5Proxy implements Closeable {
 	@Override
 	public void close() {
 		try {
-			if (mainChannel != null)
+			if (mainChannel != null) {
+				logger.warn("Socks5Proxy-closing: {}", port);
 				mainChannel.close();
+			}
 		} catch (Exception e) {
 		} finally {
 			dispatcherGroup.shutdownGracefully();

@@ -34,6 +34,7 @@ public class JPipe2 implements Closeable {
 	private ChannelFuture mainChannel;
 	@Getter
 	private String remoteHost;
+	private int port;
 	
 	public JPipe2(int port, String remoteHost, int remotePort, String name, int workerThreadCount) {
 		this(port, remoteHost, remotePort, name, workerThreadCount, null, null);
@@ -42,6 +43,7 @@ public class JPipe2 implements Closeable {
 	public JPipe2(int port, String remoteHost, int remotePort, String name, int workerThreadCount,
 	              @Nullable ChannelHandler[] localHandlers, @Nullable ChannelHandler[] remoteHandlers) {
 		this.remoteHost = remoteHost;
+		this.port = port;
 		name = Strings.isNotBlank(name) ? name : "jpipe2";
 		workerThreadCount = Range.within(1, Runtime.getRuntime().availableProcessors() * 2, workerThreadCount);
 		
@@ -152,6 +154,7 @@ public class JPipe2 implements Closeable {
 	@Override
 	public void close() {
 		try {
+			log.warn("JPipe-closing: {}", port);
 			mainChannel.channel().close();
 		} catch (Exception e) {
 			log.error("jpipe2 close fail", e);
