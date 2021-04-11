@@ -94,13 +94,15 @@ public class SqliteDB implements Closeable {
 		List<Item> itemsByRawSql(
 				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 		
-		Item infoByKey(String key, boolean queryValue, boolean queryTime);
+		Item itemByKey(String key, boolean queryValue, boolean queryTime);
 		
 		Item timeByKey(String key);
 		
-		default Item infoByKey(String key) {
-			return infoByKey(key, true, true);
+		default Item itemByKey(String key) {
+			return itemByKey(key, true, true);
 		}
+		
+		List<Item> items();
 		
 		<V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter);
 		
@@ -259,8 +261,8 @@ public class SqliteDB implements Closeable {
 							"(\n" +
 							"k text not null constraint " + table + "_pk primary key,\n" +
 							"v blob,\n" +
-							"wt datetime default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
-							"rt datetime default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
+							"wt text default (datetime(CURRENT_TIMESTAMP,'localtime')),\n" +
+							"rt text default (datetime(CURRENT_TIMESTAMP,'localtime'))\n" +
 							")";
 					jdbcTemplate.update(sql, Collections.emptyMap());
 					existTables.add(table);
@@ -320,13 +322,18 @@ public class SqliteDB implements Closeable {
 		
 		@Override
 		public <V> V byKey(String key, V defaultValue) {
-			Item item = infoByKey(key, true, false);
+			Item item = itemByKey(key, true, false);
 			return item == null ? defaultValue : item.getValue();
 		}
 		
 		@Override
 		public Item timeByKey(String key) {
-			return infoByKey(key, false, true);
+			return itemByKey(key, false, true);
+		}
+		
+		@Override
+		public List<Item> items() {
+			return itemsByRawSql(null, null, null, null);
 		}
 		
 		@Override
@@ -344,7 +351,7 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public Item infoByKey(String key, boolean queryValue, boolean queryTime) {
+		public Item itemByKey(String key, boolean queryValue, boolean queryTime) {
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
 					"select " + (queryValue ? "v," : "") + (queryTime ? "wt,rt," : "") + "1 from " + table + " where k=:key",
 					Colls.ofHashMap("key", key));
@@ -388,18 +395,18 @@ public class SqliteDB implements Closeable {
 				String wt = (String) r.get("wt");
 				if (wt != null)
 					item.writeTime = Times.parseDayTime(Times.Formats.DayTime, wt)
-							.atZone(ZoneId.systemDefault()).toLocalDateTime();
+					                      .atZone(ZoneId.systemDefault()).toLocalDateTime();
 				
 				String rt = (String) r.get("rt");
 				if (rt != null)
 					item.readTime = Times.parseDayTime(Times.Formats.DayTime, rt)
-							.atZone(ZoneId.systemDefault()).toLocalDateTime();
+					                     .atZone(ZoneId.systemDefault()).toLocalDateTime();
 			}
 		}
 		
 		@Override
 		public <V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter) {
-			Item item = infoByKey(key, true, true);
+			Item item = itemByKey(key, true, true);
 			if (item != null) {
 				if (item.writeTime.compareTo(validAfter) < 0) {
 					remove(key);

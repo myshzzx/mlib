@@ -23,14 +23,14 @@ public class SqliteDBTest1 {
 	
 	@Test
 	public void query() {
-		System.out.println(dao.infoByKey("k1"));
-		System.out.println(dao.infoByKey("k2"));
+		System.out.println(dao.itemByKey("k1"));
+		System.out.println(dao.itemByKey("k2"));
 	}
 	
 	@Test
 	public void save() {
 		dao.save("k1", "myshzzx");
-		System.out.println(dao.infoByKey("k1"));
+		System.out.println(dao.itemByKey("k1"));
 	}
 	
 	@Test
