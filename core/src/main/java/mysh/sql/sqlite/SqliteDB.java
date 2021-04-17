@@ -6,11 +6,7 @@ import com.google.common.base.Joiner;
 import lombok.Getter;
 import mysh.collect.Colls;
 import mysh.os.Oss;
-import mysh.util.Compresses;
-import mysh.util.Range;
-import mysh.util.Serializer;
-import mysh.util.Tick;
-import mysh.util.Times;
+import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,16 +18,11 @@ import org.sqlite.javax.SQLiteConnectionPoolDataSource;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import java.io.Closeable;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.sql.Statement;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -196,7 +187,7 @@ public class SqliteDB implements Closeable {
 		if (ds instanceof Closeable) {
 			try {
 				((Closeable) ds).close();
-			} catch (IOException e) {
+			} catch (Exception e) {
 				log.error("close-DS-fail", e);
 			}
 		}
