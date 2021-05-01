@@ -36,6 +36,7 @@ public interface WinAPI {
 	
 	User32 user32 = User32.INSTANCE;
 	KernelExt kernel32 = KernelExt.INSTANCE;
+	Advapi32 advapi32 = Advapi32.INSTANCE;
 	
 	interface KernelExt extends Kernel32 {
 		KernelExt INSTANCE = Native.load("kernel32", KernelExt.class, W32APIOptions.DEFAULT_OPTIONS);
@@ -207,12 +208,45 @@ public interface WinAPI {
 		log.info("set-process-affinity-mask,pid={},mask={}", pid, mask);
 		WinNT.HANDLE processHandle = kernel32.OpenProcess(WinNT.PROCESS_ALL_ACCESS, false, pid);
 		if (processHandle == null)
-			throw new RuntimeException("process not found. pid=" + pid);
+			throw new RuntimeException("process not found or not accessible, try WinAPI.promoteSelf() pid=" + pid);
 		
 		try {
 			kernel32.SetProcessAffinityMask(processHandle, mask);
 		} finally {
 			kernel32.CloseHandle(processHandle);
+		}
+	}
+	
+	/**
+	 * 将当前进程提权.
+	 * <p>
+	 * https://docs.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights
+	 * https://docs.microsoft.com/en-us/windows/win32/secauthz/enabling-and-disabling-privileges-in-c--
+	 */
+	static boolean promoteSelf() {
+		WinNT.HANDLEByReference token = new WinNT.HANDLEByReference();
+		if (!advapi32.OpenProcessToken(kernel32.GetCurrentProcess(), WinNT.TOKEN_ADJUST_PRIVILEGES | WinNT.TOKEN_QUERY, token)) {
+			log.error("AdjustProcessTokenPrivilege OpenProcessToken Failed, {}", Kernel32Util.getLastErrorMessage());
+			return false;
+		}
+		
+		try {
+			WinNT.LUID lpLuid = new WinNT.LUID();
+			if (!advapi32.LookupPrivilegeValue(null, WinNT.SE_DEBUG_NAME, lpLuid)) {
+				log.error("AdjustProcessTokenPrivilege LookupPrivilegeValue Failed, {}", Kernel32Util.getLastErrorMessage());
+				return false;
+			}
+			
+			WinNT.TOKEN_PRIVILEGES newState = new WinNT.TOKEN_PRIVILEGES(1);
+			newState.Privileges[0] = new WinNT.LUID_AND_ATTRIBUTES(lpLuid, new WinDef.DWORD(WinNT.SE_PRIVILEGE_ENABLED));
+			if (!advapi32.AdjustTokenPrivileges(token.getValue(), false, newState, newState.size(), null, null)) {
+				log.error("AdjustProcessTokenPrivilege AdjustTokenPrivileges Failed, {}", Kernel32Util.getLastErrorMessage());
+				return false;
+			}
+			
+			return true;
+		} finally {
+			kernel32.CloseHandle(token.getValue());
 		}
 	}
 	
