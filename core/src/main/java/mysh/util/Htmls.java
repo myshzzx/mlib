@@ -163,12 +163,12 @@ public class Htmls {
 		}
 	}
 	
-	private static final Pattern paramsExp = Pattern.compile("(\\S+?)=(\\S+)");
+	private static final Pattern paramsExp = Pattern.compile("([^=&]+?)=([^=&]*)");
 	
 	public static Map<String, String> parseQuery(String rawQuery, Charset enc) {
 		Map<String, String> params = new HashMap<>();
 		if (Strings.isNotBlank(rawQuery)) {
-			Matcher matcher = paramsExp.matcher(rawQuery.replace('&', ' '));
+			Matcher matcher = paramsExp.matcher(rawQuery);
 			while (matcher.find()) {
 				params.put(matcher.group(1), Htmls.urlDecode(matcher.group(2), enc));
 			}
