@@ -35,7 +35,7 @@ public class CacheHelper {
 		
 		CacheResult tryLock(Serializable key, int lockExpireSec);
 		
-		CacheResult invalid(Serializable key);
+		CacheResult releaseLock(Serializable key);
 	}
 	
 	private Cache cache;
@@ -204,7 +204,7 @@ public class CacheHelper {
 		if (lastLockTime + lockExpireSec * 1000L > System.currentTimeMillis()) {
 			// 未超时才释放锁
 			try {
-				CacheResult r = cache.invalid(lockKey);
+				CacheResult r = cache.releaseLock(lockKey);
 				log.info("releaseLock,key={},result={}", lockKey, r);
 			} catch (Throwable t) {
 				log.error("releaseLock-exp, key={}", lockKey, t);
