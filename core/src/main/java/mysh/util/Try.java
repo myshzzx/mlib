@@ -16,31 +16,31 @@ import java.util.function.Function;
 public class Try {
 	private static final Logger log = LoggerFactory.getLogger(Try.class);
 	
-	public interface ExpRunnable {
-		void run() throws Exception;
+	public interface ExpRunnable<E extends Throwable> {
+		void run() throws E;
 	}
 	
-	public interface ExpCallable<T> {
-		T call() throws Exception;
+	public interface ExpCallable<T, E extends Throwable> {
+		T call() throws E;
 	}
 	
-	public interface ExpFunction<P, T> {
-		T invoke(P p) throws Exception;
+	public interface ExpFunction<P, T, E extends Throwable> {
+		T invoke(P p) throws E;
 	}
 	
-	public interface ExpBiFunction<A, B, R> {
-		R apply(A a, B b) throws Exception;
+	public interface ExpBiFunction<A, B, R, E extends Throwable> {
+		R apply(A a, B b) throws E;
 	}
 	
-	public interface ExpConsumer<T> {
-		void accept(T t) throws Exception;
+	public interface ExpConsumer<T, E extends Throwable> {
+		void accept(T t) throws E;
 	}
 	
-	public interface ExpBiConsumer<A, B> {
-		void accept(A a, B b) throws Exception;
+	public interface ExpBiConsumer<A, B, E extends Throwable> {
+		void accept(A a, B b) throws E;
 	}
 	
-	public static <T> Consumer<T> ofIgnoreExpConsumer(ExpConsumer<T> c) {
+	public static <T> Consumer<T> ofIgnoreExpConsumer(ExpConsumer<T, Throwable> c) {
 		return t -> {
 			try {
 				c.accept(t);
@@ -51,7 +51,7 @@ public class Try {
 		};
 	}
 	
-	public static <P, T> Function<P, T> ofIgnoreExpFunc(ExpFunction<P, T> c) {
+	public static <P, T> Function<P, T> ofIgnoreExpFunc(ExpFunction<P, T, Throwable> c) {
 		return t -> {
 			try {
 				return c.invoke(t);

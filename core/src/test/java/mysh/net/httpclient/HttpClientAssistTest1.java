@@ -168,8 +168,9 @@ public class HttpClientAssistTest1 {
 		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com//./a/../b"));
 		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com/\\./a/../b"));
 		Assertions.assertEquals("http://dfso.com/b", HttpClientAssist.getShortURL("http://dfso.com\\./a/../b"));
-		Assertions.assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b"));
-		Assertions.assertEquals("http://dfso.com:84/b", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../b"));
+		Assertions.assertEquals("http://dfso.com:84/b1", HttpClientAssist.getShortURL("http://dfso.com:84\\./a/../b1"));
+		Assertions.assertEquals("http://dfso.com:84/b2", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../b2"));
+		Assertions.assertEquals("http://dfso.com:84/b3", HttpClientAssist.getShortURL("http://dfso.com:84\\/./a/../../b3"));
 	}
 	
 }

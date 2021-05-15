@@ -60,7 +60,7 @@ public abstract class Exps {
 	 * @return 执行抛出的异常
 	 */
 	public static <T> T retryOnExp(
-			String comment, int retryTimes, Function<Exception, Boolean> needRetry, Try.ExpCallable<T> r) throws Exception {
+			String comment, int retryTimes, Function<Exception, Boolean> needRetry, Try.ExpCallable<T, Exception> r) throws Exception {
 		int times = 0;
 		while (true) {
 			try {
@@ -82,7 +82,7 @@ public abstract class Exps {
 	 * @see #retryOnExp(String, int, Function, Try.ExpCallable)
 	 */
 	public static void retryOnExp(
-			String comment, int retryTimes, Function<Exception, Boolean> needRetry, Try.ExpRunnable r) throws Exception {
+			String comment, int retryTimes, Function<Exception, Boolean> needRetry, Try.ExpRunnable<Exception> r) throws Exception {
 		retryOnExp(comment, retryTimes, needRetry, () -> {
 			r.run();
 			return null;

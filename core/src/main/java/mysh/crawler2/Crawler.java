@@ -1,9 +1,11 @@
 package mysh.crawler2;
 
+import com.google.common.collect.Streams;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import mysh.util.Htmls;
 import mysh.util.Range;
+import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,29 +14,10 @@ import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.net.MalformedURLException;
-import java.net.ProxySelector;
-import java.net.SocketException;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.charset.Charset;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.*;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -298,7 +281,7 @@ public class Crawler<CTX extends UrlContext> {
 	
 	private static final Pattern httpExp =
 			Pattern.compile("[Hh][Tt][Tt][Pp][Ss]?:[^\"'<>\\s#]+");
-	private static final Pattern srcValueExp =
+	private static final Pattern srcHrefExp =
 			Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 	
 	private class Worker extends UrlCtxHolder<CTX> implements Runnable {
@@ -340,7 +323,7 @@ public class Crawler<CTX extends UrlContext> {
 					if (seed.onGet(ue, this.ctx)) {
 						classifier.onGetSuccess(url);
 						if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
-							seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue))
+							seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue, this.ctx))
 							    .filter(h -> seed.accept(h.url, h.ctx))
 							    .forEach(h -> classify(h.url, h.ctx));
 						}
@@ -361,13 +344,13 @@ public class Crawler<CTX extends UrlContext> {
 			}
 		}
 		
-		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
+		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue, CTX ctx) throws IOException {
 			String pageContent = ue.getEntityStr();
 			
 			Set<String> urls = new HashSet<>();
 			
 			try {
-				// 查找 http 开头的数据
+				// 1. 查找 http 开头的地址
 				Matcher httpExpMatcher = httpExp.matcher(pageContent);
 				while (httpExpMatcher.find()) {
 					urls.add(HttpClientAssist.getShortURL(httpExpMatcher.group()));
@@ -387,26 +370,41 @@ public class Crawler<CTX extends UrlContext> {
 				// 取根目录
 				currentRoot = currentRoot.substring(0, currentRoot.lastIndexOf('/') + 1);
 				
-				// 查找 href 指向的地址
-				Matcher srcValueMatcher = srcValueExp.matcher(pageContent);
-				String tValue, tUrl;
-				String protocolPrefix = ue.getProtocol() + ":";
-				while (srcValueMatcher.find()) {
-					tValue = srcValueMatcher.group(4);
-					if (tValue == null || tValue.length() == 0 || tValue.startsWith("#")
-							|| tValue.startsWith("mailto:") || tValue.startsWith("javascript:")) {
-						continue;
-					} else if (tValue.startsWith("http:") || tValue.startsWith("https:")) {
-						tUrl = tValue;
-					} else if (tValue.startsWith("//")) {
-						tUrl = protocolPrefix + tValue;
-					} else if (tValue.startsWith("/")) {
-						tUrl = currentRoot.substring(0, currentRoot.indexOf('/', 9)) + tValue;
+				// 2. 查找 href 指向的地址
+				Matcher srcHrefMatcher = srcHrefExp.matcher(pageContent);
+				Iterator<String> srcHrefUrls = new Iterator<String>() {
+					@Override
+					public boolean hasNext() {
+						return srcHrefMatcher.find();
+					}
+					
+					@Override
+					public String next() {
+						return srcHrefMatcher.group(4);
+					}
+				};
+				
+				// 3. seed 定义的扩展提取地址
+				Stream<String> extendedUrls = ObjectUtils.firstNonNull(seed.enhancedDistillUrl(ue, ctx), Stream.empty());
+				
+				String protocolPrefix = ue.getProtocol() + ":", root = currentRoot;
+				
+				Streams.concat(Streams.stream(srcHrefUrls), extendedUrls).forEach(value -> {
+					String tUrl;
+					if (value == null || value.length() == 0 || value.startsWith("#")
+							|| value.startsWith("mailto:") || value.startsWith("javascript:")) {
+						return;
+					} else if (value.startsWith("http:") || value.startsWith("https:")) {
+						tUrl = value;
+					} else if (value.startsWith("//")) {
+						tUrl = protocolPrefix + value;
+					} else if (value.startsWith("/")) {
+						tUrl = root.substring(0, root.indexOf('/', 9)) + value;
 					} else {
-						tUrl = currentRoot + tValue;
+						tUrl = root + value;
 					}
 					urls.add(HttpClientAssist.getShortURL(tUrl));
-				}
+				});
 			} catch (Exception e) {
 				log.error("分析页面链接时异常: " + ue.getCurrentURL(), e);
 			}
@@ -414,12 +412,11 @@ public class Crawler<CTX extends UrlContext> {
 			Charset enc = ue.getEntityEncoding();
 			return urls.stream()
 			           .filter(url -> url.length() > 0)
-			           .map(url ->
-					           Htmls.urlDecode(url
-							           .replace("&amp;", "&")
-							           .replace("&lt;", "<")
-							           .replace("&gt;", ">")
-							           .replace("&quot;", "\""), enc));
+			           .map(url -> Htmls.urlDecode(url
+					           .replace("&amp;", "&")
+					           .replace("&lt;", "<")
+					           .replace("&gt;", ">")
+					           .replace("&quot;", "\""), enc));
 		}
 		
 		private boolean isMalformedUrl(Exception ex) {

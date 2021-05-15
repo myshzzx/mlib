@@ -20,7 +20,8 @@ public class TaskGroup<T> {
 	private boolean allowPartialResult;
 	private Queue<Future<Object>> tasks = new LinkedBlockingQueue<>();
 	
-	private TaskGroup() {}
+	private TaskGroup() {
+	}
 	
 	public static <T> TaskGroup<T> of(ExecutorService exec) {
 		TaskGroup<T> taskGroup = new TaskGroup<>();
@@ -40,8 +41,10 @@ public class TaskGroup<T> {
 		});
 	}
 	
-	public void execute(Try.ExpCallable<T> c) {
-		if (stop || c == null) {return;}
+	public void execute(Try.ExpCallable<T, Throwable> c) {
+		if (stop || c == null) {
+			return;
+		}
 		
 		Future<Object> task = exec.submit(() -> {
 			try {
@@ -69,7 +72,7 @@ public class TaskGroup<T> {
 	 * @param timeoutMilliSec 整个任务组等待超时. 超时也抛异常.非正表示不超时.
 	 * @return
 	 */
-	public Throwable iterResults(Try.ExpConsumer<T> c, long timeoutMilliSec) {
+	public Throwable iterResults(Try.ExpConsumer<T, Throwable> c, long timeoutMilliSec) {
 		stop = true;
 		long timeLimit = timeoutMilliSec > 0 ? System.currentTimeMillis() + timeoutMilliSec : Long.MAX_VALUE;
 		for (Future<Object> task : tasks) {

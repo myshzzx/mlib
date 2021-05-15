@@ -125,7 +125,7 @@ public class Images {
 	 * @param handler (src, dst)->{}
 	 */
 	public static void handleFolderImg(
-			File sourceDir, @Nullable Predicate<Path> fileFilter, File targetDir, Try.ExpBiConsumer<File, File> handler) throws Exception {
+			File sourceDir, @Nullable Predicate<Path> fileFilter, File targetDir, Try.ExpBiConsumer<File, File, Exception> handler) throws Exception {
 		ExecutorService ex = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		Path src = sourceDir.toPath();
 		Files.walk(src)

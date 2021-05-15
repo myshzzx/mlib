@@ -2,6 +2,7 @@ package mysh.crawler2;
 
 import mysh.net.httpclient.HttpClientAssist;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
@@ -35,6 +36,8 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	/**
 	 * whether the url & ctx should be crawled NOW.<br/>
 	 * need a EFFICIENT implementation.
+	 *
+	 * @param url analyzed url, e.g. <b>/../a</b> in page will be transformed to <b>http://root/a</b>
 	 */
 	boolean accept(String url, CTX ctx);
 	
@@ -69,6 +72,14 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	 */
 	default boolean needToDistillUrls(HttpClientAssist.UrlEntity ue, CTX ctx) {
 		return true;
+	}
+	
+	/**
+	 * besides http url, src/href properties, user can distill extended url/uri by special rules
+	 */
+	@Nullable
+	default Stream<String> enhancedDistillUrl(HttpClientAssist.UrlEntity ue, CTX ctx) {
+		return null;
 	}
 	
 	/**

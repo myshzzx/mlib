@@ -403,13 +403,8 @@ public class HttpClientAssist implements Closeable {
 					break;
 				case "..":
 					tPath[index] = null;
-					try {
+					if (!lastUnNullBlankIndex.isEmpty())
 						tPath[lastUnNullBlankIndex.pop()] = null;
-					} catch (NoSuchElementException e) {
-						// String msg = "URI 简化失败: " + uriString;
-						// Exception ex = new Exception(msg);
-						return uriString;
-					}
 					break;
 				default:
 					lastUnNullBlankIndex.push(index);
@@ -567,6 +562,15 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public int getStatusCode() {
 			return rsp.code();
+		}
+		
+		/**
+		 * get response header
+		 *
+		 * @param name see {@link com.google.common.net.HttpHeaders}
+		 */
+		public String getRspHeader(String name) {
+			return rsp.header(name);
 		}
 		
 		/**
