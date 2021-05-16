@@ -3,6 +3,7 @@ package mysh.sql.sqlite;
 import com.google.common.base.Joiner;
 import lombok.Getter;
 import mysh.collect.Colls;
+import mysh.os.Oss;
 import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -137,6 +138,8 @@ public class SqliteDB implements Closeable {
 		poolConfig.setMaxTotal(5);
 		poolConfig.setMaxWaitMillis(1000);
 		poolConfig.setTimeBetweenEvictionRunsMillis(600_000);
+		if (Oss.isAndroid())
+			poolConfig.setJmxEnabled(false);
 		
 		SQLiteDataSource sqliteDs = new SQLiteDataSource(config);
 		sqliteDs.setUrl("jdbc:sqlite:" + file);
