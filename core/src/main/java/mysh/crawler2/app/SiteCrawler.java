@@ -17,6 +17,8 @@ import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import mysh.os.HotKeysGlobal;
 import mysh.sql.sqlite.SqliteDB;
+import mysh.tulskiy.keymaster.common.HotKeyListener;
+import mysh.util.Strings;
 import mysh.util.Try;
 
 import javax.annotation.Nonnull;
@@ -42,7 +44,7 @@ import java.util.stream.Stream;
  * @since 2021-05-15
  */
 @Slf4j
-public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
+public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed<CTX>, Closeable {
 	private static final long serialVersionUID = -537294199713566818L;
 	
 	@Data
@@ -50,8 +52,9 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 	protected static class SiteConfig implements Serializable {
 		private static final long serialVersionUID = 8100792219369925962L;
 		
-		private String name, siteRoot, sqliteDbFile;
-		private int crawlRatePerMin = 60, crawlerThreadPoolSize = 5;
+		private String name, siteRoot, dbFile;
+		private boolean dbUseLock = false;
+		private int dbMmapSize = 134217728, crawlRatePerMin = 60, crawlerThreadPoolSize = 5;
 		
 		@Nullable
 		private transient HttpClientConfig hcc;
@@ -68,26 +71,32 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 		private byte[] content;
 	}
 	
-	protected SiteConfig config;
-	protected SqliteDB.KvDAO pageDAO;
-	protected SqliteDB.KvDAO configDAO;
+	protected final SiteConfig config;
+	private final SqliteDB db;
+	protected final SqliteDB.KvDAO pageDAO;
+	protected final SqliteDB.KvDAO configDAO;
 	
 	protected SiteCrawler() {
 		config = getConfig();
-		SqliteDB db = new SqliteDB(Paths.get(config.sqliteDbFile));
+		db = new SqliteDB(Paths.get(config.dbFile), config.dbUseLock, config.dbMmapSize);
 		String table = CodeUtil.camel2underline(config.name).toLowerCase();
 		pageDAO = db.genKvDAO(table + "_pages", true, false);
 		configDAO = db.genKvDAO(table + "_config", true, false);
-		configDAO.save("config", config);
+	}
+	
+	@Override
+	public void close() throws IOException {
+		if (db != null)
+			db.close();
 	}
 	
 	protected abstract SiteConfig getConfig();
 	
 	@Override
-	public Stream<UrlCtxHolder<UrlContext>> getSeeds() {
+	public Stream<UrlCtxHolder<CTX>> getSeeds() {
 		SqliteDB.Item unhandledTasksItem = configDAO.itemByKey("unhandledTasks");
 		if (unhandledTasksItem != null && dbItemValid(unhandledTasksItem)) {
-			Collection<UrlCtxHolder<UrlContext>> tasks = unhandledTasksItem.getValue();
+			Collection<UrlCtxHolder<CTX>> tasks = unhandledTasksItem.getValue();
 			if (Colls.isNotEmpty(tasks))
 				return tasks.stream();
 		}
@@ -117,7 +126,7 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 	}
 	
 	@Override
-	public boolean onGet(HttpClientAssist.UrlEntity ue, UrlContext urlContext) {
+	public boolean onGet(HttpClientAssist.UrlEntity ue, CTX urlContext) {
 		try {
 			if (ue.getStatusCode() == 200) {
 				String uri = getReqUri(ue.getReqUrl());
@@ -137,23 +146,41 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 	}
 	
 	@Override
-	public void onCrawlerStopped(Collection<UrlCtxHolder<UrlContext>> unhandledTasks) {
+	public void onCrawlerStopped(Collection<UrlCtxHolder<CTX>> unhandledTasks) {
 		configDAO.save("unhandledTasks", unhandledTasks);
 	}
 	
 	/**
 	 * 启动爬虫并等待结束
+	 *
+	 * @return
 	 */
-	public void startAndWaitForCrawler() throws Exception {
-		Crawler<UrlContext> crawler = new Crawler<>(this,
+	public Crawler<CTX> startCrawler() throws Exception {
+		Crawler<CTX> crawler = new Crawler<>(this,
 				config.hcc, config.proxySelector, config.crawlRatePerMin, config.crawlerThreadPoolSize)
 				.start();
-		log.warn("crawler started, press alt shift S to stop, {}", this.getConfig());
-		HotKeysGlobal.registerKeyListener("alt shift S", e -> crawler.stop());
+		log.warn("crawler started, {}, config={}", getClass(), config);
+		return crawler;
+	}
+	
+	/**
+	 * 启动爬虫并等待结束. 可设置全局快捷键来停止, 放空则不设置
+	 *
+	 * @param globalStopHotkey e.g. <b>alt shift S</b>
+	 */
+	public void startCrawlerAndWait(@Nullable String globalStopHotkey) throws Exception {
+		Crawler<CTX> crawler = startCrawler();
+		HotKeyListener stopAction = e -> crawler.stop();
+		if (Strings.isNotBlank(globalStopHotkey)) {
+			HotKeysGlobal.registerKeyListener(globalStopHotkey, stopAction);
+			log.warn("press {} to stop crawler", globalStopHotkey);
+		}
 		try {
 			crawler.waitForStop();
 		} finally {
-			HotKeysGlobal.reset();
+			if (Strings.isNotBlank(globalStopHotkey)) {
+				HotKeysGlobal.unregisterKeyListener(globalStopHotkey, stopAction);
+			}
 		}
 	}
 	
@@ -165,7 +192,7 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 		
 		ThreadPoolExecutor httpExec = new ThreadPoolExecutor(
 				Runtime.getRuntime().availableProcessors(),
-				256, 1, TimeUnit.MINUTES,
+				64, 1, TimeUnit.MINUTES,
 				new SynchronousQueue<>(), r -> {
 			Thread t = new Thread(r, getClass().getSimpleName() + "-http-server");
 			t.setDaemon(true);
@@ -200,9 +227,10 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 				for (Map.Entry<String, List<String>> reqHeader : exchange.getRequestHeaders().entrySet()) {
 					headers.put(reqHeader.getKey(), reqHeader.getValue().get(0));
 				}
+				headers.remove(HttpHeaders.HOST);
 				try (HttpClientAssist.UrlEntity ue = hca.access(config.siteRoot + uriStr, headers)) {
 					if (ue.getStatusCode() == 200)
-						onGet(ue, new UrlContext());
+						onGet(ue, null);
 					
 					exchange.getResponseHeaders().set(HttpHeaders.CONTENT_TYPE, ue.getRspHeader(HttpHeaders.CONTENT_TYPE));
 					exchange.sendResponseHeaders(ue.getStatusCode(), 0);
@@ -229,7 +257,7 @@ public abstract class SiteCrawler implements CrawlerSeed<UrlContext> {
 		server.setExecutor(httpExec);
 		server.start();
 		
-		log.warn("{}-WebServer started in http://localhost:{}/", getClass().getSimpleName(), port);
+		log.warn("SiteCrawler-WebServer started in http://localhost:{}/, {}, config={}", port, getClass(), config);
 		return () -> {
 			hca.close();
 			server.stop(0);

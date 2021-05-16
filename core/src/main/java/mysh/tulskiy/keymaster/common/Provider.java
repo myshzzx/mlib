@@ -103,6 +103,8 @@ public abstract class Provider {
      * @see KeyStroke
      */
     public abstract void register(KeyStroke keyCode, HotKeyListener listener);
+    
+    public abstract void unregister(KeyStroke keyCode, HotKeyListener listener);
 
     /**
      * Register a media hotkey. Currently supported media keys are:
@@ -119,6 +121,8 @@ public abstract class Provider {
      * @see MediaKey
      */
     public abstract void register(MediaKey mediaKey, HotKeyListener listener);
+    
+    public abstract void unregister(MediaKey mediaKey, HotKeyListener listener);
 
     /**
      * Helper method fro providers to fire hotkey event in a separate thread

@@ -17,6 +17,8 @@
 
 package mysh.tulskiy.keymaster.common;
 
+import lombok.EqualsAndHashCode;
+
 import javax.swing.*;
 
 /**
@@ -25,6 +27,7 @@ import javax.swing.*;
  * Author: Denis Tulskiy
  * Date: 6/20/11
  */
+@EqualsAndHashCode
 public class HotKey {
     public KeyStroke keyStroke;
     public MediaKey mediaKey;

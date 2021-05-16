@@ -1,6 +1,7 @@
 package mysh.util;
 
 import mysh.os.HotKeysGlobal;
+import mysh.tulskiy.keymaster.common.HotKeyListener;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -17,11 +18,15 @@ import java.util.concurrent.CountDownLatch;
 @Disabled
 public class HotKeysGlobalTest {
 	private static final Logger log = LoggerFactory.getLogger(HotKeysGlobalTest.class);
-
+	
 	@Test
 	public void t1() throws InterruptedException {
-		HotKeysGlobal.registerKeyListener("alt shift F", e -> log.info("key pressed"));
+		HotKeyListener action = e -> log.info("key pressed");
+		HotKeysGlobal.registerKeyListener("alt shift F", action);
+		Times.sleepNoExp(3000);
+		HotKeysGlobal.unregisterKeyListener("alt shift F", action);
+		
 		new CountDownLatch(1).await();
 	}
-
+	
 }

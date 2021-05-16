@@ -1,25 +1,22 @@
 package mysh.sql.sqlite;
 
-import com.alibaba.druid.pool.DruidDataSource;
-import com.alibaba.druid.pool.DruidPooledConnection;
 import com.google.common.base.Joiner;
 import lombok.Getter;
 import mysh.collect.Colls;
-import mysh.os.Oss;
 import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.sqlite.SQLiteConfig;
-import org.sqlite.javax.SQLiteConnectionPoolDataSource;
+import org.sqlite.SQLiteDataSource;
 
 import javax.annotation.Nullable;
-import javax.sql.DataSource;
 import java.io.Closeable;
 import java.nio.file.Path;
-import java.sql.Statement;
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -33,7 +30,8 @@ public class SqliteDB implements Closeable {
 	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
-	private DataSource ds;
+	private PooledSQLiteDataSource ds;
+	private Path dbFile;
 	@Getter
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	private Set<String> existTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
@@ -113,82 +111,80 @@ public class SqliteDB implements Closeable {
 	}
 	
 	public SqliteDB(Path file) {
-		this(file, false);
+		this(file, false, 0);
 	}
 	
 	/**
-	 * @see #newDataSource
-	 */
-	public SqliteDB(Path file, boolean useLock) {
-		this(file, useLock, 0);
-	}
-	
-	/**
-	 * @see #newDataSource
+	 * @see #newSqliteConfig
 	 */
 	public SqliteDB(Path file, boolean useLock, int mmapSize) {
-		ds = newDataSource(file, useLock, Math.max(0, mmapSize));
-		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
-		
-		// if (useLock)
-		// 	jdbcTemplate.queryForList("PRAGMA locking_mode=EXCLUSIVE", Collections.emptyMap());
-		// if (mmapSize > 0)
-		// 	jdbcTemplate.queryForList("PRAGMA mmap_size=" + mmapSize, Collections.emptyMap());
-	}
-	
-	public SqliteDB(DataSource ds) {
-		this.ds = ds;
-		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+		this(file, newSqliteConfig(useLock ? SQLiteConfig.LockingMode.EXCLUSIVE : SQLiteConfig.LockingMode.NORMAL,
+				mmapSize, SQLiteConfig.SynchronousMode.NORMAL, SQLiteConfig.JournalMode.OFF));
 	}
 	
 	/**
-	 * PRAGMA 优化配置见: <a href='https://www.cnblogs.com/cchust/p/4754619.html'>日志模式</a>
-	 * 和 <a href='https://www.runoob.com/sqlite/sqlite-pragma.html'>pragma 说明</a>
-	 *
-	 * @param useLock  use lock to gain 10 times speed up IO performance, but this block file access from other processes.
-	 * @param mmapSize Memory-Mapped file size(byte), 0 to disable. usually 268435456 or more. <a href='https://cloud.tencent.com/developer/section/1420023'>see more</a'>
+	 * @see #newSqliteConfig
 	 */
-	public static DataSource newDataSource(Path file, boolean useLock, int mmapSize) {
+	public SqliteDB(Path file, SQLiteConfig config) {
 		if (!file.toFile().getParentFile().exists())
 			file.toFile().getParentFile().mkdirs();
 		
-		String url = String.format("jdbc:sqlite:%s?locking_mode=%s&mmap_size=%d",
-				file.toString(), useLock ? "EXCLUSIVE" : "NORMAL", mmapSize);
-		if (Oss.isAndroid()) {
-			SQLiteConnectionPoolDataSource ds = new SQLiteConnectionPoolDataSource();
-			ds.setUrl(url);
-			ds.setPageSize(4096); //in bytes
-			ds.setSynchronous(SQLiteConfig.SynchronousMode.NORMAL.getValue());
-			ds.setJournalMode(SQLiteConfig.JournalMode.OFF.getValue());
-			return ds;
-		} else {
-			DruidDataSource ds = new DruidDataSource(true);
-			ds.setUrl(url);
-			ds.setMaxActive(10);
-			ds.setTestWhileIdle(false);
-			ds.setTestOnBorrow(true);
-			ds.setTestOnReturn(false);
-			ds.setValidationQuery("select 1");
-			try (DruidPooledConnection conn = ds.getConnection()) {
-				try (Statement stat = conn.createStatement()) {
-					stat.execute("PRAGMA synchronous = NORMAL");
-					stat.execute("PRAGMA journal_mode = OFF");
-				}
-			} catch (Exception e) {
-				log.error("init-sqlite-db-fail", e);
-			}
-			
-			return ds;
-		}
+		dbFile = file;
+		log.debug("init-sqliteDB, file={}, config={}", file, config.toProperties());
+		
+		GenericObjectPoolConfig<Connection> poolConfig = new GenericObjectPoolConfig<>();
+		poolConfig.setMinIdle(1);
+		poolConfig.setMaxTotal(5);
+		poolConfig.setMaxWaitMillis(1000);
+		poolConfig.setTimeBetweenEvictionRunsMillis(600_000);
+		
+		SQLiteDataSource sqliteDs = new SQLiteDataSource(config);
+		sqliteDs.setUrl("jdbc:sqlite:" + file);
+		ds = new PooledSQLiteDataSource(poolConfig, sqliteDs);
+		
+		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
+	}
+	
+	/**
+	 * PRAGMA 配置: <a href='https://www.runoob.com/sqlite/sqlite-pragma.html'>pragma 说明</a>
+	 * <p>
+	 * locking:  default NORMAL. use lock to gain 10 times speed up IO performance,
+	 * but lock will prevent db file from being accessed by other processes.
+	 * see <a href='https://www.sqlite.org/pragma.html#pragma_locking_mode'>locking_mode</a>
+	 * <p>
+	 * mmap_size: Memory-Mapped file size(byte), 0 to disable. usually 268435456 or more.
+	 * see <a href='https://cloud.tencent.com/developer/section/1420023'>Memory-Mapped I/O</a'>
+	 * <p>
+	 * synchronous: 0 | OFF | 1 | NORMAL | 2 | FULL | 3 | EXTRA
+	 * <a href='https://www.sqlite.org/pragma.html#pragma_synchronous'>official</a>
+	 * <p>
+	 * journal: DELETE | TRUNCATE | PERSIST | MEMORY | WAL | OFF
+	 * <a href='https://www.cnblogs.com/cchust/p/4754619.html'>日志模式</a>,
+	 * <a href='https://www.sqlite.org/pragma.html#pragma_journal_mode'>official</a>
+	 * <p>
+	 */
+	public static SQLiteConfig newSqliteConfig(SQLiteConfig.LockingMode lockingMode, int mmapSize,
+	                                           SQLiteConfig.SynchronousMode synchronousMode, SQLiteConfig.JournalMode journalMode) {
+		SQLiteConfig config = new SQLiteConfig();
+		if (lockingMode != null)
+			config.setLockingMode(lockingMode);
+		if (mmapSize > 0)
+			config.setPragma(SQLiteConfig.Pragma.MMAP_SIZE, String.valueOf(mmapSize));
+		if (synchronousMode != null)
+			config.setSynchronous(synchronousMode);
+		if (journalMode != null)
+			config.setJournalMode(journalMode);
+		return config;
 	}
 	
 	@Override
 	public void close() {
 		if (ds instanceof Closeable) {
 			try {
+				log.debug("closing-sqlite-DS: {}", dbFile);
 				((Closeable) ds).close();
 			} catch (Exception e) {
-				log.error("close-DS-fail", e);
+				log.error("close-sqlite-DS-fail", e);
 			}
 		}
 	}
