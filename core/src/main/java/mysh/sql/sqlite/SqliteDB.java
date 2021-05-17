@@ -4,6 +4,7 @@ import com.google.common.base.Joiner;
 import lombok.Getter;
 import mysh.collect.Colls;
 import mysh.os.Oss;
+import mysh.sql.PooledDataSource;
 import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
@@ -31,7 +32,7 @@ public class SqliteDB implements Closeable {
 	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
-	private PooledSQLiteDataSource ds;
+	private PooledDataSource ds;
 	private Path dbFile;
 	@Getter
 	private NamedParameterJdbcTemplate jdbcTemplate;
@@ -143,7 +144,7 @@ public class SqliteDB implements Closeable {
 		
 		SQLiteDataSource sqliteDs = new SQLiteDataSource(config);
 		sqliteDs.setUrl("jdbc:sqlite:" + file);
-		ds = new PooledSQLiteDataSource(poolConfig, sqliteDs);
+		ds = new PooledDataSource(poolConfig, sqliteDs);
 		
 		jdbcTemplate = new NamedParameterJdbcTemplate(ds);
 	}
@@ -182,13 +183,11 @@ public class SqliteDB implements Closeable {
 	
 	@Override
 	public void close() {
-		if (ds instanceof Closeable) {
-			try {
-				log.debug("closing-sqlite-DS: {}", dbFile);
-				((Closeable) ds).close();
-			} catch (Exception e) {
-				log.error("close-sqlite-DS-fail", e);
-			}
+		try {
+			log.debug("closing-sqlite-DS: {}", dbFile);
+			ds.close();
+		} catch (Exception e) {
+			log.error("close-sqlite-DS-fail", e);
 		}
 	}
 	

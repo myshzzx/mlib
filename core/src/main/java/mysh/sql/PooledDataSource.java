@@ -1,4 +1,4 @@
-package mysh.sql.sqlite;
+package mysh.sql;
 
 import org.apache.commons.pool2.BasePooledObjectFactory;
 import org.apache.commons.pool2.DestroyMode;
@@ -6,7 +6,6 @@ import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.sqlite.SQLiteDataSource;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
@@ -25,9 +24,9 @@ import java.util.logging.Logger;
  * @author mysh
  * @since 2021-05-16
  */
-public class PooledSQLiteDataSource implements DataSource, Closeable, AutoCloseable {
+public class PooledDataSource implements DataSource, Closeable, AutoCloseable {
 	private GenericObjectPool<Connection> pool;
-	private SQLiteDataSource ds;
+	private DataSource ds;
 	
 	private interface PooledConnection {
 		void destroy() throws SQLException;
@@ -35,8 +34,8 @@ public class PooledSQLiteDataSource implements DataSource, Closeable, AutoClosea
 		void renew() throws SQLException;
 	}
 	
-	public PooledSQLiteDataSource(GenericObjectPoolConfig<Connection> poolConfig, SQLiteDataSource sqliteDs) {
-		ds = sqliteDs;
+	public PooledDataSource(GenericObjectPoolConfig<Connection> poolConfig, DataSource dataSource) {
+		ds = dataSource;
 		pool = new GenericObjectPool<>(new BasePooledObjectFactory<Connection>() {
 			@Override
 			public void destroyObject(PooledObject<Connection> p, DestroyMode mode) throws Exception {
