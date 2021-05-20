@@ -1,6 +1,7 @@
 package mysh.spring;
 
 import com.alibaba.fastjson.JSON;
+import com.google.common.io.ByteStreams;
 import mysh.util.Exps;
 import mysh.util.Serializer;
 import mysh.util.Strings;
@@ -21,7 +22,11 @@ import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLConnection;
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Map;
 
 /**
  * spring 导出类, 方便本地测试.
@@ -209,4 +214,48 @@ public class SpringExporter implements ApplicationContextAware {
 		return (T) enhancer.create();
 	}
 	
+	public static <T> T proxyHttp(String url, Class<T> type, @Nullable String beanName,
+	                              @Nullable Map<String, String> headers) {
+		Enhancer enhancer = new Enhancer();
+		enhancer.setSuperclass(type);
+		enhancer.setCallback(
+				(InvocationHandler) (o, method, args) -> {
+					try {
+						URL u = new URL(url);
+						URLConnection conn = u.openConnection();
+						if (headers != null) {
+							headers.forEach(conn::addRequestProperty);
+						}
+						String invokeStr = objToBase64(
+								new Invoke(type, beanName,
+										method.getDeclaringClass(), method.getName(), method.getParameterTypes(),
+										args));
+						// put invokeStr to request header
+						conn.addRequestProperty("invoke", invokeStr);
+						conn.connect();
+						Result r = base64ToObj(conn.getInputStream());
+						return r.getResult();
+					} catch (Exception e) {
+						throw e;
+					}
+				});
+		return (T) enhancer.create();
+	}
+	
+	public String handleHttpReq(String invokeStr) throws NoSuchMethodException {
+		SpringExporter.Result r = invoke(SpringExporter.base64ToObj(invokeStr));
+		return SpringExporter.objToBase64(r);
+	}
+	
+	private static String objToBase64(Object obj) {
+		return Base64.getEncoder().encodeToString(SERIALIZER.serialize(obj));
+	}
+	
+	private static <T> T base64ToObj(String str) {
+		return SERIALIZER.deserialize(Base64.getDecoder().decode(str));
+	}
+	
+	private static <T> T base64ToObj(InputStream is) throws IOException {
+		return SERIALIZER.deserialize(Base64.getDecoder().decode(ByteStreams.toByteArray(is)));
+	}
 }
