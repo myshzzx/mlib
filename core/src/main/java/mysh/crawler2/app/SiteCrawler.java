@@ -23,7 +23,12 @@ import mysh.util.Try;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.*;
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.Serializable;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
@@ -206,6 +211,8 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			String uriStr = uri.toString();
 			String reqUri = getReqUri(uriStr);
 			SqliteDB.Item item = pageDAO.itemByKey(reqUri);
+			
+			// 将 item 返回请求端
 			Try.ExpRunnable<IOException> sendPageInfo = () -> {
 				PageInfo pageInfo = item.getValue();
 				
@@ -220,18 +227,36 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 				}
 			};
 			
-			if (item != null && dbItemValid(item)) {
-				sendPageInfo.run();
-			} else {
+			// 从远程源加载页面
+			Headers requestHeaders = exchange.getRequestHeaders();
+			Try.ExpCallable<HttpClientAssist.UrlEntity, Throwable> fetchPage = () -> {
 				Map<String, String> headers = new HashMap<>();
-				for (Map.Entry<String, List<String>> reqHeader : exchange.getRequestHeaders().entrySet()) {
+				for (Map.Entry<String, List<String>> reqHeader : requestHeaders.entrySet()) {
 					headers.put(reqHeader.getKey(), reqHeader.getValue().get(0));
 				}
 				headers.remove(HttpHeaders.HOST);
-				try (HttpClientAssist.UrlEntity ue = hca.access(config.siteRoot + uriStr, headers)) {
+				return hca.access(config.siteRoot + uriStr, headers);
+			};
+			
+			if (item != null) {
+				// 有数据直接返回
+				sendPageInfo.run();
+				if (!dbItemValid(item)) {
+					// 发现失效的数据触发一次异步加载
+					httpExec.execute(() -> {
+						try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {
+							if (ue.getStatusCode() == 200)
+								onGet(ue, null);
+						} catch (Throwable t) {
+							log.error("load page async fail: {}", uriStr, t);
+						}
+					});
+				}
+			} else {
+				// 无数据开启同步加载
+				try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {
 					if (ue.getStatusCode() == 200)
 						onGet(ue, null);
-					
 					exchange.getResponseHeaders().set(HttpHeaders.CONTENT_TYPE, ue.getRspHeader(HttpHeaders.CONTENT_TYPE));
 					exchange.sendResponseHeaders(ue.getStatusCode(), 0);
 					try (InputStream in = exchange.getRequestBody();
@@ -240,14 +265,10 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 					}
 				} catch (Throwable t) {
 					log.error("load page failed, {}, exp={}", uriStr, t.toString());
-					if (item != null) {
-						sendPageInfo.run();
-					} else {
-						exchange.sendResponseHeaders(500, 0);
-						try (InputStream in = exchange.getRequestBody();
-						     OutputStream out = exchange.getResponseBody()) {
-							t.printStackTrace(new PrintWriter(out));
-						}
+					exchange.sendResponseHeaders(500, 0);
+					try (InputStream in = exchange.getRequestBody();
+					     OutputStream out = exchange.getResponseBody()) {
+						t.printStackTrace(new PrintWriter(out));
 					}
 				}
 			}
