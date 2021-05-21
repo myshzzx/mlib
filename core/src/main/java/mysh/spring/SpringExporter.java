@@ -277,10 +277,12 @@ public class SpringExporter implements ApplicationContextAware {
 	}
 	
 	private static <T> T base64ToObj(String str) {
-		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(str)));
+		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(str.trim())));
 	}
 	
 	private static <T> T base64ToObj(InputStream is) throws IOException {
-		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(ByteStreams.toByteArray(is))));
+		byte[] buf = ByteStreams.toByteArray(is);
+		String b64 = new String(buf).trim();
+		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(b64)));
 	}
 }
