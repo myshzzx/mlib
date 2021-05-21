@@ -1,5 +1,6 @@
 package mysh.crawler2.app;
 
+import com.google.common.io.ByteStreams;
 import com.google.common.net.HttpHeaders;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpHandler;
@@ -23,20 +24,12 @@ import mysh.util.Try;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintWriter;
-import java.io.Serializable;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.nio.file.Paths;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -132,8 +125,8 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	
 	@Override
 	public boolean onGet(HttpClientAssist.UrlEntity ue, CTX urlContext) {
-		try {
-			if (ue.getStatusCode() == 200) {
+		if (ue.getStatusCode() == 200) {
+			try {
 				String uri = getReqUri(ue.getReqUrl());
 				pageDAO.save(uri, new PageInfo()
 						.setHeader(Colls.ofHashMap(
@@ -142,12 +135,12 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 						.setContent(ue.getEntityBuf())
 				);
 				return true;
-			} else
-				return ue.getStatusCode() == 404;
-		} catch (Throwable t) {
-			log.error("get page fail: {}", ue.getReqUrl(), t);
-			return false;
-		}
+			} catch (Throwable t) {
+				log.error("get page fail: {}", ue.getReqUrl(), t);
+				return false;
+			}
+		} else
+			return ue.getStatusCode() == 404;
 	}
 	
 	@Override
@@ -207,6 +200,18 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		
 		HttpClientAssist hca = new HttpClientAssist(config.hcc, config.proxySelector);
 		HttpHandler httpHandler = exchange -> {
+			Headers rspHeaders = exchange.getResponseHeaders();
+			// https://www.ruanyifeng.com/blog/2016/04/cors.html
+			Headers reqHeaders = exchange.getRequestHeaders();
+			reqHeaders
+					.getOrDefault("Access-Control-Request-Headers", Collections.emptyList())
+					.forEach(h -> rspHeaders.add("Access-Control-Allow-Headers", h));
+			rspHeaders.add("Access-Control-Allow-Methods", "GET, OPTIONS, POST");
+			rspHeaders.add("Access-Control-Allow-Credentials", "true");
+			rspHeaders.add("Access-Control-Max-Age", "86400");
+			rspHeaders.add("Access-Control-Allow-Origin",
+					reqHeaders.getOrDefault("Origin", Colls.ofList("*")).get(0));
+			
 			URI uri = exchange.getRequestURI();
 			String uriStr = uri.toString();
 			String reqUri = getReqUri(uriStr);
@@ -216,9 +221,9 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			Try.ExpRunnable<IOException> sendPageInfo = () -> {
 				PageInfo pageInfo = item.getValue();
 				
-				Headers rspHeaders = exchange.getResponseHeaders();
-				for (Map.Entry<String, String> rspHeader : pageInfo.header.entrySet()) {
-					rspHeaders.set(rspHeader.getKey(), rspHeader.getValue());
+				for (Map.Entry<String, String> header : pageInfo.header.entrySet()) {
+					if (header.getKey() != null && header.getValue() != null)
+						rspHeaders.set(header.getKey(), header.getValue());
 				}
 				exchange.sendResponseHeaders(200, 0);
 				try (InputStream in = exchange.getRequestBody();
@@ -235,7 +240,12 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 					headers.put(reqHeader.getKey(), reqHeader.getValue().get(0));
 				}
 				headers.remove(HttpHeaders.HOST);
-				return hca.access(config.siteRoot + uriStr, headers);
+				
+				String url = config.siteRoot + uriStr;
+				if ("POST".equals(exchange.getRequestMethod()))
+					return hca.accessPostBytes(url, headers, ByteStreams.toByteArray(exchange.getRequestBody()));
+				else
+					return hca.access(url, headers);
 			};
 			
 			if (item != null) {
@@ -245,8 +255,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 					// 发现失效的数据触发一次异步加载
 					httpExec.execute(() -> {
 						try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {
-							if (ue.getStatusCode() == 200)
-								onGet(ue, null);
+							onGet(ue, null);
 						} catch (Throwable t) {
 							log.error("load page async fail: {}", uriStr, t);
 						}
@@ -255,16 +264,19 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			} else {
 				// 无数据开启同步加载
 				try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {
-					if (ue.getStatusCode() == 200)
+					if ("GET".equals(exchange.getRequestMethod()))
 						onGet(ue, null);
-					exchange.getResponseHeaders().set(HttpHeaders.CONTENT_TYPE, ue.getRspHeader(HttpHeaders.CONTENT_TYPE));
+					
+					String contentType = ue.getRspHeader(HttpHeaders.CONTENT_TYPE);
+					if (contentType != null)
+						exchange.getResponseHeaders().set(HttpHeaders.CONTENT_TYPE, contentType);
 					exchange.sendResponseHeaders(ue.getStatusCode(), 0);
 					try (InputStream in = exchange.getRequestBody();
 					     OutputStream out = exchange.getResponseBody()) {
 						out.write(ue.getEntityBuf());
 					}
 				} catch (Throwable t) {
-					log.error("load page failed, {}, exp={}", uriStr, t.toString());
+					log.error("load page failed, {}", uriStr, t);
 					exchange.sendResponseHeaders(500, 0);
 					try (InputStream in = exchange.getRequestBody();
 					     OutputStream out = exchange.getResponseBody()) {

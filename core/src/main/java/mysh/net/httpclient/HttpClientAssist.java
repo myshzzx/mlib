@@ -227,18 +227,22 @@ public class HttpClientAssist implements Closeable {
 	 * WARNING: the entity must be closed in time,
 	 * because an unclosed entity will hold a connection from connection-pool.
 	 *
-	 * @param headers request headers.
+	 * @param headers request headers. highly recommend to use CONTENT_TYPE header to indicate content.
 	 * @throws IOException 连接异常.
 	 */
 	public UrlEntity accessPostBytes(
-			String url, @Nullable Map<String, ?> headers, String contentType, @Nullable byte[] buf) throws IOException {
+			String url, @Nullable Map<String, String> headers, @Nullable byte[] buf) throws IOException {
 		Request.Builder rb = new Request.Builder().url(url);
 		if (buf != null) {
-			rb.post(RequestBody.Companion.create(buf,
-					MediaType.get(ObjectUtils.firstNonNull(contentType, Htmls.MIME_STREAM))));
+			String contentTypeHeader = Htmls.MIME_STREAM;
+			if (headers != null)
+				contentTypeHeader = headers.entrySet().stream()
+				                           .filter(e -> HttpHeaders.CONTENT_TYPE.equalsIgnoreCase(e.getKey()))
+				                           .map(Map.Entry::getValue)
+				                           .findAny().orElse(contentTypeHeader);
+			rb.post(RequestBody.Companion.create(buf, MediaType.get(contentTypeHeader)));
 		}
 		return access(rb, headers);
-		
 	}
 	
 	/**
