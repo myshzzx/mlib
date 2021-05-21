@@ -2,6 +2,7 @@ package mysh.spring;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.io.ByteStreams;
+import mysh.util.Compresses;
 import mysh.util.Exps;
 import mysh.util.Serializer;
 import mysh.util.Strings;
@@ -20,10 +21,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map;
@@ -162,12 +165,11 @@ public class SpringExporter implements ApplicationContextAware {
 		}).start();
 	}
 	
-	public Result invoke(Invoke iv) throws NoSuchMethodException {
-		Object bean = Strings.isNotBlank(iv.beanName) ? ctx.getBean(iv.beanName) : ctx.getBean(iv.type);
-		Method method = findMethod(iv.methodClass, iv.methodName, iv.methodParamsTypes);
-		
+	public Result invoke(Invoke iv) {
 		Result r = new Result();
 		try {
+			Object bean = Strings.isNotBlank(iv.beanName) ? ctx.getBean(iv.beanName) : ctx.getBean(iv.type);
+			Method method = findMethod(iv.methodClass, iv.methodName, iv.methodParamsTypes);
 			Object value = method.invoke(bean, iv.args);
 			r.setResult(value);
 		} catch (Throwable t) {
@@ -214,48 +216,71 @@ public class SpringExporter implements ApplicationContextAware {
 		return (T) enhancer.create();
 	}
 	
-	public static <T> T proxyHttp(String url, Class<T> type, @Nullable String beanName,
-	                              @Nullable Map<String, String> headers) {
+	/**
+	 * @param useHeaderOrBody 交互数据可以放在 req/rsp 的 header 或 body.
+	 *                        注意使用 header 时可能有大小限制.
+	 *                        数据放在 header 时, 请求/结果 header 为 invoke/result
+	 */
+	public static <T> T proxyHttp(String url, @Nullable Map<String, String> reqHeaders,
+	                              Class<T> type, @Nullable String beanName,
+	                              boolean useHeaderOrBody) {
 		Enhancer enhancer = new Enhancer();
 		enhancer.setSuperclass(type);
 		enhancer.setCallback(
 				(InvocationHandler) (o, method, args) -> {
+					URLConnection conn = null;
 					try {
 						URL u = new URL(url);
-						URLConnection conn = u.openConnection();
-						if (headers != null) {
-							headers.forEach(conn::addRequestProperty);
+						conn = u.openConnection();
+						if (reqHeaders != null) {
+							reqHeaders.forEach(conn::addRequestProperty);
 						}
 						String invokeStr = objToBase64(
 								new Invoke(type, beanName,
 										method.getDeclaringClass(), method.getName(), method.getParameterTypes(),
 										args));
-						// put invokeStr to request header
-						conn.addRequestProperty("invoke", invokeStr);
-						conn.connect();
-						Result r = base64ToObj(conn.getInputStream());
-						return r.getResult();
-					} catch (Exception e) {
-						throw e;
+						if (useHeaderOrBody) {
+							// put invokeStr to request header
+							conn.addRequestProperty("invoke", invokeStr);
+							conn.connect();
+							Result r = base64ToObj(conn.getHeaderField("result"));
+							return r.getResult();
+						} else {
+							// put invokeStr to request body
+							conn.setDoOutput(true);
+							conn.setRequestProperty("Content-Type", "application/octet-stream");
+							conn.connect();
+							try (OutputStream os = conn.getOutputStream()) {
+								os.write(invokeStr.getBytes(StandardCharsets.UTF_8));
+							}
+							try (InputStream in = conn.getInputStream()) {
+								Result r = base64ToObj(in);
+								return r.getResult();
+							}
+						}
+					} finally {
+						if (conn instanceof HttpURLConnection) {
+							((HttpURLConnection) conn).disconnect();
+						}
 					}
 				});
 		return (T) enhancer.create();
 	}
 	
-	public String handleHttpReq(String invokeStr) throws NoSuchMethodException {
+	public String handleHttpReq(String invokeStr) {
 		SpringExporter.Result r = invoke(SpringExporter.base64ToObj(invokeStr));
 		return SpringExporter.objToBase64(r);
 	}
 	
 	private static String objToBase64(Object obj) {
-		return Base64.getEncoder().encodeToString(SERIALIZER.serialize(obj));
+		return Base64.getEncoder().encodeToString(Compresses.compressZip(SERIALIZER.serialize(obj), 9));
 	}
 	
 	private static <T> T base64ToObj(String str) {
-		return SERIALIZER.deserialize(Base64.getDecoder().decode(str));
+		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(str)));
 	}
 	
 	private static <T> T base64ToObj(InputStream is) throws IOException {
-		return SERIALIZER.deserialize(Base64.getDecoder().decode(ByteStreams.toByteArray(is)));
+		return SERIALIZER.deserialize(Compresses.decompressZip(Base64.getDecoder().decode(ByteStreams.toByteArray(is))));
 	}
 }

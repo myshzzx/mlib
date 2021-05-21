@@ -3,11 +3,23 @@ package mysh.net.httpclient;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.google.common.collect.Maps;
 import com.google.common.net.HttpHeaders;
 import mysh.collect.Colls;
-import mysh.util.*;
-import okhttp3.*;
+import mysh.util.Encodings;
+import mysh.util.FilesUtil;
+import mysh.util.Htmls;
+import mysh.util.Strings;
+import mysh.util.Times;
+import okhttp3.Cache;
+import okhttp3.Call;
+import okhttp3.ConnectionPool;
+import okhttp3.FormBody;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 import org.apache.commons.compress.compressors.brotli.BrotliCompressorInputStream;
 import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
@@ -16,7 +28,13 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
 import javax.annotation.concurrent.ThreadSafe;
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
 import java.net.ProxySelector;
 import java.net.SocketException;
 import java.net.URI;
@@ -24,7 +42,13 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
+import java.util.Collections;
+import java.util.Deque;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -442,7 +466,7 @@ public class HttpClientAssist implements Closeable {
 	 */
 	public static Map<String, String> parseHeaders(String headerStr) {
 		if (Strings.isNotBlank(headerStr)) {
-			Map<String, String> hm = Maps.newHashMap();
+			Map<String, String> hm = new LinkedHashMap<>();
 			for (String line : headerStr.trim().split("[\\r\\n]+")) {
 				String[] header = line.split(": *", 2);
 				if (!header[0].equalsIgnoreCase("accept-encoding"))

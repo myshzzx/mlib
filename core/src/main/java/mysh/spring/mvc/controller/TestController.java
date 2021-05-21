@@ -16,13 +16,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -217,20 +217,13 @@ public class TestController {
 	 * 调用bean方法
 	 */
 	// @ResourceMapping(value = "invoke")
-	public Object invoke(HttpServletRequest request) {
-		// Operator op = UserUtils.fromUic(request);
-		// if (System.currentTimeMillis() > BackDoorSwitch.TIME_LIMIT) {
-		//     return null;
-		// }
+	@ResponseBody
+	public String invoke(@RequestParam(name = "invoke") String invoke) {
 		try {
-			String ivStr = request.getHeader("invoke");
-			SpringExporter.Invoke iv = SERIALIZER.deserialize(Base64.getDecoder().decode(ivStr));
-			// log.info("TestRpc-invoke-iv,op={},iv={}", op, iv);
-			SpringExporter.Result r = springExporter.invoke(iv);
-			return Base64.getEncoder().encodeToString(SERIALIZER.serialize(r));
+			return springExporter.handleHttpReq(invoke);
 		} catch (Exception e) {
 			log.error("TestRpc-invoke-err", e);
-			return "";
+			return e.toString();
 		}
 	}
 }
