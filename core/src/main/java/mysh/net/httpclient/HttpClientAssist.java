@@ -717,7 +717,7 @@ public class HttpClientAssist implements Closeable {
 				try {
 					String contentEncoding = rsp.header(HttpHeaders.CONTENT_ENCODING);
 					if (rsp.body() != null) {
-						if (contentEncoding == null) {
+						if (Strings.isBlank(contentEncoding) || Objects.equals(contentEncoding, "identity")) {
 							entityBuf = rsp.body().bytes();
 						} else {
 							InputStream bodyStream = rsp.body().byteStream();
@@ -733,6 +733,7 @@ public class HttpClientAssist implements Closeable {
 									bodyStream = new BrotliCompressorInputStream(bodyStream);
 									break;
 								default:
+									log.warn("unknown-http-contentEncoding:{}, use response directly", contentEncoding);
 									decompress = false;
 									entityBuf = rsp.body().bytes();
 							}
