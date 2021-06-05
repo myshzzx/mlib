@@ -19,8 +19,10 @@ import mysh.net.httpclient.HttpClientConfig;
 import mysh.os.HotKeysGlobal;
 import mysh.sql.sqlite.SqliteDB;
 import mysh.tulskiy.keymaster.common.HotKeyListener;
+import mysh.util.Encodings;
 import mysh.util.Strings;
 import mysh.util.Try;
+import org.apache.commons.lang3.ObjectUtils;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -28,6 +30,7 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.SynchronousQueue;
@@ -58,6 +61,13 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		private transient HttpClientConfig hcc;
 		@Nullable
 		private transient ProxySelector proxySelector;
+		
+		public SiteConfig setSiteRoot(String siteRoot) {
+			if (siteRoot.endsWith("/"))
+				throw new IllegalArgumentException("siteRoot should not ends with '/'");
+			this.siteRoot = siteRoot;
+			return this;
+		}
 	}
 	
 	@Data
@@ -67,6 +77,14 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		
 		private Map<String, String> header;
 		private byte[] content;
+		private Charset contentEncoding;
+		
+		boolean isText() {
+			return contentEncoding != null
+					|| header != null
+					&& header.getOrDefault(HttpHeaders.CONTENT_TYPE, "").contains("text")
+					&& header.getOrDefault(HttpHeaders.CONTENT_TYPE, "").contains("javascript");
+		}
 	}
 	
 	protected final SiteConfig config;
@@ -128,12 +146,14 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		if (ue.getStatusCode() == 200) {
 			try {
 				String uri = getReqUri(ue.getReqUrl());
-				pageDAO.save(uri, new PageInfo()
+				PageInfo pageInfo = new PageInfo()
 						.setHeader(Colls.ofHashMap(
 								HttpHeaders.CONTENT_TYPE, ue.getRspHeader(HttpHeaders.CONTENT_TYPE)
 						))
-						.setContent(ue.getEntityBuf())
-				);
+						.setContent(ue.getEntityBuf());
+				if (ue.isText())
+					pageInfo.setContentEncoding(ue.getEntityEncoding());
+				pageDAO.save(uri, pageInfo);
 				return true;
 			} catch (Throwable t) {
 				log.error("get page fail: {}", ue.getReqUrl(), t);
@@ -228,7 +248,11 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 				exchange.sendResponseHeaders(200, 0);
 				try (InputStream in = exchange.getRequestBody();
 				     OutputStream out = exchange.getResponseBody()) {
-					out.write(pageInfo.content);
+					if (pageInfo.isText()) {
+						Charset enc = ObjectUtils.firstNonNull(pageInfo.contentEncoding, Encodings.UTF_8);
+						out.write(new String(pageInfo.content, enc).replace(config.siteRoot, "").getBytes(enc));
+					} else
+						out.write(pageInfo.content);
 				}
 			};
 			
@@ -274,7 +298,12 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 					exchange.sendResponseHeaders(ue.getStatusCode(), 0);
 					try (InputStream in = exchange.getRequestBody();
 					     OutputStream out = exchange.getResponseBody()) {
-						out.write(ue.getEntityBuf());
+						if (ue.isText()) {
+							Charset entityEncoding = ue.getEntityEncoding();
+							out.write(ue.getEntityStr().replace(config.siteRoot, "")
+							            .getBytes(ObjectUtils.firstNonNull(entityEncoding, Encodings.UTF_8)));
+						} else
+							out.write(ue.getEntityBuf());
 					}
 				} catch (Throwable t) {
 					log.error("load page failed, {}", uriStr, t);

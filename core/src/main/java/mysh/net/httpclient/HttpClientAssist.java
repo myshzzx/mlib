@@ -604,7 +604,14 @@ public class HttpClientAssist implements Closeable {
 		 * see {@link #isContentType(String)}
 		 */
 		public boolean isText() {
-			return contentType == null || Objects.equals(contentType.type(), "text") || isJson();
+			return contentType == null || Objects.equals(contentType.type(), "text") || isJson() || isJs();
+		}
+		
+		/**
+		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
+		 */
+		public boolean isJs() {
+			return isContentType("javascript");
 		}
 		
 		/**
