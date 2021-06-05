@@ -265,7 +265,8 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 				// 无数据开启同步加载
 				try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {
 					if ("GET".equals(exchange.getRequestMethod()))
-						onGet(ue, null);
+						if (accept(ue.getReqUrl(), null))
+							onGet(ue, null);
 					
 					String contentType = ue.getRspHeader(HttpHeaders.CONTENT_TYPE);
 					if (contentType != null)
