@@ -77,13 +77,16 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		
 		private Map<String, String> header;
 		private byte[] content;
-		private Charset contentEncoding;
+		private String contentEncoding;
 		
 		boolean isText() {
-			return contentEncoding != null
-					|| header != null
-					&& header.getOrDefault(HttpHeaders.CONTENT_TYPE, "").contains("text")
-					&& header.getOrDefault(HttpHeaders.CONTENT_TYPE, "").contains("javascript");
+			if (contentEncoding != null)
+				return true;
+			if (header == null)
+				return false;
+			
+			String contentType = header.getOrDefault(HttpHeaders.CONTENT_TYPE, "");
+			return contentType.contains("text") || contentType.contains("javascript") || contentType.contains("json");
 		}
 	}
 	
@@ -152,7 +155,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 						))
 						.setContent(ue.getEntityBuf());
 				if (ue.isText())
-					pageInfo.setContentEncoding(ue.getEntityEncoding());
+					pageInfo.setContentEncoding(ObjectUtils.firstNonNull(ue.getEntityEncoding(), Encodings.UTF_8).name());
 				pageDAO.save(uri, pageInfo);
 				return true;
 			} catch (Throwable t) {
@@ -249,7 +252,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 				try (InputStream in = exchange.getRequestBody();
 				     OutputStream out = exchange.getResponseBody()) {
 					if (pageInfo.isText()) {
-						Charset enc = ObjectUtils.firstNonNull(pageInfo.contentEncoding, Encodings.UTF_8);
+						Charset enc = Charset.forName(ObjectUtils.firstNonNull(pageInfo.contentEncoding, "UTF-8"));
 						out.write(new String(pageInfo.content, enc).replace(config.siteRoot, "").getBytes(enc));
 					} else
 						out.write(pageInfo.content);
