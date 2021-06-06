@@ -4,6 +4,7 @@ package mysh.net.httpclient;
 import com.google.common.net.HttpHeaders;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
 import mysh.collect.Colls;
 import okhttp3.CookieJar;
 import okhttp3.EventListener;
@@ -17,6 +18,7 @@ import java.util.Map;
  * @author ZhangZhx
  */
 @Data
+@Accessors(chain = true)
 @NoArgsConstructor
 public final class HttpClientConfig implements Cloneable {
 	

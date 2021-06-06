@@ -85,6 +85,8 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	/**
 	 * after distilling urls from UrlEntity(text content),
 	 * you can filter urls you need, and attach custom url context to each url.
+	 * <p>
+	 * to change crawling priority, rewrite {@link UrlContext#compareTo}
 	 */
 	default Stream<UrlCtxHolder<CTX>> afterDistillingUrls(
 			HttpClientAssist.UrlEntity parentUe, CTX parentCtx, Stream<String> distilledUrls) throws IOException {

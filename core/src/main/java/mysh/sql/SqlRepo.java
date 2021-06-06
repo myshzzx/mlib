@@ -12,12 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * SqlRepo
@@ -50,9 +45,7 @@ public class SqlRepo {
 	public SqlRepo setKeyStrategies(SqlHelper.KeyStrategy... ks) {
 		this.keyStrategies.clear();
 		if (ks != null) {
-			for (SqlHelper.KeyStrategy k : ks) {
-				this.keyStrategies.add(k);
-			}
+			Collections.addAll(this.keyStrategies, ks);
 		}
 		return this;
 	}
@@ -60,7 +53,7 @@ public class SqlRepo {
 	private void loadSqlFile(InputStream is) throws IOException {
 		try (BufferedReader in = new BufferedReader(new InputStreamReader(is))) {
 			String line, id = null;
-			StringBuilder sb = null;
+			StringBuilder sb = new StringBuilder();
 			while (true) {
 				line = in.readLine();
 				if (line != null) line = line.trim();
@@ -176,6 +169,7 @@ public class SqlRepo {
 		List<Map<String, Object>> r = fetchBySql(sql, params, cond);
 		if (r != null && r.size() > 0) {
 			Iterator<Map.Entry<String, Object>> it = r.get(0).entrySet().iterator();
+			//noinspection unchecked
 			return (T) it.next().getValue();
 		} else
 			return null;
@@ -193,6 +187,7 @@ public class SqlRepo {
 		List<Map<String, Object>> r = fetchByConfig(sqlId, params, cond);
 		if (r != null && r.size() > 0) {
 			Iterator<Map.Entry<String, Object>> it = r.get(0).entrySet().iterator();
+			//noinspection unchecked
 			return (T) it.next().getValue();
 		} else
 			return null;
@@ -240,21 +235,18 @@ public class SqlRepo {
 				dictMap.putAll(tMap);
 			}
 
-			sqlHelper.onResult(new ResultHandler() {
-				@Override
-				public void handle(Map<String, Object> item) {
-					for (Map.Entry<String, String> m : dictMap.entrySet()) {
-						String col = m.getKey();
-						String dictKey = m.getValue();
-						Object itemValue = item.get(col);
+			sqlHelper.onResult(item -> {
+				for (Map.Entry<String, String> m : dictMap.entrySet()) {
+					String col = m.getKey();
+					String dictKey = m.getValue();
+					Object itemValue = item.get(col);
 
-						if (itemValue != null && dictRepo != null) {
-							String desc = dictRepo.getDesc(dictKey, itemValue);
-							if (desc != null) {
-								item.put(col, desc);
-							}
-							item.put(col + "Code", itemValue);
+					if (itemValue != null && dictRepo != null) {
+						String desc = dictRepo.getDesc(dictKey, itemValue);
+						if (desc != null) {
+							item.put(col, desc);
 						}
+						item.put(col + "Code", itemValue);
 					}
 				}
 			});

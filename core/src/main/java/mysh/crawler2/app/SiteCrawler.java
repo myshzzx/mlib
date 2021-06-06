@@ -113,14 +113,9 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	
 	@Override
 	public Stream<UrlCtxHolder<CTX>> getSeeds() {
-		SqliteDB.Item unhandledTasksItem = configDAO.itemByKey("unhandledTasks");
-		if (unhandledTasksItem != null && dbItemValid(unhandledTasksItem)) {
-			Collection<UrlCtxHolder<CTX>> tasks = unhandledTasksItem.getValue();
-			if (Colls.isNotEmpty(tasks))
-				return tasks.stream();
-		}
-		return Stream.of(UrlCtxHolder.of(config.getSiteRoot()));
-		
+		Collection<UrlCtxHolder<CTX>> tasks = getUnhandledTasks();
+		return Colls.isNotEmpty(tasks) ?
+				tasks.stream() : Stream.of(UrlCtxHolder.of(config.getSiteRoot()));
 	}
 	
 	/**
@@ -138,10 +133,10 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	}
 	
 	/**
-	 * 检查存储的 item 是否有效, 无效则视为不存在
+	 * 检查存储的 item 是否已失效, 需要重爬
 	 */
-	protected boolean dbItemValid(@Nonnull SqliteDB.Item item) {
-		return true;
+	protected boolean dbItemInvalid(@Nonnull SqliteDB.Item item) {
+		return false;
 	}
 	
 	@Override
@@ -166,21 +161,38 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			return ue.getStatusCode() == 404;
 	}
 	
+	private Runnable onCrawlerStop;
+	
+	private Collection<UrlCtxHolder<CTX>> getUnhandledTasks() {
+		SqliteDB.Item unhandledTasksItem = configDAO.itemByKey("unhandledTasks");
+		return unhandledTasksItem != null ? unhandledTasksItem.getValue() : null;
+	}
+	
 	@Override
 	public void onCrawlerStopped(Collection<UrlCtxHolder<CTX>> unhandledTasks) {
 		configDAO.save("unhandledTasks", unhandledTasks);
+		if (onCrawlerStop != null)
+			onCrawlerStop.run();
+	}
+	
+	public boolean needRecrawl() {
+		Collection<UrlCtxHolder<CTX>> unhandledTasks = getUnhandledTasks();
+		if (Colls.isNotEmpty(unhandledTasks))
+			return true;
+		
+		SqliteDB.Item rootItem = pageDAO.itemByKey("/");
+		return rootItem != null && dbItemInvalid(rootItem);
 	}
 	
 	/**
-	 * 启动爬虫并等待结束
-	 *
-	 * @return
+	 * 启动爬虫并返回, 可注册停止回调
 	 */
-	public Crawler<CTX> startCrawler() throws Exception {
+	public Crawler<CTX> startCrawler(Runnable onCrawlerStop) throws Exception {
 		Crawler<CTX> crawler = new Crawler<>(this,
 				config.hcc, config.proxySelector, config.crawlRatePerMin, config.crawlerThreadPoolSize)
 				.start();
 		log.warn("crawler started, {}, config={}", getClass(), config);
+		this.onCrawlerStop = onCrawlerStop;
 		return crawler;
 	}
 	
@@ -190,7 +202,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	 * @param globalStopHotkey e.g. <b>alt shift S</b>
 	 */
 	public void startCrawlerAndWait(@Nullable String globalStopHotkey) throws Exception {
-		Crawler<CTX> crawler = startCrawler();
+		Crawler<CTX> crawler = startCrawler(null);
 		HotKeyListener stopAction = e -> crawler.stop();
 		if (Strings.isNotBlank(globalStopHotkey)) {
 			HotKeysGlobal.registerKeyListener(globalStopHotkey, stopAction);
@@ -278,7 +290,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			if (item != null) {
 				// 有数据直接返回
 				sendPageInfo.run();
-				if (!dbItemValid(item)) {
+				if (dbItemInvalid(item)) {
 					// 发现失效的数据触发一次异步加载
 					httpExec.execute(() -> {
 						try (HttpClientAssist.UrlEntity ue = fetchPage.call()) {

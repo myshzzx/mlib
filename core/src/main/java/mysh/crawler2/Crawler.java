@@ -52,7 +52,7 @@ public class Crawler<CTX extends UrlContext> {
 	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
 	private final UrlClassifierConf.Factory<CTX> ccf;
 	
-	private final Collection<UrlCtxHolder<CTX>> unhandledTasks = new ConcurrentLinkedQueue<>();
+	private final Collection<UrlCtxHolder<CTX>> unhandledTasks = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	/**
 	 * create a crawler with seed , http-client config and maximum access rate per minute.
@@ -275,8 +275,8 @@ public class Crawler<CTX extends UrlContext> {
 	}
 	
 	private void storeUnhandledTask(String url, CTX ctx, Throwable t) {
-		unhandledTasks.add(new UrlCtxHolder<>(url, ctx));
-		log.error("store unhandled task: " + url, t);
+		if (unhandledTasks.add(new UrlCtxHolder<>(url, ctx)))
+			log.error("store unhandled task: {}", url, t);
 	}
 	
 	private static final Pattern httpExp =
@@ -284,7 +284,7 @@ public class Crawler<CTX extends UrlContext> {
 	private static final Pattern srcHrefExp =
 			Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 	
-	private class Worker extends UrlCtxHolder<CTX> implements Runnable {
+	private class Worker extends UrlCtxHolder<CTX> implements Runnable, Comparable<Worker> {
 		private static final long serialVersionUID = 4173253887553156741L;
 		private final ClassifiedUrlCrawler classifier;
 		
@@ -425,6 +425,19 @@ public class Crawler<CTX extends UrlContext> {
 					|| ex instanceof IllegalArgumentException
 					;
 		}
+		
+		@Override
+		public int compareTo(Worker o) {
+			if (ctx != null && o.ctx != null) {
+				try {
+					return ctx.compareTo(o.ctx);
+				} catch (Throwable t) {
+					log.error("compare-urlContext-fail,this={},that={}", ctx, o.ctx, t);
+					return 0;
+				}
+			} else
+				return 0;
+		}
 	}
 	
 	private final Map<UrlClassifierConf, ClassifiedUrlCrawler> classifiers = new ConcurrentHashMap<>();
@@ -433,8 +446,13 @@ public class Crawler<CTX extends UrlContext> {
 	 * classify the url and put it into working queue.
 	 */
 	private void classify(String url, CTX ctx) {
-		if (this.status.get() == Status.STOPPED)
+		Status crawlerStatus = this.status.get();
+		if (crawlerStatus == Status.STOPPED)
 			throw new RuntimeException("crawler has been stopped");
+		if (crawlerStatus != Status.RUNNING) {
+			storeUnhandledTask(url, ctx, null);
+			return;
+		}
 		
 		final UrlClassifierConf ucc = ccf.get(url, ctx);
 		if (ucc == null)
@@ -478,7 +496,7 @@ public class Crawler<CTX extends UrlContext> {
 		private final UrlClassifierAdjuster adjuster = new UrlClassifierAdjuster(this);
 		private final UrlClassifierConf.BlockChecker blockChecker;
 		
-		private final BlockingQueue<Runnable> wq = new LinkedBlockingQueue<>();
+		private final BlockingQueue<Runnable> wq = new PriorityBlockingQueue<>();
 		private final ThreadPoolExecutor exec;
 		
 		@SuppressWarnings("unchecked")
@@ -539,7 +557,7 @@ public class Crawler<CTX extends UrlContext> {
 		@SuppressWarnings("unchecked")
 		void stop() {
 			hca.close();
-			exec.shutdownNow().stream()
+			exec.shutdownNow()
 			    .forEach(r -> {
 				    Worker work = (Worker) r;
 				    storeUnhandledTask(work.url, work.ctx, null);
@@ -561,7 +579,8 @@ public class Crawler<CTX extends UrlContext> {
 		 * crawl give url.
 		 */
 		void crawl(String url, CTX ctx) {
-			exec.execute(new Worker(url, ctx, this));
+			if (!unhandledTasks.contains(new UrlCtxHolder<>(url, ctx)))
+				exec.execute(new Worker(url, ctx, this));
 		}
 		
 		private final Map<String, AtomicInteger> recrawlCount = new ConcurrentHashMap<>();
@@ -573,10 +592,15 @@ public class Crawler<CTX extends UrlContext> {
 		 */
 		void recrawlWhenFail(Worker worker, IOException ex) {
 			AtomicInteger count = recrawlCount.computeIfAbsent(worker.url, u -> new AtomicInteger(0));
-			if (count.getAndIncrement() < 3) {
+			if (getStatus() == Status.RUNNING && count.getAndIncrement() < 3) {
 				if (useAdjuster && ex != null)
 					adjuster.onException(ex);
-				exec.execute(worker);
+				try {
+					exec.execute(worker);
+				} catch (Exception e) {
+					log.error("submit-recrawl-task-failed, url={}", worker.url, e);
+					storeUnhandledTask(worker.url, worker.ctx, ex);
+				}
 				log.debug("recrawl: {}/3, ex={}, url={}", count.get(), ex, worker.url);
 			} else {
 				storeUnhandledTask(worker.url, worker.ctx, ex);
