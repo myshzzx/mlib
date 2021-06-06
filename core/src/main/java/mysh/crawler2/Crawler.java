@@ -646,6 +646,7 @@ public class Crawler<CTX extends UrlContext> {
 				if (useAdjuster)
 					adjuster.onBlocked(ue);
 				log.warn("access-blocked: status={}, req={}, current={}", ue.getStatusCode(), ue.getReqUrl(), ue.getCurrentURL());
+				ue.close();
 				return null;
 			} else
 				return ue;
