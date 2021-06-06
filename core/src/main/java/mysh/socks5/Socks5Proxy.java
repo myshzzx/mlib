@@ -14,16 +14,18 @@ import io.netty.handler.codec.socksx.v5.Socks5PasswordAuthRequestDecoder;
 import io.netty.handler.codec.socksx.v5.Socks5ServerEncoder;
 import io.netty.handler.logging.LoggingHandler;
 import mysh.socks5.auth.PasswordAuth;
+import mysh.socks5.handler.ChannelListener;
 import mysh.socks5.handler.ss5.Socks5CommandRequestHandler;
 import mysh.socks5.handler.ss5.Socks5InitialRequestHandler;
 import mysh.socks5.handler.ss5.Socks5PasswordAuthRequestHandler;
 import mysh.socks5.log.ProxyFlowLog;
-import mysh.socks5.handler.ChannelListener;
 import mysh.util.Exps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * copyright
@@ -70,13 +72,22 @@ public class Socks5Proxy implements Closeable {
 	private EventLoopGroup workerGroup;
 	private EventLoopGroup connGroup;
 	
+	private ThreadFactory newFactory(String name) {
+		AtomicInteger c = new AtomicInteger(1);
+		return r -> {
+			Thread thread = new Thread(r, name + c.getAndIncrement());
+			thread.setDaemon(true);
+			return thread;
+		};
+	}
+	
 	public synchronized Socks5Proxy start(int port) throws Exception {
 		if (mainChannel != null)
 			throw new RuntimeException(Socks5Proxy.class.getSimpleName() + " can't be started again");
 		
-		dispatcherGroup = new NioEventLoopGroup(1);
-		workerGroup = new NioEventLoopGroup();
-		connGroup = new NioEventLoopGroup();
+		dispatcherGroup = new NioEventLoopGroup(1, newFactory("sock5Proxy-" + port + "-dispatcher-"));
+		workerGroup = new NioEventLoopGroup(newFactory("sock5Proxy-" + port + "-worker-"));
+		connGroup = new NioEventLoopGroup(newFactory("sock5Proxy-" + port + "-conn-"));
 		this.port = port;
 		
 		try {
