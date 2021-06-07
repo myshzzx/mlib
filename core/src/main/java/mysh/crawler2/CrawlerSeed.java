@@ -44,6 +44,9 @@ public interface CrawlerSeed<CTX extends UrlContext> extends Serializable {
 	/**
 	 * on get url entity.
 	 * <p>
+	 * WARNING: if the access is indicated as blocked via {@link mysh.crawler2.UrlClassifierConf.BlockChecker},
+	 * this method will NOT be invoked, and a recrawl will be scheduled.
+	 * <p>
 	 * WARNING: the urlEntity content may not be readable out of the method,
 	 * because its inputStream will be closed after this invoking, but cached content is still accessible.
 	 *

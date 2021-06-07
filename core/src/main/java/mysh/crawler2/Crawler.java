@@ -9,6 +9,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
@@ -52,6 +53,10 @@ public class Crawler<CTX extends UrlContext> {
 	private final AtomicReference<Status> status = new AtomicReference<>(Status.INIT);
 	private final UrlClassifierConf.Factory<CTX> ccf;
 	
+	/**
+	 * holder->retryTimes
+	 */
+	private final Map<UrlCtxHolder<CTX>, AtomicInteger> inProcessTasks = new ConcurrentHashMap<>();
 	private final Collection<UrlCtxHolder<CTX>> unhandledTasks = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	/**
@@ -68,7 +73,7 @@ public class Crawler<CTX extends UrlContext> {
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc,
 	               int ratePerMin, int threadPoolSize) throws Exception {
-		this(seed, hcc, null, ratePerMin, threadPoolSize);
+		this(seed, hcc, null, ratePerMin, threadPoolSize, new DefaultBlockChecker());
 	}
 	
 	/**
@@ -77,13 +82,24 @@ public class Crawler<CTX extends UrlContext> {
 	 */
 	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc, @Nullable ProxySelector proxySelector,
 	               int ratePerMin, int threadPoolSize) throws Exception {
+		this(seed, hcc, proxySelector, ratePerMin, threadPoolSize, new DefaultBlockChecker());
+	}
+	
+	/**
+	 * create a crawler with seed , http-client config and maximum access rate per minute.
+	 * speed auto adjusting is enabled by a non-null blockChecker.
+	 */
+	public Crawler(CrawlerSeed<CTX> seed, @Nullable HttpClientConfig hcc, @Nullable ProxySelector proxySelector,
+	               int ratePerMin, int threadPoolSize,
+	               @Nullable UrlClassifierConf.BlockChecker blockChecker) throws Exception {
 		this(seed, new UrlClassifierConf.Factory<CTX>() {
-			UrlClassifierConf ucc = new UrlClassifierConf(
-					seed.getClass().getSimpleName() + "-default",
-					threadPoolSize,
-					Range.within(1, Integer.MAX_VALUE, ratePerMin),
-					new HttpClientAssist(hcc, proxySelector)
-			).setBlockChecker(new DefaultBlockChecker());
+			final UrlClassifierConf ucc =
+					new UrlClassifierConf(
+							seed.getClass().getSimpleName() + "-default",
+							threadPoolSize,
+							Range.within(1, Integer.MAX_VALUE, ratePerMin),
+							new HttpClientAssist(hcc, proxySelector)
+					).setBlockChecker(blockChecker);
 			
 			@Override
 			public UrlClassifierConf get(String url, CTX ctx) {
@@ -131,7 +147,7 @@ public class Crawler<CTX extends UrlContext> {
 						
 						StringBuilder ucStatus = new StringBuilder("crawler current status: " + name);
 						AtomicBoolean crawlerRunning = new AtomicBoolean(false);
-						classifiers.values().stream()
+						classifiers.values()
 						           .forEach(uc -> {
 							           ucStatus.append("\n{Classifier:");
 							           ucStatus.append(uc.name);
@@ -164,10 +180,9 @@ public class Crawler<CTX extends UrlContext> {
 	/**
 	 * start the crawler. a crawler can't be restarted.
 	 */
-	@SuppressWarnings("unchecked")
 	public Crawler<CTX> start() {
 		if (!this.status.compareAndSet(Status.INIT, Status.RUNNING)) {
-			throw new RuntimeException(toString() + " can't be started, current status=" + status.get());
+			throw new RuntimeException(this.name + " can't be started, current status=" + status.get());
 		}
 		
 		log.info(this.name + " started.");
@@ -200,7 +215,6 @@ public class Crawler<CTX extends UrlContext> {
 	 * stop the crawler, which release all the resources it took. BLOCKED until entire crawler stopped.<br/>
 	 * WARNING: can't restart after stopping.
 	 */
-	@SuppressWarnings("unchecked")
 	public void stop() {
 		Status oldStatus = status.get();
 		if (oldStatus == Status.STOPPED || oldStatus == Status.STOPPING)
@@ -233,8 +247,6 @@ public class Crawler<CTX extends UrlContext> {
 	
 	/**
 	 * wait for stop. block until stopped or interrupted
-	 *
-	 * @throws InterruptedException
 	 */
 	public void waitForStop() throws InterruptedException {
 		waitStopLatch.await();
@@ -242,8 +254,6 @@ public class Crawler<CTX extends UrlContext> {
 	
 	/**
 	 * wait for stop. block until stopped or interrupted
-	 *
-	 * @throws InterruptedException
 	 */
 	public boolean waitForStop(long timeout, TimeUnit unit) throws InterruptedException {
 		return waitStopLatch.await(timeout, unit);
@@ -274,9 +284,10 @@ public class Crawler<CTX extends UrlContext> {
 				|| t instanceof UnknownHostException;
 	}
 	
-	private void storeUnhandledTask(String url, CTX ctx, Throwable t) {
-		if (unhandledTasks.add(new UrlCtxHolder<>(url, ctx)))
-			log.error("store unhandled task: {}", url, t);
+	private void storeUnhandledTask(UrlCtxHolder<CTX> ctxHolder, Throwable t) {
+		if (unhandledTasks.add(ctxHolder))
+			log.error("store unhandled task: {}", ctxHolder.url, t);
+		inProcessTasks.remove(ctxHolder);
 	}
 	
 	private static final Pattern httpExp =
@@ -284,67 +295,73 @@ public class Crawler<CTX extends UrlContext> {
 	private static final Pattern srcHrefExp =
 			Pattern.compile("(([Hh][Rr][Ee][Ff])|([Ss][Rr][Cc]))[\\s]*=[\\s]*[\"']([^\"'#]*)");
 	
-	private class Worker extends UrlCtxHolder<CTX> implements Runnable, Comparable<Worker> {
-		private static final long serialVersionUID = 4173253887553156741L;
-		private final ClassifiedUrlCrawler classifier;
+	private class Worker implements Runnable, Comparable<Worker> {
+		final ClassifiedUrlCrawler classifier;
+		final UrlCtxHolder<CTX> ctxHolder;
 		
-		Worker(String url, CTX ctx, ClassifiedUrlCrawler classifier) {
-			super(url, ctx);
+		Worker(UrlCtxHolder<CTX> ctxHolder, ClassifiedUrlCrawler classifier) {
+			this.ctxHolder = ctxHolder;
 			this.classifier = classifier;
 		}
 		
 		@Override
 		public void run() {
 			try {
-				seed.beforeAccess(this);
-				if (!seed.accept(this.url, this.ctx))
+				seed.beforeAccess(ctxHolder);
+				if (!seed.accept(ctxHolder.url, ctxHolder.ctx)) {
+					inProcessTasks.remove(ctxHolder);
 					return;
+				}
 				
 				while (status.get() == Status.PAUSED) {
 					Thread.sleep(50);
 				}
 				
-				try (HttpClientAssist.UrlEntity ue = classifier.access(url)) {
+				try (HttpClientAssist.UrlEntity ue = classifier.access(ctxHolder.url)) {
 					if (ue == null) {
 						// blocked
 						classifier.recrawlWhenFail(this, null);
 						return;
 					}
 					
-					if (!seed.accept(this.url, this.ctx))
+					if (!seed.accept(ctxHolder.url, ctxHolder.ctx)) {
+						inProcessTasks.remove(ctxHolder);
 						return;
+					}
 					if (status.get() == Status.STOPPED) {
-						storeUnhandledTask(url, ctx, null);
+						storeUnhandledTask(ctxHolder, null);
 						return;
 					}
 					
 					log.debug("onGet={}, reqUrl={}", ue.getCurrentURL(), ue.getReqUrl());
 					
-					if (seed.onGet(ue, this.ctx)) {
-						classifier.onGetSuccess(url);
-						if (ue.isText() && seed.needToDistillUrls(ue, this.ctx)) {
-							seed.afterDistillingUrls(ue, this.ctx, distillUrl(ue, this.ctx))
+					if (seed.onGet(ue, ctxHolder.ctx)) {
+						if (ue.isText() && seed.needToDistillUrls(ue, ctxHolder.ctx)) {
+							seed.afterDistillingUrls(ue, ctxHolder.ctx, distillUrl(ue))
 							    .filter(h -> seed.accept(h.url, h.ctx))
 							    .forEach(h -> classify(h.url, h.ctx));
 						}
+						inProcessTasks.remove(ctxHolder);
 					} else
 						classifier.recrawlWhenFail(this, null);
 				}
 			} catch (InterruptedIOException | SocketException ex) {
 				classifier.recrawlWhenFail(this, ex);
 			} catch (UnknownHostException | InterruptedException ex) {
-				storeUnhandledTask(url, ctx, ex);
+				storeUnhandledTask(ctxHolder, ex);
 			} catch (Exception ex) {
-				if (!isMalformedUrl(ex))
-					storeUnhandledTask(url, ctx, ex);
-				else
-					log.error("malformed url will be ignored: " + this.url, ex);
+				if (isMalformedUrl(ex)) {
+					log.error("malformed url will be ignored: " + ctxHolder.url, ex);
+					inProcessTasks.remove(ctxHolder);
+				} else {
+					storeUnhandledTask(ctxHolder, ex);
+				}
 			} finally {
 				classifier.afterAccess();
 			}
 		}
 		
-		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue, CTX ctx) throws IOException {
+		private Stream<String> distillUrl(HttpClientAssist.UrlEntity ue) throws IOException {
 			String pageContent = ue.getEntityStr();
 			
 			Set<String> urls = new HashSet<>();
@@ -385,7 +402,7 @@ public class Crawler<CTX extends UrlContext> {
 				};
 				
 				// 3. seed 定义的扩展提取地址
-				Stream<String> extendedUrls = ObjectUtils.firstNonNull(seed.enhancedDistillUrl(ue, ctx), Stream.empty());
+				Stream<String> extendedUrls = ObjectUtils.firstNonNull(seed.enhancedDistillUrl(ue, ctxHolder.ctx), Stream.empty());
 				
 				String protocolPrefix = ue.getProtocol() + ":", root = currentRoot;
 				
@@ -427,12 +444,12 @@ public class Crawler<CTX extends UrlContext> {
 		}
 		
 		@Override
-		public int compareTo(Worker o) {
-			if (ctx != null && o.ctx != null) {
+		public int compareTo(@Nonnull Worker o) {
+			if (ctxHolder.ctx != null && o.ctxHolder.ctx != null) {
 				try {
-					return ctx.compareTo(o.ctx);
+					return ctxHolder.ctx.compareTo(o.ctxHolder.ctx);
 				} catch (Throwable t) {
-					log.error("compare-urlContext-fail,this={},that={}", ctx, o.ctx, t);
+					log.error("compare-urlContext-fail,this={},that={}", ctxHolder.ctx, o.ctxHolder.ctx, t);
 					return 0;
 				}
 			} else
@@ -450,7 +467,7 @@ public class Crawler<CTX extends UrlContext> {
 		if (crawlerStatus == Status.STOPPED)
 			throw new RuntimeException("crawler has been stopped");
 		if (crawlerStatus != Status.RUNNING) {
-			storeUnhandledTask(url, ctx, null);
+			storeUnhandledTask(new UrlCtxHolder<>(url, ctx), null);
 			return;
 		}
 		
@@ -460,7 +477,7 @@ public class Crawler<CTX extends UrlContext> {
 		
 		ClassifiedUrlCrawler classifier = classifiers.get(ucc);
 		if (classifier == null) {
-			/** synchronized here because: {@link #useUrlClassifierAdjuster} */
+			/* synchronized here because: {@link #useUrlClassifierAdjuster} */
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (ucc) {
 				classifier = classifiers.computeIfAbsent(ucc, ClassifiedUrlCrawler::new);
@@ -518,7 +535,7 @@ public class Crawler<CTX extends UrlContext> {
 					},
 					(work, executor) -> {
 						Worker w = (Worker) work;
-						storeUnhandledTask(w.url, w.ctx, null);
+						storeUnhandledTask(w.ctxHolder, null);
 					}
 			);
 			exec.allowCoreThreadTimeOut(true);
@@ -560,55 +577,51 @@ public class Crawler<CTX extends UrlContext> {
 			exec.shutdownNow()
 			    .forEach(r -> {
 				    Worker work = (Worker) r;
-				    storeUnhandledTask(work.url, work.ctx, null);
+				    storeUnhandledTask(work.ctxHolder, null);
 			    });
 		}
 		
 		/**
 		 * wait for termination.
 		 */
-		void awaitTermination(int time, TimeUnit timeUnit) {
+		boolean awaitTermination(int time, TimeUnit timeUnit) {
 			try {
-				exec.awaitTermination(time, timeUnit);
+				return exec.awaitTermination(time, timeUnit);
 			} catch (InterruptedException e) {
 				log.debug("interrupted when wait for termination of Classifier: " + this.name);
+				return false;
 			}
 		}
 		
 		/**
-		 * crawl give url.
+		 * crawl given url.
 		 */
-		void crawl(String url, CTX ctx) {
-			if (!unhandledTasks.contains(new UrlCtxHolder<>(url, ctx)))
-				exec.execute(new Worker(url, ctx, this));
+		synchronized void crawl(String url, CTX ctx) {
+			UrlCtxHolder<CTX> ctxHolder = new UrlCtxHolder<>(url, ctx);
+			if (!inProcessTasks.containsKey(ctxHolder) && !unhandledTasks.contains(ctxHolder)) {
+				inProcessTasks.put(ctxHolder, new AtomicInteger());
+				exec.execute(new Worker(ctxHolder, this));
+			}
 		}
-		
-		private final Map<String, AtomicInteger> recrawlCount = new ConcurrentHashMap<>();
 		
 		/**
 		 * schedule a recrawl.
-		 *
-		 * @return true when scheduled, false when rejected.
 		 */
 		void recrawlWhenFail(Worker worker, IOException ex) {
-			AtomicInteger count = recrawlCount.computeIfAbsent(worker.url, u -> new AtomicInteger(0));
+			AtomicInteger count = inProcessTasks.get(worker.ctxHolder);
 			if (getStatus() == Status.RUNNING && count.getAndIncrement() < 3) {
 				if (useAdjuster && ex != null)
 					adjuster.onException(ex);
 				try {
 					exec.execute(worker);
 				} catch (Exception e) {
-					log.error("submit-recrawl-task-failed, url={}", worker.url, e);
-					storeUnhandledTask(worker.url, worker.ctx, ex);
+					log.error("submit-recrawl-task-failed, url={}", worker.ctxHolder.url, e);
+					storeUnhandledTask(worker.ctxHolder, ex);
 				}
-				log.debug("recrawl: {}/3, ex={}, url={}", count.get(), ex, worker.url);
+				log.debug("recrawl: {}/3, ex={}, url={}", count.get(), ex, worker.ctxHolder.url);
 			} else {
-				storeUnhandledTask(worker.url, worker.ctx, ex);
+				storeUnhandledTask(worker.ctxHolder, ex);
 			}
-		}
-		
-		void onGetSuccess(String url) {
-			recrawlCount.remove(url);
 		}
 		
 		/**
@@ -664,7 +677,7 @@ public class Crawler<CTX extends UrlContext> {
 	private static final long adjPeriod = 60_000;
 	
 	private class UrlClassifierAdjuster {
-		private ClassifiedUrlCrawler cuCrawler;
+		private final ClassifiedUrlCrawler cuCrawler;
 		
 		UrlClassifierAdjuster(ClassifiedUrlCrawler cuCrawler) {
 			this.cuCrawler = cuCrawler;

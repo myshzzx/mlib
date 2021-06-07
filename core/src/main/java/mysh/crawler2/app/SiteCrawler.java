@@ -10,10 +10,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import mysh.codegen.CodeUtil;
 import mysh.collect.Colls;
-import mysh.crawler2.Crawler;
-import mysh.crawler2.CrawlerSeed;
-import mysh.crawler2.UrlContext;
-import mysh.crawler2.UrlCtxHolder;
+import mysh.crawler2.*;
 import mysh.net.httpclient.HttpClientAssist;
 import mysh.net.httpclient.HttpClientConfig;
 import mysh.os.HotKeysGlobal;
@@ -50,17 +47,16 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	
 	@Data
 	@Accessors(chain = true)
-	protected static class SiteConfig implements Serializable {
-		private static final long serialVersionUID = 8100792219369925962L;
-		
+	protected static class SiteConfig {
 		private String name, siteRoot, dbFile;
 		private boolean dbUseLock = false;
 		private int dbMmapSize = 134217728, crawlRatePerMin = 60, crawlerThreadPoolSize = 5;
 		
 		@Nullable
-		private transient HttpClientConfig hcc;
+		private HttpClientConfig hcc;
 		@Nullable
-		private transient ProxySelector proxySelector;
+		private ProxySelector proxySelector;
+		private UrlClassifierConf.BlockChecker blockChecker = new DefaultBlockChecker();
 		
 		public SiteConfig setSiteRoot(String siteRoot) {
 			if (siteRoot.endsWith("/"))
@@ -188,8 +184,11 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	 * 启动爬虫并返回, 可注册停止回调
 	 */
 	public Crawler<CTX> startCrawler(Runnable onCrawlerStop) throws Exception {
-		Crawler<CTX> crawler = new Crawler<>(this,
-				config.hcc, config.proxySelector, config.crawlRatePerMin, config.crawlerThreadPoolSize)
+		Crawler<CTX> crawler = new Crawler<>(
+				this,
+				config.hcc, config.proxySelector,
+				config.crawlRatePerMin, config.crawlerThreadPoolSize,
+				config.blockChecker)
 				.start();
 		log.warn("crawler started, {}, config={}", getClass(), config);
 		this.onCrawlerStop = onCrawlerStop;
