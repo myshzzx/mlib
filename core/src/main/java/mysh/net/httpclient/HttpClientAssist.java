@@ -525,7 +525,7 @@ public class HttpClientAssist implements Closeable {
 		public UrlEntity(Request.Builder rb) throws IOException {
 			try {
 				req = rb.build();
-				// can't lazy init, because it changes after rb.execute()
+				// can't lazy init, because it changes after rb.execute() on any 302 relocation
 				reqUrl = req.url().toString();
 				
 				call = client.newCall(req);
