@@ -23,7 +23,7 @@ import java.util.Map;
 public final class HttpClientConfig implements Cloneable {
 	
 	public static final String UA =
-			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36";
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36";
 	
 	// http://user-agent-string.info/list-of-ua/bots
 	public static final String UA_GOOGLE_BOT =

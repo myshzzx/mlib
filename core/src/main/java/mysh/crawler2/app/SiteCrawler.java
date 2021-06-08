@@ -157,6 +157,14 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			return ue.getStatusCode() == 404;
 	}
 	
+	@Override
+	public Stream<UrlCtxHolder<CTX>> afterDistillingUrls(HttpClientAssist.UrlEntity parentUe, CTX parentCtx, Stream<String> distilledUrls) throws IOException {
+		return CrawlerSeed.super.afterDistillingUrls(parentUe, parentCtx, distilledUrls)
+		                        .peek(h -> {
+			                        h.setUrl(config.getSiteRoot() + getReqUri(h.getUrl()));
+		                        });
+	}
+	
 	private Runnable onCrawlerStop;
 	
 	private Collection<UrlCtxHolder<CTX>> getUnhandledTasks() {

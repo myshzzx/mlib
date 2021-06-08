@@ -603,7 +603,7 @@ public class HttpClientAssist implements Closeable {
 		 * see {@link #isContentType(String)}
 		 */
 		public boolean isText() {
-			return contentType == null || Objects.equals(contentType.type(), "text") || isJson() || isJs();
+			return contentType == null || Objects.equals(contentType.type(), "text") || isJson() || isJs() || isXml();
 		}
 		
 		/**
@@ -625,6 +625,13 @@ public class HttpClientAssist implements Closeable {
 		 */
 		public boolean isHtml() {
 			return contentType != null && Objects.equals(contentType.subtype(), "html");
+		}
+		
+		/**
+		 * <b>IMPORTANT:</b> see {@link #isContentType(String)}
+		 */
+		public boolean isXml() {
+			return contentType != null && Objects.equals(contentType.type(), "application") && contentType.subtype().endsWith("xml");
 		}
 		
 		/**
