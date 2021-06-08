@@ -64,9 +64,9 @@ import java.util.zip.GZIPInputStream;
 public class HttpClientAssist implements Closeable {
 	private static final Logger log = LoggerFactory.getLogger(HttpClientAssist.class);
 	private static final HttpClientConfig defaultHcc = new HttpClientConfig();
-	private HttpClientConfig hcc;
-	private OkHttpClient client;
-	private AtomicBoolean closeFlag = new AtomicBoolean(false);
+	private final HttpClientConfig hcc;
+	private final OkHttpClient client;
+	private final AtomicBoolean closeFlag = new AtomicBoolean(false);
 	
 	public HttpClientAssist() {
 		this(null, null);
@@ -179,7 +179,7 @@ public class HttpClientAssist implements Closeable {
 				
 				if (value instanceof File) {
 					File file = (File) value;
-					mb.addFormDataPart(name, file.getName(), RequestBody.create(null, file));
+					mb.addFormDataPart(name, file.getName(), RequestBody.create(file, null));
 				} else {
 					mb.addFormDataPart(name, String.valueOf(value));
 				}
@@ -372,7 +372,7 @@ public class HttpClientAssist implements Closeable {
 	 * @param headers   请求头, 可为 null
 	 * @param overwrite overwrite exist file or rename new file
 	 * @return whether file is overwritten
-	 * @throws Exception IO异常
+	 * @throws IOException IO异常
 	 */
 	public boolean saveToFile(
 			String url, @Nullable Map<String, ?> headers, File file, boolean overwrite
@@ -511,12 +511,11 @@ public class HttpClientAssist implements Closeable {
 	@NotThreadSafe
 	public final class UrlEntity implements Closeable {
 		
-		private final Request req;
 		private final String reqUrl;
 		private final Call call;
 		private final Response rsp;
 		private String currentUrl;
-		private MediaType contentType;
+		private final MediaType contentType;
 		private byte[] entityBuf;
 		private String entityStr;
 		private Charset entityEncoding;
@@ -524,7 +523,7 @@ public class HttpClientAssist implements Closeable {
 		
 		public UrlEntity(Request.Builder rb) throws IOException {
 			try {
-				req = rb.build();
+				Request req = rb.build();
 				// can't lazy init, because it changes after rb.execute() on any 302 relocation
 				reqUrl = req.url().toString();
 				
@@ -536,7 +535,7 @@ public class HttpClientAssist implements Closeable {
 					log.warn("access unsuccessful, status={}, msg={}, req={}, curr={}",
 							statusCode, rsp.message(), this.reqUrl, this.getCurrentURL());
 				}
-				contentType = rsp.body().contentType();
+				contentType = rsp.body() != null ? rsp.body().contentType() : null;
 			} catch (IOException e) {
 				this.close();
 				throw e;
@@ -650,7 +649,7 @@ public class HttpClientAssist implements Closeable {
 		 * content length in byte size. return -1 if length not given (response header).
 		 */
 		public long getContentLength() {
-			return rsp.body().contentLength();
+			return rsp.body() != null ? rsp.body().contentLength() : -1;
 		}
 		
 		/**
@@ -714,7 +713,7 @@ public class HttpClientAssist implements Closeable {
 			return this.entityEncoding;
 		}
 		
-		private ThreadLocal<byte[]> decompressBuf = ThreadLocal.withInitial(() -> new byte[100_000]);
+		private final ThreadLocal<byte[]> decompressBuf = ThreadLocal.withInitial(() -> new byte[100_000]);
 		
 		/**
 		 * download entire entity to memory. download will run only once.
@@ -724,7 +723,7 @@ public class HttpClientAssist implements Closeable {
 				try {
 					String contentEncoding = rsp.header(HttpHeaders.CONTENT_ENCODING);
 					if (rsp.body() != null) {
-						if (Strings.isBlank(contentEncoding) || Objects.equals(contentEncoding, "identity")) {
+						if (contentEncoding == null || Strings.isBlank(contentEncoding) || contentEncoding.equals("identity")) {
 							entityBuf = rsp.body().bytes();
 						} else {
 							InputStream bodyStream = rsp.body().byteStream();
@@ -779,7 +778,6 @@ public class HttpClientAssist implements Closeable {
 		 * thrown
 		 *
 		 * @return whether file is overwritten
-		 * @throws IOException
 		 */
 		public synchronized boolean saveToFile(File file, boolean overwrite) throws IOException {
 			if (!overwrite && file.exists()) {
@@ -820,7 +818,7 @@ public class HttpClientAssist implements Closeable {
 		 */
 		private synchronized boolean downloadDirectlyToFile(
 				File writeFile, int retryTimes, @Nullable Function<Integer, Boolean> stopChk) throws Exception {
-			if (stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
+			if (rsp.body() == null || stopChk != null && Objects.equals(Boolean.TRUE, stopChk.apply(retryTimes))) {
 				return false;
 			}
 			

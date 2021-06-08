@@ -106,11 +106,8 @@ public class CacheHelper {
 	 *      3.2 重试次数未达到时回到1, 否则直接返回 value
 	 *   4. 返回的 value 可能是读超时的数据, 也可能是null
 	 * </pre>
-	 *
-	 * @param <T>
-	 * @return
-	 * @throws Exception
 	 */
+	@SuppressWarnings("unchecked")
 	public <T> T get() throws Exception {
 		this.validate();
 		Object value = null;
