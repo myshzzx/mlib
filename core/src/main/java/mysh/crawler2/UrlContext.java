@@ -2,10 +2,6 @@ package mysh.crawler2;
 
 import java.io.Serializable;
 
-/**
- * WARNING: subtypes should rewrite {@link Object#equals} and {@link Object#hashCode}
- * to prevent same tasks from been submit to crawler task. {@link lombok.Data} can be simply used.
- */
 public interface UrlContext extends Serializable, Comparable<Object> {
 	
 	/**

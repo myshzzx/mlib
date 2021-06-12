@@ -1,11 +1,13 @@
 package mysh.crawler2;
 
+import lombok.Data;
 import okhttp3.Request;
 
 import java.io.Serializable;
 import java.util.Objects;
 import java.util.stream.Stream;
 
+@Data
 public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 	private static final long serialVersionUID = 2643572390637842239L;
 	
@@ -42,8 +44,7 @@ public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 		
 		UrlCtxHolder<?> that = (UrlCtxHolder<?>) o;
 		
-		if (!url.equals(that.url)) return false;
-		return Objects.equals(ctx, that.ctx);
+		return Objects.equals(url, that.url);
 	}
 	
 	@Override
@@ -51,21 +52,4 @@ public class UrlCtxHolder<CTX extends UrlContext> implements Serializable {
 		return url.hashCode();
 	}
 	
-	// get and set
-	
-	public CTX getCtx() {
-		return ctx;
-	}
-	
-	public String getUrl() {
-		return url;
-	}
-	
-	public void setUrl(String url) {
-		this.url = url;
-	}
-	
-	public void setCtx(CTX ctx) {
-		this.ctx = ctx;
-	}
 }
