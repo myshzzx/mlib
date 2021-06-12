@@ -163,7 +163,7 @@ public class Htmls {
 		}
 	}
 	
-	private static final Pattern paramsExp = Pattern.compile("([^=&]+?)=([^=&]*)");
+	private static final Pattern paramsExp = Pattern.compile("([^=&]+?)=([^&]*)");
 	
 	public static Map<String, String> parseQuery(String rawQuery, Charset enc) {
 		Map<String, String> params = new HashMap<>();

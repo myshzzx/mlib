@@ -36,6 +36,12 @@ public class HtmlsTest extends Assertions {
 	}
 	
 	@Test
+	public void parseQuery3() {
+		Map<String, String> params = Htmls.parseQuery("&k1=v1==&k2=&k3=v3 v3", Encodings.UTF_8);
+		assertEquals(Colls.ofHashMap("k1", "v1==", "k2", "", "k3", "v3 v3"), params);
+	}
+	
+	@Test
 	public void getMimeType() {
 		assertEquals("text/html", Htmls.getMimeType("html", Htmls.MIME_TEXT));
 		assertEquals(Htmls.MIME_TEXT, Htmls.getMimeType("abc", Htmls.MIME_TEXT));

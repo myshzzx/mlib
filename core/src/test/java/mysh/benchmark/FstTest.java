@@ -2,6 +2,7 @@ package mysh.benchmark;
 
 import mysh.util.Serializer;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.nustaq.serialization.simpleapi.DefaultCoder;
 
@@ -13,6 +14,7 @@ import java.util.concurrent.CountDownLatch;
  * @author Mysh
  * @since 2014/11/24 11:14
  */
+@Disabled
 public class FstTest {
 	private static class T implements Serializable {
 		transient int a;
