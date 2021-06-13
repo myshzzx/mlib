@@ -1,11 +1,15 @@
 package mysh.sql.sqlite;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.base.Joiner;
 import lombok.Getter;
 import mysh.collect.Colls;
 import mysh.os.Oss;
 import mysh.sql.PooledDataSource;
-import mysh.util.*;
+import mysh.util.Compresses;
+import mysh.util.Serializer;
+import mysh.util.Tick;
+import mysh.util.Times;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
@@ -23,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 /**
  * @since 2019-07-08
@@ -38,22 +43,11 @@ public class SqliteDB implements Closeable {
 	private NamedParameterJdbcTemplate jdbcTemplate;
 	private Set<String> existTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
+	@Getter
 	public static class Item {
 		private String key;
 		private LocalDateTime writeTime, readTime;
 		private Object value;
-		
-		public String getKey() {
-			return key;
-		}
-		
-		public LocalDateTime getWriteTime() {
-			return writeTime;
-		}
-		
-		public LocalDateTime getReadTime() {
-			return readTime;
-		}
 		
 		public <V> V getValue() {
 			return (V) value;
@@ -101,15 +95,20 @@ public class SqliteDB implements Closeable {
 		
 		void remove(String key);
 		
-		void save(String key, Object value);
-		
-		/**
-		 * @param compressionLevel valid within [0,9], the higher level, the harder compress.
-		 *                         a valid level will force compress.
-		 */
-		void save(String key, Object value, int compressionLevel);
+		int save(String key, Object value);
 		
 		boolean exists(String key);
+	}
+	
+	public interface KvConfigDAO<V> extends KvDAO {
+		
+		/**
+		 * read old value and convert it to new value by doing some biz,
+		 * guarded by key.intern() locking.
+		 *
+		 * @return new value
+		 */
+		V readAndWrite(String key, Function<V, V> biz);
 	}
 	
 	public SqliteDB(Path file) {
@@ -292,9 +291,8 @@ public class SqliteDB implements Closeable {
 			if (tick.nip() > 30) {
 				log.warn("sql-need-optimize,cost={}ms, sql={}, params={}", tick.lastNip(), sql, params);
 			}
-			return lst == null ? Collections.emptyList() : lst;
+			return lst;
 		}
-		
 		
 		@Override
 		public boolean containsKey(String key) {
@@ -421,24 +419,19 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public void save(String key, Object value) {
-			save(key, value, -1);
-		}
-		
-		@Override
-		public void save(String key, Object value, int compressionLevel) {
+		public int save(String key, Object value) {
 			byte[] buf = SERIALIZER.serialize(value);
 			Object saveValue = value instanceof String ? value : buf;
-			if ((suggestCompressValue || Range.isWithin(0, 9, compressionLevel)) && buf.length > 256) {
-				byte[] cb = Range.isWithin(0, 9, compressionLevel) ?
-						Compresses.compressXz(buf, compressionLevel) : Compresses.compressXz(buf);
+			if (suggestCompressValue && buf.length > 256) {
+				byte[] cb = Compresses.compressXz(buf);
 				if (cb.length < buf.length)
 					saveValue = cb;
 			}
-			// wt and rt will always be the default value
-			jdbcTemplate.update(
-					"insert or replace into " + table + "(k,v) values(:key,:value)",
-					Colls.ofHashMap("key", key, "value", saveValue)
+			return jdbcTemplate.update(
+					"insert into " + table + "(k,v) values(:key,:value) " +
+							"on conflict(k) do update set v=:value,wt=(datetime(CURRENT_TIMESTAMP,'localtime'))"
+							+ (updateReadTime ? ",rt=(datetime(CURRENT_TIMESTAMP,'localtime'))" : "")
+					, Colls.ofHashMap("key", key, "value", saveValue)
 			);
 		}
 		
@@ -446,6 +439,28 @@ public class SqliteDB implements Closeable {
 		public boolean exists(String key) {
 			return jdbcTemplate.queryForObject("select count(1) from " + table + " where k=:key",
 					Colls.ofHashMap("key", key), Integer.class) > 0;
+		}
+	}
+	
+	private class KvConfigDAOImpl<V> extends DAOImpl implements KvConfigDAO<V> {
+		
+		private final Class<V> valueClass;
+		
+		KvConfigDAOImpl(String table, Class<V> valueClass, boolean updateReadTime) {
+			super(table, false, updateReadTime);
+			this.valueClass = Objects.requireNonNull(valueClass);
+		}
+		
+		@Override
+		public V readAndWrite(String key, Function<V, V> biz) {
+			synchronized (key.intern()) {
+				Item old = itemByKey(key, true, false);
+				String s = old != null ? old.getValue() : null;
+				V newV = biz.apply(s != null ? JSON.parseObject(s, valueClass) : null);
+				String v = JSON.toJSONString(newV);
+				save(key, v);
+				return newV;
+			}
 		}
 	}
 	
@@ -461,6 +476,14 @@ public class SqliteDB implements Closeable {
 	 */
 	public KvDAO genKvDAO(String table, boolean suggestCompressValue, boolean updateReadTime) {
 		return new DAOImpl(table, suggestCompressValue, updateReadTime);
+	}
+	
+	/**
+	 * @param table      snake_case_group style
+	 * @param valueClass value class will be converted to json string before saving to db.
+	 */
+	public <V> KvConfigDAO<V> genKvConfigDAO(String table, Class<V> valueClass, boolean updateReadTime) {
+		return new KvConfigDAOImpl<V>(table, valueClass, updateReadTime);
 	}
 	
 	/**
