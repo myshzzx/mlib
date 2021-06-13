@@ -428,16 +428,17 @@ public class SqliteDB implements Closeable {
 		@Override
 		public void save(String key, Object value, int compressionLevel) {
 			byte[] buf = SERIALIZER.serialize(value);
+			Object saveValue = value instanceof String ? value : buf;
 			if ((suggestCompressValue || Range.isWithin(0, 9, compressionLevel)) && buf.length > 256) {
 				byte[] cb = Range.isWithin(0, 9, compressionLevel) ?
 						Compresses.compressXz(buf, compressionLevel) : Compresses.compressXz(buf);
 				if (cb.length < buf.length)
-					buf = cb;
+					saveValue = cb;
 			}
 			// wt and rt will always be the default value
 			jdbcTemplate.update(
 					"insert or replace into " + table + "(k,v) values(:key,:value)",
-					Colls.ofHashMap("key", key, "value", buf)
+					Colls.ofHashMap("key", key, "value", saveValue)
 			);
 		}
 		

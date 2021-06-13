@@ -302,7 +302,7 @@ public class Compresses {
 	 * https://en.wikipedia.org/wiki/List_of_file_signatures
 	 */
 	private static final byte[] xzSignature = new byte[]{(byte) 0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00};
-	private static final byte[] zipSignature = new byte[]{0x50, 0x4B};
+	private static final byte[] zipSignature = new byte[]{0x50, 0x4B, 0x03, 0x04};
 	
 	public static boolean isXz(byte[] d) {
 		return hasSignature(d, xzSignature);
