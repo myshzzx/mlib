@@ -154,7 +154,11 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 				return false;
 			}
 		} else
-			return ue.getStatusCode() == 404;
+			return isSuccessOnGetStatus(ue.getStatusCode());
+	}
+	
+	protected boolean isSuccessOnGetStatus(int httpRespStatus) {
+		return true;
 	}
 	
 	@Override
