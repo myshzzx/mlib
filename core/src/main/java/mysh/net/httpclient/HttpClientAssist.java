@@ -653,6 +653,16 @@ public class HttpClientAssist implements Closeable {
 		}
 		
 		/**
+		 * @return content type without encoding, like <code>text/html</code>
+		 */
+		public String getContentType() {
+			if (contentType != null)
+				return contentType.type() + '/' + contentType.subtype();
+			else
+				return rsp.header(HttpHeaders.CONTENT_TYPE, "").split(";")[0];
+		}
+		
+		/**
 		 * content length in byte size. return -1 if length not given (response header).
 		 */
 		public long getContentLength() {
