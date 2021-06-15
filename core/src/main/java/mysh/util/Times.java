@@ -270,4 +270,12 @@ public class Times {
 	public static LocalDateTime convert(LocalDateTime dt, ZoneId from, ZoneId to) {
 		return dt.atZone(from).toInstant().atZone(to).toLocalDateTime();
 	}
+	
+	public static LocalDateTime localDateTime(long epochMilli) {
+		return localDateTime(epochMilli, ZoneId.systemDefault());
+	}
+	
+	public static LocalDateTime localDateTime(long epochMilli, ZoneId zoneId) {
+		return LocalDateTime.from(Instant.ofEpochMilli(epochMilli).atZone(zoneId));
+	}
 }

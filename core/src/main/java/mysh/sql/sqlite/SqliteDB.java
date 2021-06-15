@@ -94,6 +94,8 @@ public class SqliteDB implements Closeable {
 		
 		int save(String key, V value);
 		
+		int save(String key, Object value, @Nullable LocalDateTime writeTime);
+		
 		boolean exists(String key);
 	}
 	
@@ -419,7 +421,12 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public int save(String key, Object value) {
+		public int save(String key, V value) {
+			return save(key, value, null);
+		}
+		
+		@Override
+		public int save(String key, Object value, @Nullable LocalDateTime writeTime) {
 			byte[] buf = SERIALIZER.serialize(value);
 			Object saveValue = value instanceof String ? value : buf;
 			if (suggestCompressValue && buf.length > 256) {
@@ -428,10 +435,13 @@ public class SqliteDB implements Closeable {
 					saveValue = cb;
 			}
 			return jdbcTemplate.update(
-					"insert into " + table + "(k,v) values(:key,:value) " +
-							"on conflict(k) do update set v=:value,wt=(datetime(CURRENT_TIMESTAMP,'localtime'))"
+					"insert into " + table + "(k,v,wt) values(:key,:value,wt) " +
+							"on conflict(k) do update set v=:value,wt=:wt"
 							+ (updateReadTime ? ",rt=(datetime(CURRENT_TIMESTAMP,'localtime'))" : "")
-					, Colls.ofHashMap("key", key, "value", saveValue)
+					, Colls.ofHashMap(
+							"key", key,
+							"value", saveValue,
+							"wt", Times.format(Times.Formats.DayTime, ObjectUtils.firstNonNull(writeTime, LocalDateTime.now())))
 			);
 		}
 		
