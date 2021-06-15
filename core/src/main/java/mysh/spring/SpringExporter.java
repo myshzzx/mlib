@@ -96,7 +96,7 @@ public class SpringExporter implements ApplicationContextAware {
 		private Object value;
 		private Class type;
 		private boolean isJson = false;
-		private Throwable t;
+		private String t;
 		
 		void setResult(Object result) {
 			try {
@@ -114,7 +114,7 @@ public class SpringExporter implements ApplicationContextAware {
 		
 		public <T> T getResult() throws Throwable {
 			if (t != null) {
-				throw t;
+				throw new RuntimeException(t);
 			}
 			if (isJson) {
 				return (T) JSON.parseObject((String) value, type);
@@ -173,7 +173,7 @@ public class SpringExporter implements ApplicationContextAware {
 			Object value = method.invoke(bean, iv.args);
 			r.setResult(value);
 		} catch (Throwable t) {
-			r.t = t;
+			r.t = t.toString();
 			log.error("SpringExporter-invoke-error,invoke={}", JSON.toJSONString(iv), t);
 		}
 		return r;

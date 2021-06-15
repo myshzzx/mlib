@@ -28,7 +28,7 @@ public class BloomFilterRepo<CTX extends UrlContext> implements Repo<CTX> {
 	private double fpp;
 	
 	private File file;
-	private SqliteDB.KvDAO sqliteDao;
+	private SqliteDB.KvDAO<Pair<BloomFilter<String>, Collection<UrlCtxHolder<CTX>>>> sqliteDao;
 	private String sqliteItemName;
 	
 	/**
@@ -45,7 +45,8 @@ public class BloomFilterRepo<CTX extends UrlContext> implements Repo<CTX> {
 	 * @param expectedInsertions 预期插入数.
 	 * @param fpp                误报率 (0~1).
 	 */
-	public BloomFilterRepo(SqliteDB.KvDAO sqliteDao, String sqliteItemName, int expectedInsertions, double fpp) {
+	public BloomFilterRepo(SqliteDB.KvDAO<Pair<BloomFilter<String>, Collection<UrlCtxHolder<CTX>>>> sqliteDao,
+	                       String sqliteItemName, int expectedInsertions, double fpp) {
 		this.expectedInsertions = expectedInsertions;
 		this.fpp = fpp;
 		this.sqliteDao = Objects.requireNonNull(sqliteDao, "dao is null");

@@ -26,7 +26,7 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 	public Map<String, Object> urls;
 	
 	private File file;
-	private SqliteDB.KvDAO sqliteDao;
+	private SqliteDB.KvDAO<Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>>> sqliteDao;
 	private String sqliteItemName;
 	private DAO<Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>>> dao;
 	
@@ -34,7 +34,7 @@ public class HashMapRepo<CTX extends UrlContext> implements Repo<CTX> {
 		this.file = Objects.requireNonNull(file, "file can't be null");
 	}
 	
-	public HashMapRepo(SqliteDB.KvDAO sqliteDao, String sqliteItemName) {
+	public HashMapRepo(SqliteDB.KvDAO<Pair<Map<String, Object>, Collection<UrlCtxHolder<CTX>>>> sqliteDao, String sqliteItemName) {
 		this.sqliteDao = sqliteDao;
 		this.sqliteItemName = sqliteItemName;
 	}

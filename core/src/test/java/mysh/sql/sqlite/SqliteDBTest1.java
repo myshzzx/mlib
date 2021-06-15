@@ -14,7 +14,7 @@ import java.nio.file.Paths;
 public class SqliteDBTest1 {
 	
 	SqliteDB db = new SqliteDB(Paths.get("l:/a.db"));
-	SqliteDB.KvDAO dao = db.genKvDAO("test_group", true, false);
+	SqliteDB.KvDAO<String> dao = db.genKvDAO("test_group", true, false);
 	
 	@AfterEach
 	public void end() {

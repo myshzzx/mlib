@@ -88,8 +88,8 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	
 	protected final SiteConfig config;
 	private final SqliteDB db;
-	protected final SqliteDB.KvDAO pageDAO;
-	protected final SqliteDB.KvDAO configDAO;
+	protected final SqliteDB.KvDAO<PageInfo> pageDAO;
+	protected final SqliteDB.KvDAO<Collection<UrlCtxHolder<CTX>>> configDAO;
 	
 	protected SiteCrawler() {
 		config = getConfig();
@@ -131,7 +131,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	/**
 	 * 检查存储的 item 是否已失效, 需要重爬
 	 */
-	protected boolean dbItemInvalid(@Nonnull SqliteDB.Item item) {
+	protected boolean dbItemInvalid(@Nonnull SqliteDB.Item<PageInfo> item) {
 		return false;
 	}
 	
@@ -172,7 +172,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 	private Runnable onCrawlerStop;
 	
 	private Collection<UrlCtxHolder<CTX>> getUnhandledTasks() {
-		SqliteDB.Item unhandledTasksItem = configDAO.itemByKey("unhandledTasks");
+		SqliteDB.Item<Collection<UrlCtxHolder<CTX>>> unhandledTasksItem = configDAO.itemByKey("unhandledTasks");
 		return unhandledTasksItem != null ? unhandledTasksItem.getValue() : null;
 	}
 	
@@ -188,7 +188,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 		if (Colls.isNotEmpty(unhandledTasks))
 			return true;
 		
-		SqliteDB.Item rootItem = pageDAO.itemByKey("/");
+		SqliteDB.Item<PageInfo> rootItem = pageDAO.itemByKey("/");
 		return rootItem != null && dbItemInvalid(rootItem);
 	}
 	
@@ -261,7 +261,7 @@ public abstract class SiteCrawler<CTX extends UrlContext> implements CrawlerSeed
 			URI uri = exchange.getRequestURI();
 			String uriStr = uri.toString();
 			String reqUri = getReqUri(uriStr);
-			SqliteDB.Item item = pageDAO.itemByKey(reqUri);
+			SqliteDB.Item<PageInfo> item = pageDAO.itemByKey(reqUri);
 			
 			// 将 item 返回请求端
 			Try.ExpRunnable<IOException> sendPageInfo = () -> {

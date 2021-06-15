@@ -6,10 +6,7 @@ import lombok.Getter;
 import mysh.collect.Colls;
 import mysh.os.Oss;
 import mysh.sql.PooledDataSource;
-import mysh.util.Compresses;
-import mysh.util.Serializer;
-import mysh.util.Tick;
-import mysh.util.Times;
+import mysh.util.*;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.slf4j.Logger;
@@ -37,20 +34,20 @@ public class SqliteDB implements Closeable {
 	
 	private static final Serializer SERIALIZER = Serializer.BUILD_IN;
 	
-	private PooledDataSource ds;
-	private Path dbFile;
+	private final PooledDataSource ds;
+	private final Path dbFile;
 	@Getter
-	private NamedParameterJdbcTemplate jdbcTemplate;
-	private Set<String> existTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
+	private final NamedParameterJdbcTemplate jdbcTemplate;
+	private final Set<String> existTables = Collections.newSetFromMap(new ConcurrentHashMap<>());
 	
 	@Getter
-	public static class Item {
+	public static class Item<V> {
 		private String key;
 		private LocalDateTime writeTime, readTime;
-		private Object value;
+		private V value;
 		
-		public <V> V getValue() {
-			return (V) value;
+		public V getValue() {
+			return value;
 		}
 	}
 	
@@ -69,39 +66,38 @@ public class SqliteDB implements Closeable {
 				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 	}
 	
-	public interface KvDAO extends DAO {
+	public interface KvDAO<V> extends DAO {
 		boolean containsKey(String key);
 		
-		<V> V byKey(String key);
+		V byKey(String key);
 		
-		<V> V byKey(String key, V defaultValue);
+		V byKey(String key, V defaultValue);
 		
-		List<Item> itemsByRawSql(
+		List<Item<V>> itemsByRawSql(
 				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
 		
-		Item itemByKey(String key, boolean queryValue, boolean queryTime);
+		Item<V> itemByKey(String key, boolean queryValue, boolean queryTime);
 		
-		Item timeByKey(String key);
+		Item<V> timeByKey(String key);
 		
-		default Item itemByKey(String key) {
+		default Item<V> itemByKey(String key) {
 			return itemByKey(key, true, true);
 		}
 		
-		List<Item> items();
+		List<Item<V>> items();
 		
-		<V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter);
+		V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter);
 		
 		void removeReadExpired(LocalDateTime validAfter);
 		
 		void remove(String key);
 		
-		int save(String key, Object value);
+		int save(String key, V value);
 		
 		boolean exists(String key);
 	}
 	
-	public interface KvConfigDAO<V> extends KvDAO {
-		
+	public interface KvConfigDAO<V> extends KvDAO<String> {
 		/**
 		 * read old value and convert it to new value by doing some biz,
 		 * guarded by key.intern() locking.
@@ -109,6 +105,10 @@ public class SqliteDB implements Closeable {
 		 * @return new value
 		 */
 		V readAndWrite(String key, Function<V, V> biz);
+		
+		V configByKey(String key);
+		
+		V configByKey(String key, V defaultConfig);
 	}
 	
 	public SqliteDB(Path file) {
@@ -190,7 +190,7 @@ public class SqliteDB implements Closeable {
 		}
 	}
 	
-	private class DAOImpl implements KvDAO {
+	private class DAOImpl<V> implements KvDAO<V> {
 		final String table;
 		final boolean suggestCompressValue;
 		final boolean updateReadTime;
@@ -303,33 +303,33 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public <V> V byKey(String key) {
+		public V byKey(String key) {
 			return byKey(key, null);
 		}
 		
 		@Override
-		public <V> V byKey(String key, V defaultValue) {
-			Item item = itemByKey(key, true, false);
+		public V byKey(String key, V defaultValue) {
+			Item<V> item = itemByKey(key, true, false);
 			return item == null ? defaultValue : item.getValue();
 		}
 		
 		@Override
-		public Item timeByKey(String key) {
+		public Item<V> timeByKey(String key) {
 			return itemByKey(key, false, true);
 		}
 		
 		@Override
-		public List<Item> items() {
+		public List<Item<V>> items() {
 			return itemsByRawSql(null, null, null, null);
 		}
 		
 		@Override
-		public List<Item> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
+		public List<Item<V>> itemsByRawSql(String cols, String conditions, String clauses, Map<String, ?> params) {
 			List<Map<String, Object>> lst = this.byRawSql(cols, conditions, clauses, params);
 			
-			List<Item> items = new ArrayList<>();
+			List<Item<V>> items = new ArrayList<>();
 			for (Map<String, Object> mi : lst) {
-				Item item = new Item();
+				Item<V> item = new Item<>();
 				item.key = (String) mi.get("k");
 				this.assembleItem(mi, item, true, true);
 				items.add(item);
@@ -338,7 +338,7 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public Item itemByKey(String key, boolean queryValue, boolean queryTime) {
+		public Item<V> itemByKey(String key, boolean queryValue, boolean queryTime) {
 			List<Map<String, Object>> lst = jdbcTemplate.queryForList(
 					"select " + (queryValue ? "v," : "") + (queryTime ? "wt,rt," : "") + "1 from " + table + " where k=:key",
 					Colls.ofHashMap("key", key));
@@ -346,7 +346,7 @@ public class SqliteDB implements Closeable {
 				return null;
 			else {
 				Map<String, Object> r = lst.get(0);
-				Item item = new Item();
+				Item<V> item = new Item<>();
 				item.key = key;
 				
 				assembleItem(r, item, queryValue, queryTime);
@@ -360,11 +360,11 @@ public class SqliteDB implements Closeable {
 			}
 		}
 		
-		private void assembleItem(Map<String, Object> r, Item item, boolean queryValue, boolean queryTime) {
+		private void assembleItem(Map<String, Object> r, Item<V> item, boolean queryValue, boolean queryTime) {
 			Object v = r.get("v");
 			if (queryValue && v != null) {
 				if (v instanceof String) {
-					item.value = v;
+					item.value = (V) v;
 				} else {
 					byte[] blob = (byte[]) v;
 					if (Compresses.isZip(blob)) {
@@ -374,7 +374,7 @@ public class SqliteDB implements Closeable {
 					} else if (Serializer.isBuildInStream(blob))
 						item.value = SERIALIZER.deserialize(blob);
 					else
-						item.value = new String(blob);
+						item.value = (V) new String(blob);
 				}
 			}
 			
@@ -392,8 +392,8 @@ public class SqliteDB implements Closeable {
 		}
 		
 		@Override
-		public <V> V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter) {
-			Item item = itemByKey(key, true, true);
+		public V byKeyRemoveOnWriteExpired(String key, LocalDateTime validAfter) {
+			Item<V> item = itemByKey(key, true, true);
 			if (item != null) {
 				if (item.writeTime.compareTo(validAfter) < 0) {
 					remove(key);
@@ -442,7 +442,7 @@ public class SqliteDB implements Closeable {
 		}
 	}
 	
-	private class KvConfigDAOImpl<V> extends DAOImpl implements KvConfigDAO<V> {
+	private class KvConfigDAOImpl<V> extends DAOImpl<String> implements KvConfigDAO<V> {
 		
 		private final Class<V> valueClass;
 		
@@ -454,7 +454,7 @@ public class SqliteDB implements Closeable {
 		@Override
 		public V readAndWrite(String key, Function<V, V> biz) {
 			synchronized (key.intern()) {
-				Item old = itemByKey(key, true, false);
+				Item<String> old = itemByKey(key, true, false);
 				String s = old != null ? old.getValue() : null;
 				V newV = biz.apply(s != null ? JSON.parseObject(s, valueClass) : null);
 				String v = JSON.toJSONString(newV);
@@ -462,20 +462,32 @@ public class SqliteDB implements Closeable {
 				return newV;
 			}
 		}
+		
+		@Override
+		public V configByKey(String key) {
+			return configByKey(key, null);
+		}
+		
+		@Override
+		public V configByKey(String key, V defaultConfig) {
+			Item<String> old = itemByKey(key, true, false);
+			return old != null && Strings.isNotBlank(old.getValue()) ?
+					JSON.parseObject(old.getValue(), valueClass) : defaultConfig;
+		}
 	}
 	
 	/**
 	 * @param table snake_case_group style
 	 */
 	public DAO genDAO(String table) {
-		return new DAOImpl(table);
+		return new DAOImpl<>(table);
 	}
 	
 	/**
 	 * @param table snake_case_group style
 	 */
-	public KvDAO genKvDAO(String table, boolean suggestCompressValue, boolean updateReadTime) {
-		return new DAOImpl(table, suggestCompressValue, updateReadTime);
+	public <V> KvDAO<V> genKvDAO(String table, boolean suggestCompressValue, boolean updateReadTime) {
+		return new DAOImpl<>(table, suggestCompressValue, updateReadTime);
 	}
 	
 	/**
@@ -483,7 +495,7 @@ public class SqliteDB implements Closeable {
 	 * @param valueClass value class will be converted to json string before saving to db.
 	 */
 	public <V> KvConfigDAO<V> genKvConfigDAO(String table, Class<V> valueClass, boolean updateReadTime) {
-		return new KvConfigDAOImpl<V>(table, valueClass, updateReadTime);
+		return new KvConfigDAOImpl<>(table, valueClass, updateReadTime);
 	}
 	
 	/**

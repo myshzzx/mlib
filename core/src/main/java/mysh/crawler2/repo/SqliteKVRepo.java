@@ -12,7 +12,7 @@ import java.util.Collection;
  * @since 2019-08-20
  */
 public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
-	private SqliteDB.KvDAO dao;
+	private SqliteDB.KvDAO<Object> dao;
 	
 	public SqliteKVRepo(SqliteDB.KvDAO dao) {
 		this.dao = dao;
@@ -20,7 +20,7 @@ public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
 	
 	@Override
 	public Collection<UrlCtxHolder<CTX>> load() {
-		return dao.byKey("\u0000");
+		return (Collection<UrlCtxHolder<CTX>>) dao.byKey("\u0000");
 	}
 	
 	@Override
@@ -35,7 +35,7 @@ public class SqliteKVRepo<CTX extends UrlContext> implements Repo<CTX> {
 	
 	@Override
 	public <T> T get(String url) {
-		return dao.byKey(url);
+		return (T) dao.byKey(url);
 	}
 	
 	@Override
