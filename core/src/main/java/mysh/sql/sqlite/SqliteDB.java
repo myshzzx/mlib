@@ -435,7 +435,7 @@ public class SqliteDB implements Closeable {
 					saveValue = cb;
 			}
 			return jdbcTemplate.update(
-					"insert into " + table + "(k,v,wt) values(:key,:value,wt) " +
+					"insert into " + table + "(k,v,wt) values(:key,:value,:wt) " +
 							"on conflict(k) do update set v=:value,wt=:wt"
 							+ (updateReadTime ? ",rt=(datetime(CURRENT_TIMESTAMP,'localtime'))" : "")
 					, Colls.ofHashMap(
