@@ -47,7 +47,7 @@ public final class HttpClientConfig implements Cloneable {
 	/**
 	 * 连接超时. in millisecond
 	 */
-	int connectionTimeout = 7_000;
+	int connectionTimeout = 10_000;
 	
 	/**
 	 * 取数据内容超时. in millisecond
