@@ -269,7 +269,7 @@ public class Compresses {
 		}
 		byte[] a = ro.toByteArray();
 		if (tick.nip() > 1000)
-			log.debug("compressXz cost {} ms, cl={}, before/after={}/{}", tick.lastNip(), compressionLevel, data.length, a.length);
+			log.debug("compressXz cost {} ms, level={}, before/after={}/{}", tick.lastNip(), compressionLevel, data.length, a.length);
 		return a;
 	}
 	
