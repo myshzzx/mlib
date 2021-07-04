@@ -262,11 +262,6 @@ public class Times {
 		return LocalDateTime.parse(time, formatter);
 	}
 	
-	public static Instant parseInstant(Object format, String time) {
-		LocalDateTime dt = parseDayTime(format, time);
-		return dt.toInstant(OffsetDateTime.now().getOffset());
-	}
-	
 	public static LocalDateTime convert(LocalDateTime dt, ZoneId from, ZoneId to) {
 		return dt.atZone(from).toInstant().atZone(to).toLocalDateTime();
 	}
@@ -277,5 +272,21 @@ public class Times {
 	
 	public static LocalDateTime localDateTime(long epochMilli, ZoneId zoneId) {
 		return LocalDateTime.from(Instant.ofEpochMilli(epochMilli).atZone(zoneId));
+	}
+	
+	public static long epochMilli(LocalDateTime time) {
+		return epochMilli(time, ZoneId.systemDefault());
+	}
+	
+	public static long epochMilli(LocalDateTime time, ZoneId zoneId) {
+		return time.atZone(zoneId).toInstant().toEpochMilli();
+	}
+	
+	public static long epochMilli(LocalDate time) {
+		return epochMilli(time, ZoneId.systemDefault());
+	}
+	
+	public static long epochMilli(LocalDate time, ZoneId zoneId) {
+		return epochMilli(time.atTime(0, 0), zoneId);
 	}
 }

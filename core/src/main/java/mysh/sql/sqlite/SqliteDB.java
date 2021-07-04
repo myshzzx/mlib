@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * @since 2019-07-08
@@ -94,7 +95,7 @@ public class SqliteDB implements Closeable {
 		
 		int save(String key, V value);
 		
-		int save(String key, Object value, @Nullable LocalDateTime writeTime);
+		int save(String key, V value, @Nullable LocalDateTime writeTime);
 		
 		boolean exists(String key);
 	}
@@ -108,9 +109,24 @@ public class SqliteDB implements Closeable {
 		 */
 		V readAndWrite(String key, Function<V, V> biz);
 		
+		/**
+		 * read old value and convert it to new value by doing some biz,
+		 * guarded by key.intern() locking.
+		 *
+		 * @return new value
+		 */
+		V readAndWrite(String key, Function<V, V> biz, @Nullable LocalDateTime writeTime);
+		
 		V configByKey(String key);
 		
 		V configByKey(String key, V defaultConfig);
+		
+		List<Item<V>> configsByRawSql(
+				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params);
+		
+		int saveConfig(String key, V value);
+		
+		int saveConfig(String key, V value, @Nullable LocalDateTime writeTime);
 	}
 	
 	public SqliteDB(Path file) {
@@ -422,11 +438,11 @@ public class SqliteDB implements Closeable {
 		
 		@Override
 		public int save(String key, V value) {
-			return save(key, value, null);
+			return save(key, value, LocalDateTime.now());
 		}
 		
 		@Override
-		public int save(String key, Object value, @Nullable LocalDateTime writeTime) {
+		public int save(String key, V value, @Nullable LocalDateTime writeTime) {
 			byte[] buf = SERIALIZER.serialize(value);
 			Object saveValue = value instanceof String ? value : buf;
 			if (suggestCompressValue && buf.length > 256) {
@@ -435,7 +451,7 @@ public class SqliteDB implements Closeable {
 					saveValue = cb;
 			}
 			return jdbcTemplate.update(
-					"insert into " + table + "(k,v,wt) values(:key,:value,:wt) " +
+					"insert into " + table + "(k,v,wt,rt) values(:key,:value,:wt,:wt) " +
 							"on conflict(k) do update set v=:value,wt=:wt"
 							+ (updateReadTime ? ",rt=(datetime(CURRENT_TIMESTAMP,'localtime'))" : "")
 					, Colls.ofHashMap(
@@ -463,12 +479,17 @@ public class SqliteDB implements Closeable {
 		
 		@Override
 		public V readAndWrite(String key, Function<V, V> biz) {
+			return readAndWrite(key, biz, LocalDateTime.now());
+		}
+		
+		@Override
+		public V readAndWrite(String key, Function<V, V> biz, LocalDateTime writeTime) {
 			synchronized (key.intern()) {
 				Item<String> old = itemByKey(key, true, false);
 				String s = old != null ? old.getValue() : null;
 				V newV = biz.apply(s != null ? JSON.parseObject(s, valueClass) : null);
 				String v = JSON.toJSONString(newV);
-				save(key, v);
+				save(key, v, writeTime);
 				return newV;
 			}
 		}
@@ -483,6 +504,29 @@ public class SqliteDB implements Closeable {
 			Item<String> old = itemByKey(key, true, false);
 			return old != null && Strings.isNotBlank(old.getValue()) ?
 					JSON.parseObject(old.getValue(), valueClass) : defaultConfig;
+		}
+		
+		@Override
+		public List<Item<V>> configsByRawSql(
+				@Nullable String cols, @Nullable String conditions, @Nullable String clauses, @Nullable Map<String, ?> params) {
+			List items = itemsByRawSql(cols, conditions, clauses, params);
+			items.stream()
+			     .peek(i -> {
+				     Item item = (Item) i;
+				     item.value = JSON.parseObject((String) item.getValue(), valueClass);
+			     })
+			     .collect(Collectors.toList());
+			return items;
+		}
+		
+		@Override
+		public int saveConfig(String key, V value) {
+			return saveConfig(key, value, LocalDateTime.now());
+		}
+		
+		@Override
+		public int saveConfig(String key, V value, @Nullable LocalDateTime writeTime) {
+			return save(key, JSON.toJSONString(value), writeTime);
 		}
 	}
 	

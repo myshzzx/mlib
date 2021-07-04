@@ -117,7 +117,7 @@ public class FilesUtil {
 		file.delete();
 		if (!writeFile.renameTo(file))
 			throw new IOException("rename file error. " + writeFile.getAbsolutePath() + " -> " + file.getAbsolutePath());
-		log.debug("write to file: " + file.getAbsolutePath());
+		log.debug("wrote to file: " + file.getAbsolutePath());
 	}
 	
 	/**
