@@ -137,6 +137,22 @@ public class Times {
 		public DateTimeFormatter getFormatter() {
 			return formatter;
 		}
+		
+		public String format(Object time) {
+			return Times.format(this, time);
+		}
+		
+		public LocalDateTime parseDayTime(String time) {
+			return Times.parseDayTime(this, time);
+		}
+		
+		public LocalDate parseDay(String time) {
+			return Times.parseDay(this, time);
+		}
+		
+		public LocalTime parseTime(String time) {
+			return Times.parseTime(this, time);
+		}
 	}
 	
 	private static final ZoneId zoneSysDefault = ZoneId.systemDefault();
